@@ -54,6 +54,7 @@ class AuthService(
         val user = users.findById(UUID.fromString(claims.subject)).orElseThrow {
             UnauthorizedException("Invalid refresh token")
         }
+        if (user.status != UserStatus.ACTIVE) throw UnauthorizedException("Invalid refresh token")
         return tokens(user)
     }
 

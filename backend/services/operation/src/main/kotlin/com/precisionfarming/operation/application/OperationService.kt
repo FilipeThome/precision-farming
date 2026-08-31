@@ -3,18 +3,16 @@ package com.precisionfarming.operation.application
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.SagaEntity
 import com.precisionfarming.operation.infrastructure.SagaJpaRepository
-import com.precisionfarming.security.JwtService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
-import org.springframework.http.MediaType
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.web.client.RestClient
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -35,12 +33,8 @@ data class CreateOperation(
 class OperationService(
     private val repo: OperationJpaRepository,
     private val sagas: SagaJpaRepository,
-    private val jwtService: JwtService,
-    @Value("\${app.clients.inventory}") private val inventoryUrl: String,
+    private val inventory: InventorySagaClient,
 ) {
-    private val http = RestClient.create()
-    private fun serviceToken() =
-        jwtService.cachedAccessToken(DemoIds.uuid("svc-operation"), "operation@internal", "ADMIN")
 
     fun list(farmId: UUID? = null) =
         (farmId?.let { repo.findByFarmId(it) } ?: repo.findAll()).map { it.toDto() }
@@ -60,24 +54,36 @@ class OperationService(
         if (op.status != "PLANNED" && op.status != "PAUSED") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
         }
+        val needsReserve = op.status == "PLANNED"
         val saga = sagas.save(
             SagaEntity(UUID.randomUUID(), op.id, "StartOperationSaga", "STARTED", null, Instant.now(), Instant.now()),
         )
+        var reserved = false
         try {
-            reserve(op)
-            saga.state = "INVENTORY_RESERVED"
+            if (needsReserve) {
+                reserved = inventoryMove(op, "RESERVE")
+                if (reserved) saga.state = "INVENTORY_RESERVED"
+            }
             op.status = "IN_PROGRESS"
             op.actualStart = op.actualStart ?: Instant.now()
             op.pauseReason = null
             saga.state = "COMPLETED"
+            sagas.save(saga)
+            return repo.save(op).toDto()
         } catch (ex: Exception) {
+            if (reserved) {
+                try {
+                    inventoryMove(op, "RELEASE")
+                } catch (compensateEx: Exception) {
+                    saga.payload = "${ex.message}; RELEASE failed: ${compensateEx.message}"
+                }
+            }
+            if (saga.payload == null) saga.payload = ex.message
             saga.state = "COMPENSATED"
-            saga.payload = ex.message
+            saga.updatedAt = Instant.now()
             sagas.save(saga)
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to start operation")
         }
-        sagas.save(saga)
-        return repo.save(op).toDto()
     }
 
     @Transactional
@@ -100,42 +106,37 @@ class OperationService(
         val saga = sagas.save(
             SagaEntity(UUID.randomUUID(), op.id, "CompleteOperationSaga", "STARTED", null, Instant.now(), Instant.now()),
         )
+        var consumed = false
         try {
-            consume(op)
-            saga.state = "INVENTORY_CONSUMED"
+            consumed = inventoryMove(op, "CONSUME")
+            if (consumed) saga.state = "INVENTORY_CONSUMED"
             op.status = "COMPLETED"
             op.actualEnd = Instant.now()
             saga.state = "COMPLETED"
+            sagas.save(saga)
+            return repo.save(op).toDto()
         } catch (ex: Exception) {
+            if (consumed) {
+                try {
+                    inventoryMove(op, "IN")
+                    inventoryMove(op, "RESERVE")
+                } catch (compensateEx: Exception) {
+                    saga.payload = "${ex.message}; restore failed: ${compensateEx.message}"
+                }
+            }
+            if (saga.payload == null) saga.payload = ex.message
             saga.state = "COMPENSATED"
-            saga.payload = ex.message
+            saga.updatedAt = Instant.now()
             sagas.save(saga)
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to complete operation")
         }
-        sagas.save(saga)
-        return repo.save(op).toDto()
     }
 
-    private fun reserve(op: OperationEntity) {
-        val itemId = op.itemId ?: return
-        val qty = op.itemQuantity ?: return
-        http.post().uri("$inventoryUrl/api/v1/inventory/movements")
-            .header("Authorization", "Bearer ${serviceToken()}")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(mapOf("itemId" to itemId, "type" to "RESERVE", "quantity" to qty, "reference" to op.id.toString()))
-            .retrieve()
-            .toBodilessEntity()
-    }
-
-    private fun consume(op: OperationEntity) {
-        val itemId = op.itemId ?: return
-        val qty = op.itemQuantity ?: return
-        http.post().uri("$inventoryUrl/api/v1/inventory/movements")
-            .header("Authorization", "Bearer ${serviceToken()}")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(mapOf("itemId" to itemId, "type" to "CONSUME", "quantity" to qty, "reference" to op.id.toString()))
-            .retrieve()
-            .toBodilessEntity()
+    private fun inventoryMove(op: OperationEntity, type: String): Boolean {
+        val itemId = op.itemId ?: return false
+        val qty = op.itemQuantity ?: return false
+        inventory.move(itemId, type, qty, op.id.toString())
+        return true
     }
 
     private fun load(id: UUID) = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }

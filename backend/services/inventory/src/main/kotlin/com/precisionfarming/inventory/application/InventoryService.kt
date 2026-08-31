@@ -46,6 +46,9 @@ class InventoryService(
             }
             "RELEASE" -> item.reserved = (item.reserved - cmd.quantity).max(BigDecimal.ZERO)
             "CONSUME" -> {
+                if (item.quantity < cmd.quantity) {
+                    throw ConflictException("INSUFFICIENT_STOCK", "Not enough stock to consume")
+                }
                 item.quantity -= cmd.quantity
                 item.reserved = (item.reserved - cmd.quantity).max(BigDecimal.ZERO)
             }
