@@ -1,0 +1,16 @@
+package com.precisionfarming.notification.api
+
+import com.precisionfarming.notification.application.NotificationService
+import org.springframework.web.bind.annotation.*
+
+@RestController
+@RequestMapping("/api/v1/notifications")
+class NotificationController(private val svc: NotificationService) {
+    @GetMapping fun list() = svc.list()
+}
+
+@RestController
+@RequestMapping("/api/v1/dev/seed")
+class NotificationSeedController(private val svc: NotificationService) {
+    @PostMapping("/reset") fun reset() = mapOf("status" to "seeded", "service" to "notification").also { svc.seed() }
+}

@@ -1,0 +1,104 @@
+name: precision-farming
+
+# Full local stack, ready even when a service is unused.
+# Alpine variants where the vendor publishes them.
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.5-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-precision}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-precision}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - precision-farming
+
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-precision}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
+      POSTGRES_DB: telemetry_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-precision}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - precision-farming
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-precision}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-precision}
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - precision-farming
+
+  redis:
+    image: redis:7.4-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - precision-farming
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-precision}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-precisionminio}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - precision-farming
+
+networks:
+  precision-farming:
+    name: precision-farming
+
+volumes:
+  postgres_data:
+  timescaledb_data:
+  rabbitmq_data:
+  redis_data:
+  minio_data:

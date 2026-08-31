@@ -1,0 +1,15 @@
+---
+description: Kotlin Spring Boot microservice standards for the backend
+globs: backend/**/*.kt,backend/**/*.kts,backend/**/build.gradle.kts
+alwaysApply: false
+---
+
+# Kotlin / Spring Boot microservices
+
+- Clean Architecture: domain (no Spring/JPA) → application → infrastructure → api
+- Database per service; no cross-service SQL
+- DTOs at HTTP boundaries; constructor injection; `@Transactional` on application services only
+- JWT resource server on every service; clients call the gateway only
+- Distributed sagas via outbox events; compensating actions; no 2PC
+- Unit tests MockK; integration tests Testcontainers
+- `./gradlew test` before done; no secrets in repo

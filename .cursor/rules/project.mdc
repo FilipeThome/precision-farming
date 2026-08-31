@@ -1,0 +1,11 @@
+---
+description: Precision Farming project conventions
+alwaysApply: true
+---
+
+# Precision Farming
+
+- Gateway is the only public API (`/api/v1`).
+- Microservices: database per service, outbox events, orchestrated sagas.
+- Web: React + TanStack Query. Mobile: KMP Compose.
+- Architect approval before large features. No secrets in git.
