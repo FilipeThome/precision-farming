@@ -1,6 +1,9 @@
 package com.precisionfarming.farm.application
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.farm.infrastructure.FarmEntity
@@ -10,6 +13,9 @@ import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
+import org.locationtech.jts.geom.LinearRing
+import org.locationtech.jts.geom.MultiPolygon
+import org.locationtech.jts.geom.Polygon
 import org.locationtech.jts.geom.PrecisionModel
 import org.locationtech.jts.io.WKTReader
 import org.springframework.beans.factory.annotation.Value
@@ -48,6 +54,7 @@ class FarmService(
 ) {
     private val gf = GeometryFactory(PrecisionModel(), 4326)
     private val wktReader = WKTReader(gf)
+    private val json = ObjectMapper()
 
     fun listFarms() = farms.findAll().map { it.toDto() }
     fun getFarm(id: UUID) = farms.findById(id).orElseThrow { NotFoundException("FARM_NOT_FOUND", "Farm not found") }.toDto()
@@ -149,14 +156,65 @@ class FarmService(
         }
     }
 
-    private fun parseMulti(geojson: String): Geometry {
-        val geom = if (geojson.trim().startsWith("{")) {
-            rectangle(-54.57, -19.39, 0.04)
-        } else {
-            wktReader.read(geojson.trim())
+    private fun parseMulti(raw: String): Geometry {
+        val text = raw.trim()
+        val parsed = try {
+            if (text.startsWith("{")) parseGeoJson(text) else wktReader.read(text)
+        } catch (ex: DomainException) {
+            throw ex
+        } catch (ex: Exception) {
+            throw DomainException("INVALID_GEOMETRY", ex.message ?: "Invalid geometry")
         }
+        val geom = toMultiPolygon(parsed)
         geom.srid = 4326
         return geom
+    }
+
+    private fun parseGeoJson(text: String): Geometry {
+        val node = json.readTree(text)
+        val type = node.path("type").asText()
+        val coordinates = node.get("coordinates")
+            ?: throw DomainException("INVALID_GEOMETRY", "GeoJSON coordinates are required")
+        return when (type) {
+            "Polygon" -> polygonFromRings(coordinates)
+            "MultiPolygon" -> {
+                if (!coordinates.isArray || coordinates.isEmpty) {
+                    throw DomainException("INVALID_GEOMETRY", "MultiPolygon coordinates are empty")
+                }
+                gf.createMultiPolygon(coordinates.map { polygonFromRings(it) }.toTypedArray())
+            }
+            else -> throw DomainException("INVALID_GEOMETRY", "Expected Polygon or MultiPolygon")
+        }
+    }
+
+    private fun polygonFromRings(rings: JsonNode): Polygon {
+        if (!rings.isArray || rings.isEmpty) {
+            throw DomainException("INVALID_GEOMETRY", "Polygon rings are required")
+        }
+        val parsed = rings.map { ringToLinearRing(it) }
+        return gf.createPolygon(parsed.first(), parsed.drop(1).toTypedArray())
+    }
+
+    private fun ringToLinearRing(ring: JsonNode): LinearRing {
+        if (!ring.isArray || ring.size() < 4) {
+            throw DomainException("INVALID_GEOMETRY", "A linear ring needs at least 4 positions")
+        }
+        val points = ring.map { pos ->
+            if (!pos.isArray || pos.size() < 2) {
+                throw DomainException("INVALID_GEOMETRY", "Each position needs longitude and latitude")
+            }
+            Coordinate(pos[0].asDouble(), pos[1].asDouble())
+        }.toMutableList()
+        if (points.first().x != points.last().x || points.first().y != points.last().y) {
+            points += Coordinate(points.first())
+        }
+        return gf.createLinearRing(points.toTypedArray())
+    }
+
+    private fun toMultiPolygon(geom: Geometry): Geometry = when (geom) {
+        is MultiPolygon -> geom
+        is Polygon -> gf.createMultiPolygon(arrayOf(geom))
+        else -> throw DomainException("INVALID_GEOMETRY", "Expected Polygon or MultiPolygon")
     }
 
     private fun rectangle(lng: Double, lat: Double, d: Double): Geometry {
@@ -175,8 +233,22 @@ class FarmService(
     }
 
     private fun toGeoJson(geometry: Geometry): String {
-        val coords = geometry.coordinates.joinToString(",") { "[${it.x},${it.y}]" }
-        return """{"type":"MultiPolygon","coordinates":[[[${coords}]]]}"""
+        val polygons = when (geometry) {
+            is MultiPolygon -> (0 until geometry.numGeometries).map { geometry.getGeometryN(it) as Polygon }
+            is Polygon -> listOf(geometry)
+            else -> throw DomainException("INVALID_GEOMETRY", "Expected Polygon or MultiPolygon")
+        }
+        val coords = polygons.joinToString(",") { polygon ->
+            val rings = buildList {
+                add(polygon.exteriorRing)
+                for (i in 0 until polygon.numInteriorRing) add(polygon.getInteriorRingN(i))
+            }
+            val encoded = rings.joinToString(",") { ring ->
+                ring.coordinates.joinToString(",", "[", "]") { "[${it.x},${it.y}]" }
+            }
+            "[$encoded]"
+        }
+        return """{"type":"MultiPolygon","coordinates":[$coords]}"""
     }
 
     private fun FarmEntity.toDto() = FarmDto(id, name, location, areaHa, timezone)
