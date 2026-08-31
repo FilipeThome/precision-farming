@@ -1,0 +1,37 @@
+rootProject.name = "precision-farming"
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        mavenCentral()
+    }
+    versionCatalogs {
+        create("libs") {
+            from(files("backend/gradle/libs.versions.toml"))
+        }
+    }
+}
+
+include("backend:libs:common")
+include("backend:libs:security")
+include("backend:gateway")
+include("backend:services:auth")
+include("backend:services:farm")
+include("backend:services:asset")
+include("backend:services:telemetry")
+include("backend:services:weather")
+include("backend:services:operation")
+include("backend:services:inventory")
+include("backend:services:alert")
+include("backend:services:ai")
+include("backend:services:notification")
+include("backend:services:file")
+include("backend:services:reporting")
+include("backend:services:sync")
+include("backend:services:integration")

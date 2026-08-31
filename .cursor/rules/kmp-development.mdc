@@ -1,0 +1,14 @@
+---
+description: Kotlin Multiplatform and Compose Multiplatform standards
+globs: mobile/**/*.kt,mobile/**/*.kts,mobile/**/*.swift
+alwaysApply: false
+---
+
+# KMP / Compose Multiplatform
+
+- Business rules in `commonMain` only
+- `expect`/`actual` for maps, secure storage, connectivity
+- Offline command queue with `clientOperationId`
+- Google Maps real SDKs — never a static satellite image
+- Windows: Android + commonTest; iOS xcodebuild only on macOS
+- Large feature → **kmp-architect** then **kmp-engineer**

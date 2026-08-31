@@ -1,0 +1,15 @@
+---
+description: React web app standards for Precision Farming
+globs: web/**/*.tsx,web/**/*.ts,web/**/package.json,web/**/vite.config.*
+alwaysApply: false
+---
+
+# React.js Web
+
+- Functional components, TypeScript, feature folders
+- TanStack Query for server state; Zustand for UI/session only
+- All HTTP via `src/shared/api` against the gateway
+- Loading, empty, error, offline states on every screen
+- Tailwind design tokens (deep green, teal accent); WCAG AA
+- RTL + Vitest; Playwright for critical flows
+- Large UI → **react-architect** then **react-engineer**

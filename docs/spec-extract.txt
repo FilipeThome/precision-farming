@@ -1,0 +1,880 @@
+PRECISION FARMINGMVP — IMPLEMENTATION SPECIFICATIONWeb React + TypeScript • iOS Swift • Android Kotlin • Backend KotlinSingle Backend • Demo Data • Google Maps Satellite • Production-shaped Architecture
+Versão: 1.0 — Documento destinado a uma IA de codificação/autonomous coding agent. O objetivo é transformar esta especificação em um protótipo MVP funcional, executável localmente, com dados demo realistas e paridade funcional entre Web, iOS e Android.
+IMPORTANTE: o MVP deve ser realmente executável. Não criar telas estáticas ou mocks desconectados. Todas as telas devem consumir o mesmo backend e persistir dados no banco. Integrações externas que exigem credenciais devem possuir adapters reais + modo demo determinístico.
+1. Objetivo do documento
+Este documento é o contrato de implementação do MVP do Precision Farming. Uma IA de codificação deve conseguir gerar o repositório, executar os serviços, popular o banco com dados demo, iniciar Web/iOS/Android e demonstrar os fluxos principais sem depender de integrações proprietárias.
+• Web: React.js + TypeScript.
+• iOS: Swift + SwiftUI, aplicativo nativo separado.
+• Android: Kotlin + Jetpack Compose, aplicativo nativo separado.
+• Backend: Kotlin + Spring Boot.
+• Banco: PostgreSQL + PostGIS.
+• Mapas e imagens de satélite: Google Maps Platform.
+• Todos os clientes consomem o mesmo backend.
+• Dados demo devem ser persistidos e editáveis.
+• Arquitetura preparada para integrações futuras, mas MVP deve funcionar sem elas.
+• UI deve ser clean, fluida, responsiva, acessível e orientada a tarefas.
+2. Regras não negociáveis para a IA de codificação
+1. Não gerar apenas wireframes; implementar comportamento real.
+2. Não criar APIs fake dentro do frontend; usar HTTP contra o backend.
+3. Não duplicar regra de negócio em Web/iOS/Android.
+4. Não armazenar estado de negócio crítico apenas localmente.
+5. Não usar dados aleatórios em runtime; usar seed determinístico.
+6. Não colocar API keys do Google em código-fonte versionado.
+7. Não expor credenciais server-side no frontend.
+8. Não criar microserviços desnecessários para o MVP; começar com modular monolith bem delimitado.
+9. Não usar dados de satélite falsos quando o mapa Google estiver disponível.
+10. Não substituir a imagem real do Google Maps por uma imagem estática.
+11. Não esconder erros de integração: mostrar status, retry e modo demo.
+12. Todo endpoint deve possuir teste.
+13. Todo fluxo crítico deve ter teste end-to-end.
+14. Manter Web/iOS/Android com a mesma matriz funcional.
+15. Documentar decisões que divergem desta especificação.
+3. Escopo do MVP
+Módulo
+MVP
+Observação
+Autenticação
+Sim
+JWT + refresh token; usuário demo
+Dashboard
+Sim
+KPIs e alertas
+Fazendas
+Sim
+CRUD
+Talhões
+Sim
+CRUD + geometrias
+Mapa
+Sim
+Google Maps real + satélite
+Máquinas
+Sim
+CRUD + posição/status demo
+Telemetria
+Sim
+Histórico demo
+Clima
+Sim
+Forecast demo + provider adapter
+Operações
+Sim
+Planejar, iniciar, pausar, concluir
+Insumos
+Sim
+Estoque e aplicações
+Alertas
+Sim
+Regras determinísticas
+Imagens/Satélite
+Sim
+Google Maps base; camadas demo opcionais
+IA
+Sim, MVP
+Predições demo calculadas por serviço
+Relatórios
+Sim
+CSV + resumo
+Notificações
+Sim
+Inbox interno; push preparado
+Offline Mobile
+Sim
+Cache + fila de comandos
+Integrações de fabricantes
+Adapter demo
+Interface pronta; conectores reais posteriores
+Drones
+Adapter demo
+Missões simuladas
+Financeiro agrícola
+P1
+Modelo de dados básico, sem execução financeira
+Marketplace de conectores
+Não
+Pós-MVP
+4. Stack técnica
+Componente
+Tecnologia
+Diretriz
+Backend
+Kotlin + Spring Boot 3.x
+REST + OpenAPI
+Build backend
+Gradle Kotlin DSL
+Version catalog
+ORM
+Spring Data JPA / Hibernate
+PostgreSQL
+DB
+PostgreSQL + PostGIS
+Transacional + geoespacial
+Cache
+Redis opcional
+Somente onde houver benefício
+Web
+React + TypeScript + Vite
+SPA
+Web UI
+Tailwind CSS + componentes acessíveis
+Design system próprio
+Web state
+TanStack Query + Zustand
+Server state separado de UI state
+Web maps
+Google Maps JavaScript API
+Satellite/Hybrid + polygons/markers
+iOS
+Swift + SwiftUI
+Native
+iOS maps
+Google Maps SDK for iOS
+Satellite/Hybrid
+Android
+Kotlin + Jetpack Compose
+Native
+Android maps
+Google Maps SDK for Android
+Satellite/Hybrid
+HTTP mobile
+URLSession / Retrofit+OkHttp
+Native idioms
+Auth
+JWT + refresh token
+Secure storage
+Observability
+OpenTelemetry + logs estruturados
+MVP-ready
+Container
+Docker Compose
+One-command local setup
+CI
+GitHub Actions
+Build/test/lint
+Docs
+OpenAPI + README + ADRs
+AI-friendly
+5. Arquitetura do MVP
+O backend deve ser um modular monolith, não um conjunto inicial de microserviços. Os módulos devem ter fronteiras claras para permitir extração futura.
+• auth — identidade, usuários, roles.
+• farm — farms, units, fields, crops.
+• asset — machines, implements, sensors.
+• telemetry — observations, positions, metrics.
+• weather — providers, forecasts, observations.
+• operation — plans, work orders, executions.
+• inventory — items, batches, movements, applications.
+• alert — rules, alerts, acknowledgements.
+• ai — features, predictions, recommendations.
+• geo — geometry validation and map metadata.
+• integration — connector registry and adapters.
+• reporting — exports and aggregations.
+• notification — in-app notifications.
+6. Fluxo arquitetural
+Web React ─────────────┐iOS SwiftUI ────────────┼── HTTPS/JSON ──> Kotlin Spring BootAndroid Compose ────────┘                         │                                                 ├── PostgreSQL/PostGIS                                                 ├── Redis (optional)                                                 ├── Integration adapters                                                 ├── AI/Prediction module                                                 └── External providers                                                      └── Google Maps is consumed                                                          directly by clients                                                          for map rendering
+O backend é a fonte de verdade dos dados de negócio. O Google Maps é uma camada de visualização/geospatial experience; não usar o backend como proxy de tiles do Google.
+7. Google Maps Platform — requisito obrigatório
+O mapa deve usar dados reais do Google Maps Platform. No Web, usar Maps JavaScript API; ela suporta mapas interativos, marcadores, dados customizados e tipos de mapa como SATELLITE e HYBRID. Para o MVP, o mapa deve iniciar em SATELLITE quando o usuário estiver no módulo de talhões. citeturn0search5turn0search9
+No Android, usar Maps SDK for Android nativo, com MAP_TYPE_SATELLITE ou MAP_TYPE_HYBRID e overlays de polígonos/markers. O SDK suporta markers, polygons, polylines e interação com mapa. citeturn0search0turn0search3
+No iOS, usar Maps SDK for iOS nativo e mapType .satellite ou .hybrid. O SDK expõe GMSMapView e permite markers, polylines e polygons. citeturn1search0turn1search16turn1search17
+Google exige billing ativo e chave válida para o uso dos SDKs/serviços. As chaves devem ser restritas por aplicação/API; não colocar uma chave unrestricted no repositório. A recomendação é uma chave Web restrita por HTTP referrer, uma chave Android por package/SHA-1 e uma chave iOS por bundle identifier, conforme as capacidades/restrições suportadas. citeturn0search2turn0search4turn1search1
+8. Configuração de mapas
+Variáveis esperadas:
+WEB_GOOGLE_MAPS_API_KEY=...ANDROID_GOOGLE_MAPS_API_KEY=...IOS_GOOGLE_MAPS_API_KEY=...GOOGLE_MAP_ID=...   # quando usado no WebGOOGLE_MAP_DEFAULT_TYPE=satellite
+Nunca commitar valores reais. Criar .env.example, secrets.properties.example e configuração equivalente no Xcode. A documentação oficial recomenda restringir chaves e manter web-service secrets fora do código-fonte. citeturn0search4
+9. Requisito de mapa do Precision Farming
+• Mapa fullscreen com painel lateral no Web.
+• Mapa ocupa a maior parte da tela no mobile.
+• Toggle: Satellite / Hybrid / Roadmap.
+• Layers: Talhões / Máquinas / Operações / Alertas / Estações meteorológicas.
+• Polígonos de talhão com seleção.
+• Marker de máquina com status.
+• Trajeto histórico da máquina.
+• Fit bounds para talhão.
+• Bottom sheet no mobile para detalhes.
+• Filtro por fazenda, talhão, cultura e status.
+• Legend de cores.
+• Mostrar timestamp de última atualização.
+• Permitir abrir detalhe do talhão a partir do polígono.
+10. Design System — Precision Farming
+A interface deve transmitir tecnologia agrícola premium, não aparência de ERP genérico.
+Elemento
+Diretriz
+Cor primária
+Verde profundo
+Acento
+Verde vivo/teal usado com parcimônia
+Background
+Off-white / cinza muito claro
+Cards
+Branco, radius 12–16px, sombra discreta
+Tipografia
+Inter ou equivalente
+Densidade
+Compacta no desktop, confortável no mobile
+Ícones
+Lucide ou SF Symbols/Material Icons conforme plataforma
+Status
+Cor + ícone + texto, nunca somente cor
+Mapas
+Visual dominante em módulos geoespaciais
+Motion
+150–250ms, sem animações decorativas
+Acessibilidade
+WCAG AA como alvo
+Dark mode
+Preparar tokens, não prioridade P0
+11. Navegação Web
+• Dashboard
+• Mapa
+• Fazendas
+• Talhões
+• Máquinas
+• Operações
+• Manutenção
+• Estoque
+• Clima
+• IA & Insights
+• Alertas
+• Relatórios
+• Configurações
+12. Navegação Mobile
+• Home
+• Mapa
+• Operações
+• Máquinas
+• Alertas
+• Mais
+Mobile não deve tentar replicar a densidade do desktop. A funcionalidade deve ser equivalente, mas a composição visual é nativa e orientada a campo.
+13. Matriz de paridade Web / iOS / Android
+Feature
+Web
+iOS
+Android
+Dashboard
+✓
+✓
+✓
+Farm CRUD
+✓
+✓
+✓
+Field CRUD
+✓
+✓
+✓
+Map Satellite
+✓
+✓
+✓
+Field polygons
+✓
+✓
+✓
+Machine list/detail
+✓
+✓
+✓
+Telemetry history
+✓
+✓
+✓
+Weather
+✓
+✓
+✓
+Create operation
+✓
+✓
+✓
+Start/pause/complete operation
+✓
+✓
+✓
+Inventory
+✓
+✓
+✓
+Alerts
+✓
+✓
+✓
+AI insights
+✓
+✓
+✓
+Reports
+✓
+✓
+✓
+Offline queue
+—
+✓
+✓
+Admin/configuration
+✓
+✓
+✓
+14. Dashboard
+Objetivo: permitir que o supervisor compreenda o estado da fazenda em menos de 30 segundos.
+• Header: fazenda selecionada, safra, sincronização e usuário.
+• KPI cards: área, máquinas operacionais, operações hoje, alertas críticos.
+• Mapa resumido com talhões.
+• Operações recentes.
+• Máquinas em destaque.
+• Weather card.
+• AI Insights card.
+• Alert feed.
+• Yield/operation trend.
+Estados obrigatórios: loading skeleton, populated, empty, error, offline/stale.
+15. Tela de Talhões / mapa
+• Lista lateral de talhões.
+• Mapa Google Satellite.
+• Polygon por talhão.
+• Cor por status da cultura.
+• Search.
+• Filters.
+• Layer switcher.
+• Selected field card.
+• NDVI como camada demo opcional, mas identificada claramente como camada demonstrativa e não como imagem oficial Google.
+• Detalhe: cultura, área, operação atual, umidade, previsão, risco, última inspeção.
+16. Máquinas e telemetria
+• Lista de máquinas com status Online/Idle/Offline/Maintenance.
+• Última posição.
+• Velocidade.
+• Horímetro.
+• Combustível demo.
+• Temperatura demo.
+• RPM demo.
+• Última sincronização.
+• Histórico de telemetria.
+• Trajeto no mapa.
+• Alertas da máquina.
+• Maintenance prediction card.
+17. Operações
+• Kanban: Planejada / Em andamento / Pausada / Concluída.
+• Filtros por talhão, máquina, operador, cultura e data.
+• Create operation.
+• Start/pause/complete.
+• Reason for pause.
+• Actual start/end.
+• Input usage.
+• Machine used.
+• Evidence photo placeholder on mobile.
+• Reconciliation planned × actual.
+18. Clima
+• Current conditions.
+• 7-day forecast.
+• Hourly forecast.
+• Rain probability.
+• Wind.
+• Temperature.
+• Humidity.
+• Operational window.
+• Spraying suitability.
+• Weather risk alert.
+19. IA & Insights — MVP
+O MVP deve ter modelos determinísticos/estatísticos com interface preparada para ML real. Não apresentar um algoritmo fictício como modelo treinado.
+• Yield forecast: baseline calculado sobre dados demo.
+• Machine failure risk: score baseado em horas, falhas e telemetria demo.
+• Operational delay risk: score baseado em backlog + weather.
+• Input deviation: comparação planejado × realizado.
+• Weather window score.
+• AI recommendation card com confidence, rationale e timestamp.
+Toda previsão deve indicar: 'Demo model' no ambiente demo, modelo/version, data/hora e confiança. O sistema deve possuir endpoint para substituir o modelo por um serviço Python posteriormente.
+20. Demo AI contract
+GET /api/v1/ai/insights?farmId={id}GET /api/v1/ai/predictions?fieldId={id}GET /api/v1/ai/machine-risk?machineId={id}POST /api/v1/ai/recommendations/{id}/feedback
+Resposta mínima:
+{  "id": "prediction-001",  "type": "MACHINE_FAILURE_RISK",  "entityId": "machine-001",  "score": 0.72,  "confidence": 0.81,  "horizonHours": 72,  "model": "demo-gradient-baseline",  "modelVersion": "0.1.0",  "generatedAt": "2026-08-31T10:00:00Z",  "explanation": [    "High engine hours",    "Increasing temperature variance",    "Recent diagnostic event"  ]}
+21. Backend REST API
+Grupo
+Endpoints principais
+Auth
+POST /api/v1/auth/login; POST /api/v1/auth/refresh
+Farms
+GET/POST /api/v1/farms; GET/PATCH/DELETE /api/v1/farms/{id}
+Fields
+GET/POST /api/v1/fields; GET/PATCH/DELETE /api/v1/fields/{id}
+Machines
+GET/POST /api/v1/machines; GET/PATCH /api/v1/machines/{id}
+Telemetry
+GET /api/v1/machines/{id}/telemetry; GET /api/v1/machines/{id}/track
+Weather
+GET /api/v1/weather/current; GET /api/v1/weather/forecast
+Operations
+GET/POST /api/v1/operations; POST /api/v1/operations/{id}/start; /pause; /complete
+Inventory
+GET/POST /api/v1/inventory; POST /api/v1/inventory/movements
+Alerts
+GET /api/v1/alerts; POST /api/v1/alerts/{id}/ack
+AI
+GET /api/v1/ai/insights; GET /api/v1/ai/predictions
+Reports
+GET /api/v1/reports/operations.csv; GET /api/v1/reports/inventory.csv
+Sync
+POST /api/v1/sync/push; POST /api/v1/sync/pull
+Health
+GET /actuator/health; /actuator/info
+22. API conventions
+• Prefix /api/v1.
+• UUIDs para entidades.
+• ISO-8601 UTC para timestamps.
+• Pagination cursor-based quando necessário.
+• Consistent error envelope.
+• Correlation ID em cada request.
+• Idempotency-Key para comandos.
+• ETag/If-Match para updates sensíveis quando apropriado.
+• Validation com Bean Validation.
+• OpenAPI gerado.
+• HTTP status semânticos.
+• Não retornar entidades JPA diretamente.
+23. Error contract
+{  "timestamp": "2026-08-31T12:00:00Z",  "status": 409,  "code": "OPERATION_STATE_CONFLICT",  "message": "Operation cannot be completed from current state.",  "correlationId": "01J...",  "details": {    "operationId": "..."  }}
+24. Modelo de dados principal
+Tabela
+Campos essenciais
+users
+id, name, email, password_hash, role, status
+farms
+id, name, location, area_ha, timezone
+fields
+id, farm_id, name, area_ha, crop, variety, geometry
+machines
+id, farm_id, name, type, manufacturer, model, status
+telemetry_observations
+id, machine_id, observed_at, lat, lon, speed_kmh, rpm, fuel_pct, engine_temp_c
+weather_forecasts
+id, farm_id, forecast_at, temperature, rain_mm, rain_probability, wind_kmh, humidity
+operations
+id, field_id, type, status, planned_start, planned_end, actual_start, actual_end, machine_id
+inventory_items
+id, farm_id, name, category, unit, quantity
+inventory_movements
+id, item_id, type, quantity, occurred_at, reference
+alerts
+id, farm_id, severity, type, title, message, entity_type, entity_id, status
+predictions
+id, type, entity_type, entity_id, score, confidence, model, model_version, generated_at
+notifications
+id, user_id, type, title, body, read_at
+sync_commands
+id, device_id, client_operation_id, command_type, payload, status, created_at
+25. Geoespacial no PostgreSQL
+Usar PostGIS para armazenar geometria de talhões. O backend deve aceitar GeoJSON, validar geometria e calcular área quando necessário.
+geometry geometry(MultiPolygon, 4326) NOT NULLcentroid geometry(Point, 4326)area_ha numeric(12,4)
+Não armazenar polígonos como strings arbitrárias.
+26. Dados demo — fazendas
+ID
+Fazenda
+Localização
+Área
+farm-001
+Fazenda Boa Vista
+São Gabriel do Oeste - MS
+1.250 ha
+farm-002
+Fazenda Santa Helena
+Rio Verde - GO
+980 ha
+farm-003
+Fazenda Horizonte
+Sorriso - MT
+2.450 ha
+27. Dados demo — talhões
+ID
+Fazenda
+Talhão
+Área
+Cultura
+field-001
+farm-001
+Talhão 01
+120,5 ha
+Soja
+field-002
+farm-001
+Talhão 02
+95,0 ha
+Milho
+field-003
+farm-001
+Talhão 03
+80,0 ha
+Soja
+field-004
+farm-002
+Talhão Norte
+210,0 ha
+Soja
+field-005
+farm-002
+Talhão Sul
+175,0 ha
+Milho
+field-006
+farm-003
+Talhão A
+320,0 ha
+Soja
+28. Dados demo — máquinas
+ID
+Fazenda
+Nome
+Tipo
+Fabricante/Modelo
+Status
+machine-001
+farm-001
+Trator 01
+Trator
+John Deere 8R 410
+OPERATING
+machine-002
+farm-001
+Pulverizador 01
+Pulverizador
+John Deere R4045
+OPERATING
+machine-003
+farm-001
+Colheitadeira 01
+Colheitadeira
+New Holland CR7.90
+IDLE
+machine-004
+farm-002
+Trator 02
+Trator
+Massey Ferguson 8737
+MAINTENANCE
+machine-005
+farm-003
+Plantadeira 01
+Plantadeira
+Stara Absoluta
+OPERATING
+29. Dados demo — telemetria
+Seed de 30 dias, com registros em intervalos de 5 minutos para máquinas selecionadas. Não gerar milhões de linhas no seed inicial.
+• posição dentro/ao redor do talhão.
+• velocidade plausível por tipo de máquina.
+• RPM correlacionado com operação.
+• combustível decrescente durante operação.
+• temperatura com variação.
+• eventos de parada.
+• alguns outliers intencionais para alimentar alertas/IA.
+30. Dados demo — clima
+Seed de 14 dias históricos + 7 dias futuros por fazenda. Cada forecast deve possuir uma versão/vintage para demonstrar comparação posterior.
+Campo
+Exemplo
+temperature_min
+18 °C
+temperature_max
+29 °C
+rain_mm
+4,8 mm
+rain_probability
+72%
+wind_kmh
+14
+humidity_pct
+67%
+spraying_window
+UNFAVORABLE
+31. Dados demo — operações
+ID
+Talhão
+Tipo
+Status
+op-001
+field-001
+Plantio
+COMPLETED
+op-002
+field-001
+Pulverização
+IN_PROGRESS
+op-003
+field-002
+Adubação
+PLANNED
+op-004
+field-003
+Inspeção
+PLANNED
+op-005
+field-004
+Plantio
+PAUSED
+32. Seed obrigatório
+Criar um comando único:
+./gradlew seedDemoData
+Ou endpoint protegido apenas no profile demo:
+POST /api/v1/dev/seed/reset
+• Seed idempotente.
+• Reset opcional.
+• Não executar automaticamente em produção.
+• Credenciais demo documentadas.
+• Dados sempre reproduzíveis.
+33. Usuários demo
+Usuário
+Role
+Senha demo
+admin@precisionfarming.demo
+ADMIN
+Precision@123
+manager@precisionfarming.demo
+FARM_MANAGER
+Precision@123
+operator@precisionfarming.demo
+OPERATOR
+Precision@123
+maintenance@precisionfarming.demo
+MAINTENANCE
+Precision@123
+As credenciais acima são exclusivamente para ambiente local/demo e nunca devem ser usadas em produção.
+34. Offline mobile
+iOS e Android devem ter implementação offline nativa. O backend permanece a fonte de verdade.
+• Cache das últimas fazendas/talhões/máquinas/operações.
+• Criar operação offline.
+• Iniciar/pausar/concluir operação offline.
+• Fila local de comandos.
+• clientOperationId único.
+• Retry com exponential backoff.
+• Idempotência no backend.
+• Indicador de sync.
+• Conflito explícito.
+• Última sincronização visível.
+• Não perder trabalho do operador.
+35. Sync protocol
+POST /api/v1/sync/push{  "deviceId": "...",  "commands": [    {      "clientOperationId": "...",      "type": "COMPLETE_OPERATION",      "createdAt": "...",      "payload": {...}    }  ]}POST /api/v1/sync/pull{  "deviceId": "...",  "cursor": "..."}
+36. Integrações — modo demo
+Para o MVP, criar interfaces reais e adapters simulados. O sistema deve permitir trocar DemoJohnDeereAdapter por JohnDeereAdapter sem alterar domínio.
+Interface
+Demo implementation
+MachineProvider
+DemoMachineProvider
+WeatherProvider
+DemoWeatherProvider
+DroneProvider
+DemoDroneProvider
+AgronomyProvider
+DemoAgronomyProvider
+SatelliteProvider
+DemoSatelliteProvider
+MarketProvider
+DemoMarketProvider
+Os adapters demo devem produzir dados persistentes e determinísticos.
+37. Contrato de MachineProvider
+interface MachineProvider {    fun listMachines(tenantId: UUID): List<ExternalMachine>    fun getTelemetry(machineId: String, from: Instant, to: Instant): List<TelemetryPoint>    fun getWorkHistory(machineId: String, from: Instant, to: Instant): List<ExternalWork>    fun capabilities(): Set<Capability>}
+38. Google Maps e camadas agrícolas
+A base Google deve permanecer como mapa real. As camadas agrícolas são do Precision Farming: polygons de talhões, markers, trajectories e overlays próprios. Não misturar a propriedade intelectual de mapas Google com imagens agrícolas demo sem identificar a origem.
+• Base: Google Satellite.
+• Overlay 1: Field boundaries.
+• Overlay 2: Machine locations.
+• Overlay 3: Machine track.
+• Overlay 4: Operations.
+• Overlay 5: Weather station.
+• Overlay 6: Demo NDVI layer.
+• Overlay 7: Alerts.
+39. NDVI demo
+Como o Google Maps fornece a base de satélite, mas não deve ser tratado como uma API de NDVI agrícola, o MVP pode apresentar um raster/overlay NDVI próprio e claramente identificado como 'Demo NDVI'. A arquitetura deve permitir substituir posteriormente por imagens e produtos reais de satélite.
+Cada raster deve possuir source, acquisitionAt, processingVersion, resolution e quality.
+40. UI/UX — regras de interação
+• Uma ação primária por tela.
+• Evitar modais para tarefas frequentes.
+• Usar drawers/bottom sheets para detalhes contextuais.
+• Salvar com feedback imediato.
+• Optimistic UI somente para operações reversíveis.
+• Confirmar ações destrutivas.
+• Mostrar estado de sincronização.
+• Não esconder erros.
+• Empty states com próxima ação.
+• Skeleton loading.
+• Filtros persistentes.
+• Atalhos de teclado no Web.
+• Touch targets adequados no mobile.
+• Modo de operação de campo com alto contraste e baixa densidade.
+41. Imagens de referência
+A imagem incluída neste documento é o moodboard funcional do MVP e deve ser tratada como referência visual, não como implementação pixel-perfect. O coding agent deve seguir os fluxos e componentes descritos neste documento.
+42. Testes do backend
+• Unit tests de regras de domínio.
+• Repository integration tests com Testcontainers PostgreSQL/PostGIS.
+• Controller tests.
+• Security tests.
+• Contract tests OpenAPI.
+• Sync idempotency tests.
+• Geospatial validation tests.
+• Seed smoke test.
+43. Testes Web
+• Vitest/Jest para lógica.
+• React Testing Library.
+• Playwright E2E.
+• Dashboard loads.
+• Login.
+• Field selection.
+• Map rendering mocked in unit tests, real Google Maps in environment smoke test.
+• Create/start/complete operation.
+• Alert acknowledgement.
+• AI insight display.
+44. Testes Android
+• Unit tests Kotlin.
+• ViewModel tests.
+• Repository tests.
+• Compose UI tests.
+• Offline sync tests.
+• Map screen smoke test.
+• Operation lifecycle.
+45. Testes iOS
+• XCTest.
+• SwiftUI view model tests.
+• Repository tests.
+• Offline queue tests.
+• Map screen smoke test.
+• Operation lifecycle.
+46. Docker Compose local
+O projeto deve subir com:
+docker compose up -d postgres redis./gradlew bootRuncd web && npm install && npm run dev
+PostgreSQL deve habilitar PostGIS. Redis pode ser opcional para o primeiro fluxo.
+47. Repositório monorepo
+precision-farming/├── backend/├── web/├── mobile-android/├── mobile-ios/├── docs/├── infra/├── scripts/├── docker-compose.yml├── .env.example├── README.md└── Makefile
+Cada aplicativo possui ciclo de build independente. Backend e contratos compartilhados devem ser documentados; não criar uma biblioteca compartilhada que force acoplamento entre Swift/Kotlin/TypeScript.
+48. CI/CD
+• Backend: build + test + static analysis.
+• Web: lint + typecheck + test + build.
+• Android: lint + unit + assembleDebug.
+• iOS: xcodebuild test quando runner macOS estiver disponível.
+• OpenAPI validation.
+• Docker build.
+• Security dependency scan.
+• Demo seed smoke test.
+49. Definition of Done
+• Funcionalidade implementada no backend.
+• Endpoint documentado no OpenAPI.
+• Web implementado.
+• iOS implementado.
+• Android implementado.
+• Dados persistidos.
+• Estados loading/empty/error implementados.
+• Teste automatizado.
+• Logs e erros adequados.
+• Demo seed atualizado se necessário.
+• README atualizado.
+• Sem TODO bloqueante.
+50. Backlog P0 — ordem de implementação
+1. Scaffold monorepo.
+2. PostgreSQL/PostGIS + migrations.
+3. Auth/JWT.
+4. Farm/Field CRUD.
+5. Demo seed.
+6. Web shell/design system.
+7. iOS shell/design system.
+8. Android shell/design system.
+9. Google Maps Web.
+10. Google Maps iOS.
+11. Google Maps Android.
+12. Field polygons.
+13. Machine CRUD.
+14. Telemetry demo.
+15. Machine map/tracks.
+16. Weather demo.
+17. Operations lifecycle.
+18. Inventory.
+19. Alerts.
+20. AI demo predictions.
+21. Offline mobile.
+22. Reports.
+23. E2E tests.
+24. CI.
+51. P1 — imediatamente após MVP
+• John Deere official adapter.
+• Additional manufacturer adapters.
+• Real weather provider.
+• Real satellite ingestion.
+• Real drone adapter.
+• NDVI/time-series processing.
+• Real ML service.
+• Predictive maintenance model.
+• Yield model.
+• Market data provider.
+• Push notifications.
+• Advanced role/permission model.
+52. Critérios de aceitação do MVP
+• Usuário consegue fazer login nas três plataformas.
+• Usuário vê a mesma fazenda e os mesmos dados em Web/iOS/Android.
+• Usuário seleciona um talhão e vê sua geometria sobre imagem real Google Satellite.
+• Usuário visualiza máquinas no mapa.
+• Usuário abre histórico de telemetria.
+• Usuário cria operação.
+• Usuário inicia, pausa e conclui operação.
+• Operação criada no mobile aparece no Web.
+• Alteração feita no Web aparece no mobile após sync.
+• Offline mobile permite registrar operação e sincronizar posteriormente.
+• Usuário vê previsão climática.
+• Usuário recebe alertas.
+• Usuário vê pelo menos três insights de IA demo.
+• Usuário consegue exportar relatório.
+• Projeto sobe localmente seguindo README.
+• Todos os testes P0 passam.
+53. Prompt operacional para a IA de codificação
+A IA de codificação deve tratar o restante deste documento como especificação vinculante. Antes de codificar, deve gerar um plano de implementação e uma checklist de aceitação. Depois deve implementar verticalmente, mantendo o sistema executável a cada etapa.
+You are the lead engineer implementing Precision Farming MVP.Goal:Build a fully functional agricultural precision-management prototypewith one Kotlin/Spring Boot backend and three independent clients:1) React + TypeScript Web2) Native iOS Swift + SwiftUI3) Native Android Kotlin + Jetpack ComposeRules:- All clients consume the same backend.- No business logic duplication across clients.- Use PostgreSQL + PostGIS.- Use deterministic demo seed data.- Use real Google Maps satellite imagery on all platforms.- Do not commit Google API keys.- Use platform-specific restricted keys.- Implement real CRUD and workflow state transitions.- Implement mobile offline queue and backend idempotency.- Implement demo AI predictions with model metadata.- Keep external integrations behind interfaces/adapters.- Do not invent proprietary manufacturer APIs.- For integrations requiring credentials, implement a production-shaped adapter  interface plus a deterministic DemoAdapter.- Keep the MVP modular-monolith on the backend.- Provide tests and README.- Never leave a core screen as a static mock.Implementation order:1. Repository scaffold2. Database/migrations3. Auth4. Farms/fields5. Demo seed6. Web/iOS/Android shells7. Google Maps integration8. Machines/telemetry9. Operations10. Weather11. Inventory12. Alerts13. AI insights14. Offline mobile15. Reports16. Tests/CIAt every step:- run tests- run type checks- keep apps buildable- update documentation- do not break previous flowsFinal acceptance:A fresh developer must be able to clone the repository, configureGoogle Maps keys, run Docker Compose, start the backend and launchWeb/Android/iOS following the README, login with demo credentials,see real satellite maps, interact with farm polygons and machines,create and execute operations, see synchronized data across clients,and demonstrate offline operation synchronization on mobile.
+A IA deve perguntar somente quando uma decisão realmente bloqueia a implementação. Para decisões já especificadas aqui, deve executar diretamente.
+54. Checklist de entrega
+• README.md completo.
+• .env.example.
+• docker-compose.yml.
+• database migrations.
+• demo seed.
+• OpenAPI.
+• Web build.
+• Android build.
+• iOS build.
+• Google Maps configuration.
+• Unit tests.
+• Integration tests.
+• E2E tests.
+• Architecture Decision Records.
+• Known limitations.
+• Demo script.
+55. Demo script — apresentação de 10 minutos
+1. Login como manager.
+2. Selecionar Fazenda Boa Vista.
+3. Mostrar dashboard.
+4. Abrir mapa em Satellite.
+5. Selecionar Talhão 01.
+6. Mostrar máquina no mapa.
+7. Abrir telemetria.
+8. Mostrar clima.
+9. Criar operação de pulverização.
+10. Iniciar operação.
+11. Abrir AI Insights.
+12. Mostrar risco de máquina.
+13. Pausar operação.
+14. Simular offline no mobile.
+15. Concluir operação offline.
+16. Restabelecer conexão.
+17. Sincronizar.
+18. Voltar ao Web e mostrar operação atualizada.
+19. Exportar relatório.
+56. Google Maps — referências oficiais
+1. Maps JavaScript API Overview — https://developers.google.com/maps/documentation/javascript/overview
+2. Maps JavaScript API Reference — https://developers.google.com/maps/documentation/javascript/reference
+3. Maps JavaScript API Map Types — https://developers.google.com/maps/documentation/javascript/reference/map
+4. Maps SDK for Android Overview — https://developers.google.com/maps/documentation/android-sdk/overview
+5. Maps SDK for Android Map — https://developers.google.com/maps/documentation/android-sdk/map
+6. Maps SDK for Android API Key — https://developers.google.com/maps/documentation/android-sdk/get-api-key
+7. Maps SDK for iOS Overview — https://developers.google.com/maps/documentation/ios-sdk/
+8. Maps SDK for iOS Map Configuration — https://developers.google.com/maps/documentation/ios-sdk/configure-map
+9. Maps SDK for iOS API Key — https://developers.google.com/maps/documentation/ios-sdk/get-api-key
+10. Google Maps Platform Security — https://developers.google.com/maps/api-security-best-practices
+11. Google Maps Platform FAQ — https://developers.google.com/maps/faq
+57. Limitações e decisões explícitas
+• Google Satellite não substitui um pipeline agronômico de NDVI.
+• Dados demo de telemetria não representam telemetria real de um fabricante.
+• Conectores reais dependem de APIs, contratos, permissões e disponibilidade do fornecedor.
+• Modelos de IA demo não devem ser apresentados como modelos agronômicos validados.
+• Forecast demo não deve ser tratado como previsão meteorológica real.
+• O MVP é tecnicamente preparado para integrações reais, mas não deve fingir que elas estão conectadas.
+• Imagens Google devem ser usadas conforme os termos/licenciamento aplicáveis.
+58. Resultado esperado
+Ao final do MVP, Precision Farming deve parecer e funcionar como um produto real, não como uma coleção de telas. O usuário deverá conseguir observar a fazenda em um mapa real, entender o estado dos talhões e máquinas, planejar e executar operações, acompanhar clima e alertas, consultar insights preditivos e trabalhar pelo mobile mesmo com conectividade intermitente.
+A arquitetura deve permitir que o MVP seja posteriormente expandido para conectores reais de fabricantes, drones, sensores, satélites, mercado agrícola e modelos de machine learning sem reescrever os clientes ou o domínio central.
