@@ -1,4 +1,5 @@
 import { useFieldsQuery } from '@/features/fields/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -9,18 +10,19 @@ export function FieldsPage() {
   const farmId = useUiStore((s) => s.farmId)
   const fields = useFieldsQuery(farmId)
   const err = queryError(fields.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Talhões" description="Talhões e culturas associadas." />
+      <PageHeader title={t('fields.title')} description={t('fields.description')} />
       <QueryPageState
         isLoading={fields.isLoading}
         isError={fields.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!fields.isLoading && (fields.data?.length ?? 0) === 0}
-        emptyTitle="Nenhum talhão encontrado"
-        emptyDescription="Ajuste o filtro de fazenda ou cadastre talhões no backend."
+        emptyTitle={t('fields.emptyTitle')}
+        emptyDescription={t('fields.emptyDescription')}
         onRetry={() => void fields.refetch()}
       >
         <div className="overflow-hidden rounded-[12px] border border-pf-border bg-white">

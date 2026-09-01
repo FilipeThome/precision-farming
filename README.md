@@ -33,6 +33,11 @@ docker compose up -d
 ./gradlew :backend:services:reporting:bootRun
 ./gradlew :backend:services:sync:bootRun
 ./gradlew :backend:services:integration:bootRun
+./gradlew :backend:services:agronomy:bootRun
+./gradlew :backend:services:irrigation:bootRun
+./gradlew :backend:services:harvest:bootRun
+./gradlew :backend:services:finance:bootRun
+./gradlew :backend:services:compliance:bootRun
 ./gradlew :backend:gateway:bootRun
 cd web && npm install && npm run dev
 ```

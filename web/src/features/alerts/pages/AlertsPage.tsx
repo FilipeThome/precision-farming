@@ -1,4 +1,5 @@
 import { useAckAlertMutation, useAlertsQuery } from '@/features/alerts/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
@@ -14,10 +15,11 @@ export function AlertsPage() {
   const ack = useAckAlertMutation()
   const err = queryError(alerts.error)
   const ackErr = ack.error ? queryError(ack.error) : null
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Alertas" description="Reconheça alertas abertos no servidor." />
+      <PageHeader title={t('alerts.title')} description={t('alerts.description')} />
       {ackErr ? (
         <p className="mb-3 text-sm text-red-800" role="alert">
           {ackErr.message}
@@ -29,8 +31,8 @@ export function AlertsPage() {
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!alerts.isLoading && (alerts.data?.length ?? 0) === 0}
-        emptyTitle="Nenhum alerta"
-        emptyDescription="Não há alertas no momento."
+        emptyTitle={t('alerts.emptyTitle')}
+        emptyDescription={t('alerts.emptyDescription')}
         onRetry={() => void alerts.refetch()}
       >
         <div className="flex flex-col gap-3">

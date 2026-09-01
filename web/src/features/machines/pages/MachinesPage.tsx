@@ -1,4 +1,5 @@
 import { useMachinesQuery } from '@/features/machines/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -10,18 +11,19 @@ export function MachinesPage() {
   const farmId = useUiStore((s) => s.farmId)
   const machines = useMachinesQuery(farmId)
   const err = queryError(machines.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Máquinas" description="Frota e status operacional." />
+      <PageHeader title={t('machines.title')} description={t('machines.description')} />
       <QueryPageState
         isLoading={machines.isLoading}
         isError={machines.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!machines.isLoading && (machines.data?.length ?? 0) === 0}
-        emptyTitle="Nenhuma máquina encontrada"
-        emptyDescription="Nenhum ativo retornado pelo serviço de máquinas."
+        emptyTitle={t('machines.emptyTitle')}
+        emptyDescription={t('machines.emptyDescription')}
         onRetry={() => void machines.refetch()}
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

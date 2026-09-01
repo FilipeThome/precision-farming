@@ -1,4 +1,5 @@
 import { useInsightsQuery } from '@/features/ai/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime, formatPercent } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
@@ -10,18 +11,19 @@ export function AiInsightsPage() {
   const farmId = useUiStore((s) => s.farmId)
   const insights = useInsightsQuery(farmId)
   const err = queryError(insights.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="IA & Insights" description="Previsões e recomendações do modelo." />
+      <PageHeader title={t('ai.title')} description={t('ai.description')} />
       <QueryPageState
         isLoading={insights.isLoading}
         isError={insights.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!insights.isLoading && (insights.data?.length ?? 0) === 0}
-        emptyTitle="Nenhum insight disponível"
-        emptyDescription="O serviço de IA ainda não gerou previsões."
+        emptyTitle={t('ai.emptyTitle')}
+        emptyDescription={t('ai.emptyDescription')}
         onRetry={() => void insights.refetch()}
       >
         <div className="grid gap-4 lg:grid-cols-2">

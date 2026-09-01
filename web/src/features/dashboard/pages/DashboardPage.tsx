@@ -4,6 +4,7 @@ import { useAlertsQuery } from '@/features/alerts/queries'
 import { useFarmsQuery } from '@/features/farms/queries'
 import { useMachinesQuery } from '@/features/machines/queries'
 import { useOperationsQuery } from '@/features/operations/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { KpiCard } from '@/shared/ui/KpiCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -16,6 +17,7 @@ export function DashboardPage() {
   const machines = useMachinesQuery(farmId)
   const operations = useOperationsQuery(farmId)
   const alerts = useAlertsQuery(farmId)
+  const { t } = useI18n()
 
   const loading = farms.isLoading || machines.isLoading || operations.isLoading || alerts.isLoading
   const error = farms.error || machines.error || operations.error || alerts.error
@@ -29,15 +31,15 @@ export function DashboardPage() {
 
   return (
     <section>
-      <PageHeader title="Dashboard" description="Resumo operacional das fazendas." />
+      <PageHeader title={t('dashboard.title')} description={t('dashboard.description')} />
       <QueryPageState
         isLoading={loading}
         isError={Boolean(error)}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={empty}
-        emptyTitle="Nenhum dado disponível"
-        emptyDescription="Faça o seed do backend ou cadastre fazendas para começar."
+        emptyTitle={t('dashboard.emptyTitle')}
+        emptyDescription={t('dashboard.emptyDescription')}
         onRetry={() => {
           void farms.refetch()
           void machines.refetch()
@@ -46,10 +48,10 @@ export function DashboardPage() {
         }}
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard label="Fazendas" value={farmCount} icon={LandPlot} />
-          <KpiCard label="Máquinas" value={machineCount} icon={Tractor} />
-          <KpiCard label="Operações" value={operationCount} icon={ListChecks} />
-          <KpiCard label="Alertas" value={alertCount} icon={Bell} />
+          <KpiCard label={t('dashboard.kpi.farms')} value={farmCount} icon={LandPlot} />
+          <KpiCard label={t('dashboard.kpi.machines')} value={machineCount} icon={Tractor} />
+          <KpiCard label={t('dashboard.kpi.operations')} value={operationCount} icon={ListChecks} />
+          <KpiCard label={t('dashboard.kpi.alerts')} value={alertCount} icon={Bell} />
         </div>
       </QueryPageState>
     </section>

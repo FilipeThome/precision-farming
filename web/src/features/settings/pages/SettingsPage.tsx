@@ -1,5 +1,6 @@
 import { useMeQuery } from '@/features/auth/queries'
 import { useAuthStore } from '@/shared/auth/store'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -9,18 +10,19 @@ export function SettingsPage() {
   const token = useAuthStore((s) => s.accessToken)
   const me = useMeQuery(Boolean(token))
   const err = queryError(me.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Configurações" description="Perfil autenticado via GET /api/v1/auth/me." />
+      <PageHeader title={t('settings.title')} description={t('settings.description')} />
       <QueryPageState
         isLoading={me.isLoading}
         isError={me.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!me.isLoading && !me.data}
-        emptyTitle="Usuário não encontrado"
-        emptyDescription="Não foi possível obter o perfil."
+        emptyTitle={t('settings.emptyTitle')}
+        emptyDescription={t('settings.emptyDescription')}
         onRetry={() => void me.refetch()}
       >
         {me.data ? (

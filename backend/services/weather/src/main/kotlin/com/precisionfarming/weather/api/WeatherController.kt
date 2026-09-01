@@ -19,6 +19,12 @@ class WeatherController(private val svc: WeatherService) {
     @GetMapping("/forecast")
     fun forecast(@RequestParam(required = false) farmId: UUID?) =
         svc.forecast(farmId ?: DemoIds.uuid("farm-001"))
+
+    @GetMapping("/windows")
+    fun windows(
+        @RequestParam(required = false) farmId: UUID?,
+        @RequestParam(required = false) type: String?,
+    ) = svc.listWindows(farmId, type)
 }
 
 @RestController

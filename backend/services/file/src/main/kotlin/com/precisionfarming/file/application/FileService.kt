@@ -1,28 +1,78 @@
 package com.precisionfarming.file.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.file.infrastructure.FileJpaRepository
 import com.precisionfarming.file.infrastructure.FileMetaEntity
+import com.precisionfarming.file.infrastructure.MapLayerEntity
+import com.precisionfarming.file.infrastructure.MapLayerJpaRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.UUID
+
+data class MapLayerDto(
+    val id: UUID,
+    val farmId: UUID,
+    val fieldId: UUID?,
+    val name: String,
+    val kind: String,
+    val source: String,
+    val tileUrl: String?,
+    val acquiredAt: Instant?,
+    val status: String,
+)
 
 @Service
-class FileService(private val repo: FileJpaRepository) {
+class FileService(
+    private val repo: FileJpaRepository,
+    private val layers: MapLayerJpaRepository,
+) {
     fun list() = repo.findAll()
-    @Transactional
-    fun seed() {
-        if (repo.existsById(DemoIds.uuid("ndvi-001"))) return
-        repo.save(
-            FileMetaEntity(
-                DemoIds.uuid("ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"),
-                "NDVI_DEMO", "Demo NDVI", "demo/ndvi/field-001.json", Instant.now(), "0.1.0", "DEMO",
+
+    fun listLayers(farmId: UUID?) =
+        (farmId?.let { layers.findByFarmId(it) } ?: layers.findAll()).map { it.toDto() }
+
+    fun tileStub(layerId: UUID): Map<String, Any> {
+        val layer = layers.findById(layerId).orElseThrow { NotFoundException("LAYER_NOT_FOUND", "Map layer not found") }
+        return mapOf(
+            "layerId" to layer.id,
+            "kind" to layer.kind,
+            "format" to "stub",
+            "tiles" to listOf(
+                mapOf("z" to 12, "x" to 1400, "y" to 2300, "url" to (layer.tileUrl ?: "stub://tile")),
             ),
         )
     }
+
+    @Transactional
+    fun seed() {
+        if (!repo.existsById(DemoIds.uuid("ndvi-001"))) {
+            repo.save(
+                FileMetaEntity(
+                    DemoIds.uuid("ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"),
+                    "NDVI_DEMO", "Demo NDVI", "demo/ndvi/field-001.json", Instant.now(), "0.1.0", "DEMO",
+                ),
+            )
+        }
+        if (!layers.existsById(DemoIds.uuid("layer-ndvi-001"))) {
+            val now = Instant.now()
+            layers.saveAll(
+                listOf(
+                    MapLayerEntity(DemoIds.uuid("layer-ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "NDVI Talhão 01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
+                    MapLayerEntity(DemoIds.uuid("layer-soil-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "Solo P Talhão 01", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
+                    MapLayerEntity(DemoIds.uuid("layer-yield-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-003"), "Produtividade 24/25", "YIELD", "DEMO", "stub://tiles/yield/{z}/{x}/{y}", now, "READY"),
+                    MapLayerEntity(DemoIds.uuid("layer-ndvi-002"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "NDVI Norte", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
+                    MapLayerEntity(DemoIds.uuid("layer-soil-002"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "Solo K Talhão A", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
+                ),
+            )
+        }
+    }
+
+    private fun MapLayerEntity.toDto() = MapLayerDto(id, farmId, fieldId, name, kind, source, tileUrl, acquiredAt, status)
 }
 
 @Service

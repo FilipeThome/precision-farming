@@ -1,6 +1,7 @@
 package com.precisionfarming.asset.api
 
 import com.precisionfarming.asset.application.AssetService
+import com.precisionfarming.asset.application.CreateWorkOrder
 import com.precisionfarming.asset.application.UpsertMachine
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
@@ -19,6 +20,19 @@ class AssetController(private val svc: AssetService) {
 
     @PatchMapping("/{id}")
     fun patch(@PathVariable id: UUID, @RequestBody body: UpsertMachine) = svc.patch(id, body)
+}
+
+@RestController
+@RequestMapping("/api/v1/maintenance/work-orders")
+class MaintenanceController(private val svc: AssetService) {
+    @GetMapping
+    fun list(@RequestParam(required = false) farmId: UUID?) = svc.listWorkOrders(farmId)
+
+    @PostMapping
+    fun create(@RequestBody body: CreateWorkOrder) = svc.createWorkOrder(body)
+
+    @PostMapping("/{id}/complete")
+    fun complete(@PathVariable id: UUID) = svc.completeWorkOrder(id)
 }
 
 @RestController

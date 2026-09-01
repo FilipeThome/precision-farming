@@ -20,11 +20,15 @@ spring:
         - id: farms
           uri: ${FARM_URL:http://localhost:8082}
           predicates:
-            - Path=/api/v1/farms/**,/api/v1/fields/**
+            - Path=/api/v1/farms/**,/api/v1/fields/**,/api/v1/seasons/**
         - id: telemetry
           uri: ${TELEMETRY_URL:http://localhost:8084}
           predicates:
             - Path=/api/v1/machines/*/telemetry,/api/v1/machines/*/track
+        - id: maintenance
+          uri: ${ASSET_URL:http://localhost:8083}
+          predicates:
+            - Path=/api/v1/maintenance/**
         - id: machines
           uri: ${ASSET_URL:http://localhost:8083}
           predicates:
@@ -53,6 +57,10 @@ spring:
           uri: ${NOTIFICATION_URL:http://localhost:8090}
           predicates:
             - Path=/api/v1/notifications/**
+        - id: map
+          uri: ${FILE_URL:http://localhost:8091}
+          predicates:
+            - Path=/api/v1/map/**
         - id: files
           uri: ${FILE_URL:http://localhost:8091}
           predicates:
@@ -69,6 +77,54 @@ spring:
           uri: ${INTEGRATION_URL:http://localhost:8094}
           predicates:
             - Path=/api/v1/integrations/**
+        - id: agronomy-soil
+          uri: ${AGRONOMY_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/soil/**
+        - id: agronomy-scouting
+          uri: ${AGRONOMY_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/scouting/**
+        - id: agronomy-recommendations
+          uri: ${AGRONOMY_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/recommendations/**
+        - id: agronomy-prescriptions
+          uri: ${AGRONOMY_URL:http://localhost:8095}
+          predicates:
+            - Path=/api/v1/prescriptions/**
+        - id: irrigation
+          uri: ${IRRIGATION_URL:http://localhost:8096}
+          predicates:
+            - Path=/api/v1/irrigation/**
+        - id: harvest
+          uri: ${HARVEST_URL:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/harvest/**
+        - id: logistics
+          uri: ${HARVEST_URL:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/logistics/**
+        - id: storage
+          uri: ${HARVEST_URL:http://localhost:8097}
+          predicates:
+            - Path=/api/v1/storage/**
+        - id: finance
+          uri: ${FINANCE_URL:http://localhost:8098}
+          predicates:
+            - Path=/api/v1/finance/**
+        - id: market
+          uri: ${FINANCE_URL:http://localhost:8098}
+          predicates:
+            - Path=/api/v1/market/**
+        - id: traceability
+          uri: ${COMPLIANCE_URL:http://localhost:8099}
+          predicates:
+            - Path=/api/v1/traceability/**
+        - id: esg
+          uri: ${COMPLIANCE_URL:http://localhost:8099}
+          predicates:
+            - Path=/api/v1/esg/**
         - id: seed-auth
           uri: ${AUTH_URL:http://localhost:8081}
           predicates:

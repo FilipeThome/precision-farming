@@ -1,8 +1,9 @@
 import { useMachineRiskQuery } from '@/features/ai/queries'
 import { useMachinesQuery } from '@/features/machines/queries'
+import type { Machine } from '@/shared/api/types'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime, formatPercent } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
-import type { Machine } from '@/shared/api/types'
 import { Card } from '@/shared/ui/Card'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
@@ -37,22 +38,20 @@ export function MaintenancePage() {
   const farmId = useUiStore((s) => s.farmId)
   const machines = useMachinesQuery(farmId)
   const err = queryError(machines.error)
+  const { t } = useI18n()
   const items = (machines.data ?? []).filter((m) => m.status === 'MAINTENANCE')
 
   return (
     <section>
-      <PageHeader
-        title="Manutenção"
-        description="Máquinas com status de manutenção e risco estimado pelo serviço de IA."
-      />
+      <PageHeader title={t('maintenance.title')} description={t('maintenance.description')} />
       <QueryPageState
         isLoading={machines.isLoading}
         isError={machines.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!machines.isLoading && items.length === 0}
-        emptyTitle="Nenhuma máquina em manutenção"
-        emptyDescription="Quando uma máquina estiver com status MAINTENANCE, ela aparece aqui."
+        emptyTitle={t('maintenance.emptyTitle')}
+        emptyDescription={t('maintenance.emptyDescription')}
         onRetry={() => void machines.refetch()}
       >
         <div className="grid gap-4 md:grid-cols-2">
