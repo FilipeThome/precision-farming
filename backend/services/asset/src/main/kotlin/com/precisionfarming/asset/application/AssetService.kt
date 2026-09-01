@@ -62,7 +62,9 @@ class AssetService(
         scope.requireFarm(cmd.farmId)
         e.farmId = cmd.farmId; e.name = cmd.name; e.type = cmd.type
         e.manufacturer = cmd.manufacturer; e.model = cmd.model; e.status = cmd.status
-        return repo.save(e).toDto()
+        val saved = repo.save(e).toDto()
+        DemoMachineFarms.register(saved.id, saved.farmId)
+        return saved
     }
 
     fun listWorkOrders(scope: AccessScope, farmId: UUID?) =
