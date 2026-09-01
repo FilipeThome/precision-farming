@@ -13,6 +13,7 @@ import com.precisionfarming.agronomy.infrastructure.SoilSampleJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.common.concurrency.VirtualJobs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
@@ -60,6 +61,7 @@ class AgronomyService(
     @Transactional
     fun createScouting(scope: AccessScope, cmd: CreateScouting): ScoutingDto {
         scope.requireFarm(cmd.farmId)
+        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         return scouting.save(
             ScoutingEntity(UUID.randomUUID(), cmd.farmId, cmd.fieldId, Instant.now(), cmd.pest, cmd.severity, cmd.notes, "OPEN"),
         ).toDto()
@@ -71,6 +73,7 @@ class AgronomyService(
     @Transactional
     fun createSoil(scope: AccessScope, cmd: CreateSoilSample): SoilSampleDto {
         scope.requireFarm(cmd.farmId)
+        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         val id = UUID.randomUUID()
         val result = lab.analyze(id.toString().take(8))
         return soils.save(
@@ -90,6 +93,7 @@ class AgronomyService(
     @Transactional
     fun createPrescription(scope: AccessScope, cmd: CreatePrescription): PrescriptionDto {
         scope.requireFarm(cmd.farmId)
+        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         return prescriptions.save(
             PrescriptionEntity(
                 UUID.randomUUID(), cmd.farmId, cmd.fieldId, cmd.product, cmd.rate, cmd.unit,

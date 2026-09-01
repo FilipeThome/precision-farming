@@ -7,6 +7,7 @@ import com.precisionfarming.asset.infrastructure.WorkOrderJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoMachineFarms
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -66,6 +67,7 @@ class AssetService(
     @Transactional
     fun createWorkOrder(scope: AccessScope, cmd: CreateWorkOrder): WorkOrderDto {
         scope.requireFarm(cmd.farmId)
+        DemoMachineFarms.requireBelongsToFarm(cmd.machineId, cmd.farmId)
         return workOrders.save(
             WorkOrderEntity(UUID.randomUUID(), cmd.farmId, cmd.machineId, cmd.title, cmd.priority, "OPEN", Instant.now(), null),
         ).toDto()

@@ -5,7 +5,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +27,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -42,6 +47,8 @@ import com.precisionfarming.mobile.data.RecommendationDto
 import com.precisionfarming.mobile.data.ScoutingDto
 import com.precisionfarming.mobile.data.SoilSampleDto
 import com.precisionfarming.mobile.data.WeatherWindowDto
+import com.precisionfarming.mobile.data.Session
+import com.precisionfarming.mobile.data.TokenStore
 import com.precisionfarming.mobile.data.alerts
 import com.precisionfarming.mobile.data.completeOp
 import com.precisionfarming.mobile.data.completeWorkOrder
@@ -73,8 +80,9 @@ private sealed class LoadState<out T> {
 fun AppRoot() {
     // Touch locale so root recomposes when language changes
     LocaleStore.locale
+    val restored = remember { TokenStore.read()?.also { Session.accessToken = it } }
     val nav = rememberNavController()
-    NavHost(nav, startDestination = "login") {
+    NavHost(nav, startDestination = if (restored != null) "home" else "login") {
         composable("login") {
             LoginScreen { nav.navigate("home") { popUpTo("login") { inclusive = true } } }
         }
@@ -116,7 +124,14 @@ fun LoginScreen(onOk: () -> Unit) {
         LocaleFlagButtons()
         Text(S.t("app.name"))
         OutlinedTextField(email, { email = it }, label = { Text(S.t("login.email")) }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(password, { password = it }, label = { Text(S.t("login.password")) }, modifier = Modifier.fillMaxWidth())
+        OutlinedTextField(
+            password,
+            { password = it },
+            label = { Text(S.t("login.password")) },
+            modifier = Modifier.fillMaxWidth(),
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+        )
         error?.let { Text(it) }
         Button(onClick = {
             scope.launch {
@@ -246,25 +261,26 @@ fun ApiListScreen(
         }
     }
     LaunchedEffect(title, LocaleStore.locale) { reload() }
-    Column(
-        Modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+    LazyColumn(
+        Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (onBack != null) {
-            TextButton(onClick = onBack) { Text(S.t("common.back")) }
+            item { TextButton(onClick = onBack) { Text(S.t("common.back")) } }
         }
-        Text(title)
+        item { Text(title) }
         when (val s = state) {
-            is LoadState.Loading -> Text(S.t("common.loading"))
-            is LoadState.Err -> Text("${S.t("common.error")}: ${s.message}")
+            is LoadState.Loading -> item { Text(S.t("common.loading")) }
+            is LoadState.Err -> item { Text("${S.t("common.error")}: ${s.message}") }
             is LoadState.Ok -> {
-                if (s.items.isEmpty()) Text(S.t("common.empty"))
-                else s.items.forEach { Text(it) }
+                if (s.items.isEmpty()) {
+                    item { Text(S.t("common.empty")) }
+                } else {
+                    items(s.items) { Text(it) }
+                }
             }
         }
-        TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) }
+        item { TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) } }
     }
 }
 
@@ -284,37 +300,37 @@ fun OpsScreen() {
         }
     }
     LaunchedEffect(LocaleStore.locale) { reload() }
-    Column(
-        Modifier
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+    LazyColumn(
+        Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(S.t("ops.title"))
-        msg?.let { Text(it) }
+        item { Text(S.t("ops.title")) }
+        msg?.let { message -> item { Text(message) } }
         when (val s = state) {
-            is LoadState.Loading -> Text(S.t("common.loading"))
-            is LoadState.Err -> Text("${S.t("common.error")}: ${s.message}")
+            is LoadState.Loading -> item { Text(S.t("common.loading")) }
+            is LoadState.Err -> item { Text("${S.t("common.error")}: ${s.message}") }
             is LoadState.Ok -> {
-                if (s.items.isEmpty()) Text(S.t("common.empty"))
-                s.items.forEach { op ->
-                    Text("${op.type} · ${op.status}")
-                    TextButton(onClick = {
-                        scope.launch {
-                            runCatching { startOp(op.id) }.onFailure { msg = it.message }
-                            reload()
-                        }
-                    }) { Text(S.t("ops.start")) }
-                    TextButton(onClick = {
-                        scope.launch {
-                            runCatching { completeOp(op.id) }.onFailure { msg = it.message }
-                            reload()
-                        }
-                    }) { Text(S.t("ops.complete")) }
+                if (s.items.isEmpty()) item { Text(S.t("common.empty")) }
+                items(s.items, key = { it.id }) { op ->
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("${op.type} · ${op.status}")
+                        TextButton(onClick = {
+                            scope.launch {
+                                runCatching { startOp(op.id) }.onFailure { msg = it.message }
+                                reload()
+                            }
+                        }) { Text(S.t("ops.start")) }
+                        TextButton(onClick = {
+                            scope.launch {
+                                runCatching { completeOp(op.id) }.onFailure { msg = it.message }
+                                reload()
+                            }
+                        }) { Text(S.t("ops.complete")) }
+                    }
                 }
             }
         }
-        TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) }
+        item { TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) } }
     }
 }
 

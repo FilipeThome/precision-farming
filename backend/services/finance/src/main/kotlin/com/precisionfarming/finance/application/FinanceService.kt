@@ -4,7 +4,6 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.finance.domain.MarketQuoteProvider
-import com.precisionfarming.finance.domain.PnlSummary
 import com.precisionfarming.finance.infrastructure.BudgetEntity
 import com.precisionfarming.finance.infrastructure.BudgetJpaRepository
 import com.precisionfarming.finance.infrastructure.CashflowEntity
@@ -23,7 +22,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -41,6 +39,15 @@ data class MarketContractDto(
     val currency: String, val deliveryAt: Instant, val status: String,
 )
 data class MarketExposureDto(val id: UUID, val farmId: UUID, val commodity: String, val openT: BigDecimal, val hedgedT: BigDecimal, val riskScore: BigDecimal)
+data class PnlRowDto(
+    val id: String,
+    val farmId: UUID?,
+    val revenue: BigDecimal,
+    val cost: BigDecimal,
+    val margin: BigDecimal,
+    val currency: String = "BRL",
+    val period: String = "YTD",
+)
 
 @Service
 class FinanceService(
@@ -55,15 +62,20 @@ class FinanceService(
     fun listCosts(scope: AccessScope, farmId: UUID?) =
         costs.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun pnl(scope: AccessScope, farmId: UUID?): PnlSummary {
-        val rows = costs.findByFarmIdIn(scope.resolveFarms(farmId))
-        val revenue = rows.filter { it.category == "REVENUE" }.fold(BigDecimal.ZERO) { a, e -> a.add(e.amount) }
-            .let { if (it.compareTo(BigDecimal.ZERO) == 0) BigDecimal("1850000") else it }
-        val cost = rows.filter { it.category != "REVENUE" }.fold(BigDecimal.ZERO) { a, e -> a.add(e.amount) }
+    fun pnl(scope: AccessScope, farmId: UUID?): List<PnlRowDto> {
+        val farms = scope.resolveFarms(farmId)
+        val revenue = costs.sumAmountByFarmIdInAndCategory(farms, "REVENUE")
+        val cost = costs.sumAmountByFarmIdInAndCategoryNot(farms, "REVENUE")
         val gross = revenue.subtract(cost)
-        val margin = if (revenue.compareTo(BigDecimal.ZERO) == 0) BigDecimal.ZERO
-        else gross.multiply(BigDecimal("100")).divide(revenue, 2, RoundingMode.HALF_UP)
-        return PnlSummary(revenue, cost, gross, margin)
+        return listOf(
+            PnlRowDto(
+                id = "pnl-${(farmId ?: scope.farmIds.firstOrNull()) ?: "all"}",
+                farmId = farmId ?: scope.farmIds.firstOrNull(),
+                revenue = revenue,
+                cost = cost,
+                margin = gross,
+            ),
+        )
     }
 
     fun listBudget(scope: AccessScope, farmId: UUID?) =

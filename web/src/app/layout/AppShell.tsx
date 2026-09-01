@@ -2,6 +2,7 @@ import { Outlet } from 'react-router'
 
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useOnline } from '@/shared/lib/useOnline'
+import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
@@ -21,7 +22,9 @@ export function AppShell() {
           </div>
         ) : null}
         <main className="min-h-0 flex-1 overflow-y-auto p-6">
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

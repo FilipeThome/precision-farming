@@ -5,10 +5,15 @@ spring:
     name: gateway
   cloud:
     gateway:
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 10s
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "*"
+            allowedOriginPatterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
             allowedMethods: "*"
             allowedHeaders: "*"
             allowCredentials: true
@@ -132,7 +137,7 @@ spring:
 app:
   security:
     jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
-    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:true}
+    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
 management:
   endpoints:
     web:

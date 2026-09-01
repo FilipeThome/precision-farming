@@ -1,38 +1,34 @@
 # Security assessment — Precision Farming (2026-09-01)
 
-Authorized assessment of the local monorepo. Updated after remediation pass.
+Authorized assessment of the local monorepo. Updated after full cyber-team remediations.
 
-Skill: `.cursor/skills/cybersecurity-team/SKILL.md`  
-Architect: [kotlin-architect](d7301184-6575-4c84-8b0f-7b32449c2a99)  
-Engineer: [kotlin-backend-engineer](04dc0eeb-0cb2-4215-afc7-897dda48b7ce)
+Skill: `.cursor/skills/cybersecurity-team/SKILL.md`
 
-## Status: remediations applied
+## Status: remediations applied (audit pass 2)
 
-| Former finding | Status |
+| Finding | Status |
 | --- | --- |
-| Cross-farm IDOR on lists (`findAll`) | **Fixed** — JWT `farmIds` + `AccessScope.resolveFarms` + `findByFarmIdIn` |
-| Cross-farm writes via client `farmId` | **Fixed** — `requireFarm` / `requireEntityFarm` |
-| ID-only approve/complete/dispatch | **Fixed** — farm scope + `@PreAuthorize` role matrix |
-| Compliance get by id without farm | **Fixed** — entity farm check |
-| Unauthenticated `/dev/seed/reset` | **Fixed** — removed from `permitAll`; requires `ADMIN` |
-| Demo JWT/DB secrets outside local | **Mitigated** — `DemoSecretsGuard` + `app.security.allow-demo-secrets` (default `true` for local demo; set `false` or use profile `local` only in staging/prod) |
-| CORS `*` + credentials | **Accepted for local demo** — restrict per env in staging/prod |
+| Cross-farm IDOR on lists (`findAll`) | **Fixed** — JWT `farmIds` + `AccessScope` |
+| Unauthenticated `/dev/seed/reset` | **Fixed** — ADMIN + authn |
+| CORS `*` + credentials | **Fixed** — localhost patterns |
+| Demo JWT/DB secrets outside local | **Fixed** — `allow-demo-secrets` default **false**; `DemoSecretsGuard` + gateway guard; `.env.example` sets `ALLOW_DEMO_SECRETS=true` for local |
+| Cross-farm inventory via operation saga | **Fixed** — `DemoItemFarms` on create; saga `type=service` + `farmIds=[op.farmId]` only |
+| Compose infra LAN exposure | **Fixed** — ports bound to `127.0.0.1` |
+| OPERATOR PATCH/DELETE farm/field | **Fixed** — `@PreAuthorize ADMIN|FARM_MANAGER` |
+| Sync unbound deviceId | **Fixed** — deviceId must equal `sub` or `sub:…` |
+| Field/machine write integrity | **Fixed** — `requireBelongsToFarm` on agronomy/harvest/irrigation/asset/operation |
+| Service tokens indistinguishable from ADMIN | **Fixed** — `type=service`, `role=SERVICE`, short TTL |
+| Operation start/complete race | **Fixed** — `STARTING`/`COMPLETING` + `@Version` |
+| AI feedback unscoped | **Fixed** — load prediction + `requireEntityFarm` |
+| Mobile token memory-only | **Fixed** — Android `TokenStore` (EncryptedSharedPreferences) |
 
-## Controls now in place
+## Remaining / accepted for MVP
 
-- JWT claims: `tenantId`, `farmIds[]`, plus `sub` / `email` / `role`
-- Demo role → farms: ADMIN 001–005; FARM_MANAGER/MAINTENANCE 001–002; OPERATOR 001
-- Shared `FarmAccess` / `AccessScope` in `backend/libs/security`
-- Role gates: prescription approve; work-order complete; logistics dispatch; operation start/pause/complete; seed reset ADMIN-only
-- Gateway no longer permits seed anonymously
-
-## Remaining recommendations (not blockers for local MVP)
-
-1. Persist user↔farm membership in auth DB instead of role→demo map.
-2. Restrict CORS origins outside local.
-3. Add SCA (OWASP Dependency-Check / OSV) in CI.
-4. Mobile: secure token storage before production.
+1. Persist user↔farm membership in auth DB (still role→demo map at login).
+2. SCA (OWASP Dependency-Check / OSV) in CI.
+3. iOS Keychain when KMP ios target lands.
+4. Demo credentials (`Precision@123`) local-only.
 
 ## Validation
 
-`./gradlew test` — BUILD SUCCESSFUL after remediation.
+`./gradlew test` after remediations.

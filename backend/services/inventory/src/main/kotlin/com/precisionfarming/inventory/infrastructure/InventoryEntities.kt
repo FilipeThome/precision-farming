@@ -4,6 +4,7 @@ import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import jakarta.persistence.Version
 import org.springframework.data.jpa.repository.JpaRepository
 import java.math.BigDecimal
 import java.time.Instant
@@ -19,6 +20,7 @@ class ItemEntity(
     var unit: String,
     var quantity: BigDecimal,
     var reserved: BigDecimal = BigDecimal.ZERO,
+    @Version var version: Long = 0,
 )
 
 @Entity

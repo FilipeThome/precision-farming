@@ -15,6 +15,18 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
+data class FileMetaDto(
+    val id: UUID,
+    val farmId: UUID?,
+    val fieldId: UUID?,
+    val kind: String,
+    val source: String,
+    val objectKey: String,
+    val acquisitionAt: Instant?,
+    val processingVersion: String?,
+    val quality: String?,
+)
+
 data class MapLayerDto(
     val id: UUID,
     val farmId: UUID,
@@ -32,7 +44,7 @@ class FileService(
     private val repo: FileJpaRepository,
     private val layers: MapLayerJpaRepository,
 ) {
-    fun list(scope: AccessScope) = repo.findByFarmIdIn(scope.farmIds)
+    fun list(scope: AccessScope) = repo.findByFarmIdIn(scope.farmIds).map { it.toDto() }
 
     fun listLayers(scope: AccessScope, farmId: UUID?) =
         layers.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -73,6 +85,10 @@ class FileService(
             )
         }
     }
+
+    private fun FileMetaEntity.toDto() = FileMetaDto(
+        id, farmId, fieldId, kind, source, objectKey, acquisitionAt, processingVersion, quality,
+    )
 
     private fun MapLayerEntity.toDto() = MapLayerDto(id, farmId, fieldId, name, kind, source, tileUrl, acquiredAt, status)
 }

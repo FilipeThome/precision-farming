@@ -26,10 +26,10 @@ export function FinancePage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('costs')
   const { t } = useI18n()
-  const costs = useFinanceCostsQuery(farmId)
-  const pnl = useFinancePnlQuery(farmId)
-  const budget = useFinanceBudgetQuery(farmId)
-  const cashflow = useFinanceCashflowQuery(farmId)
+  const costs = useFinanceCostsQuery(farmId, { enabled: tab === 'costs' })
+  const pnl = useFinancePnlQuery(farmId, { enabled: tab === 'pnl' })
+  const budget = useFinanceBudgetQuery(farmId, { enabled: tab === 'budget' })
+  const cashflow = useFinanceCashflowQuery(farmId, { enabled: tab === 'cashflow' })
 
   const active =
     tab === 'costs' ? costs : tab === 'pnl' ? pnl : tab === 'budget' ? budget : cashflow

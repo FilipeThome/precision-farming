@@ -3,6 +3,7 @@ package com.precisionfarming.harvest.application
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.harvest.domain.HarvestPlanStatus
 import com.precisionfarming.harvest.domain.LoadStatus
 import com.precisionfarming.harvest.infrastructure.HarvestPlanEntity
@@ -56,6 +57,7 @@ class HarvestService(
     @Transactional
     fun createPlan(scope: AccessScope, cmd: CreateHarvestPlan): HarvestPlanDto {
         scope.requireFarm(cmd.farmId)
+        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         val now = Instant.now()
         return plans.save(
             HarvestPlanEntity(

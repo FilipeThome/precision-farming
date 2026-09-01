@@ -21,9 +21,9 @@ export function MarketPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('quotes')
   const { t } = useI18n()
-  const quotes = useMarketQuotesQuery(farmId)
-  const contracts = useMarketContractsQuery(farmId)
-  const exposure = useMarketExposureQuery(farmId)
+  const quotes = useMarketQuotesQuery(farmId, { enabled: tab === 'quotes' })
+  const contracts = useMarketContractsQuery(farmId, { enabled: tab === 'contracts' })
+  const exposure = useMarketExposureQuery(farmId, { enabled: tab === 'exposure' })
   const active = tab === 'quotes' ? quotes : tab === 'contracts' ? contracts : exposure
   const err = queryError(active.error)
 

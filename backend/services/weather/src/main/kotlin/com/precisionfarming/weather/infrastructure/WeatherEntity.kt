@@ -53,4 +53,5 @@ interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
 interface WeatherWindowJpaRepository : JpaRepository<WeatherWindowEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<WeatherWindowEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<WeatherWindowEntity>
+    fun findByFarmIdInAndWindowTypeIgnoreCase(farmIds: Collection<UUID>, windowType: String): List<WeatherWindowEntity>
 }

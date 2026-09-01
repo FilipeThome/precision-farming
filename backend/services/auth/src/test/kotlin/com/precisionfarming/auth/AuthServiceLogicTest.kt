@@ -24,14 +24,19 @@ class AuthServiceLogicTest {
         val farmIds = claims["farmIds"] as List<String>
         assertTrue(farmIds.isNotEmpty())
         assertTrue(claims["tenantId"] is String)
+        assertTrue(claims["type"] == "access")
     }
 
     @Test
     fun serviceJwtIsCachedUntilExpiryWindow() {
         val jwt = JwtService(com.precisionfarming.security.JwtProperties())
-        val userId = java.util.UUID.randomUUID()
-        val first = jwt.cachedAccessToken(userId, "svc@internal", "ADMIN")
-        val second = jwt.cachedAccessToken(userId, "svc@internal", "ADMIN")
+        val subject = java.util.UUID.randomUUID()
+        val farm = com.precisionfarming.common.DemoIds.uuid("farm-001")
+        val first = jwt.cachedServiceToken(subject, listOf(farm))
+        val second = jwt.cachedServiceToken(subject, listOf(farm))
         assertTrue(first === second)
+        val claims = jwt.parse(first)
+        assertTrue(claims["type"] == "service")
+        assertTrue(claims["role"] == "SERVICE")
     }
 }

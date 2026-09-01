@@ -1,5 +1,7 @@
 import { Bell, LogOut, Menu } from 'lucide-react'
+import { useNavigate } from 'react-router'
 
+import { queryClient } from '@/app/queryClient'
 import { useAlertsQuery } from '@/features/alerts/queries'
 import { useFarmsQuery } from '@/features/farms/queries'
 import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
@@ -10,6 +12,7 @@ import { Button } from '@/shared/ui/Button'
 import { useUiStore } from '@/shared/ui/uiStore'
 
 export function Header() {
+  const navigate = useNavigate()
   const name = useAuthStore((s) => s.name)
   const clearSession = useAuthStore((s) => s.clearSession)
   const farmId = useUiStore((s) => s.farmId)
@@ -20,6 +23,12 @@ export function Header() {
   const online = useOnline()
   const { t } = useI18n()
   const openAlerts = (alerts.data ?? []).filter((a) => a.status === 'OPEN').length
+
+  function onLogout() {
+    clearSession()
+    queryClient.clear()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <header className="flex h-16 items-center gap-3 border-b border-pf-border bg-white px-4">
@@ -58,7 +67,7 @@ export function Header() {
           ) : null}
         </span>
         <span className="hidden text-sm text-pf-muted sm:inline">{name}</span>
-        <Button variant="secondary" onClick={clearSession}>
+        <Button variant="secondary" onClick={onLogout}>
           <LogOut className="h-4 w-4" aria-hidden />
           {t('chrome.logout')}
         </Button>

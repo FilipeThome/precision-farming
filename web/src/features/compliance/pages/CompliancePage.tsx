@@ -17,8 +17,8 @@ export function CompliancePage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('traceability')
   const { t } = useI18n()
-  const traceability = useTraceabilityQuery(farmId)
-  const esg = useEsgQuery(farmId)
+  const traceability = useTraceabilityQuery(farmId, { enabled: tab === 'traceability' })
+  const esg = useEsgQuery(farmId, { enabled: tab === 'esg' })
   const active = tab === 'traceability' ? traceability : esg
   const err = queryError(active.error)
 

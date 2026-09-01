@@ -4,6 +4,7 @@ import com.precisionfarming.common.ApiError
 import com.precisionfarming.common.Correlation
 import com.precisionfarming.common.DomainException
 import jakarta.servlet.http.HttpServletRequest
+import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.http.ResponseEntity
 import org.springframework.http.HttpStatus
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice
 
 @RestControllerAdvice
 class RestExceptionHandler {
+    private val log = LoggerFactory.getLogger(javaClass)
     @ExceptionHandler(DomainException::class)
     fun domain(ex: DomainException, request: HttpServletRequest): ResponseEntity<ApiError> {
         val body = ApiError(
@@ -49,13 +51,15 @@ class RestExceptionHandler {
         )
 
     @ExceptionHandler(Exception::class)
-    fun other(ex: Exception): ResponseEntity<ApiError> =
-        ResponseEntity.status(500).body(
+    fun other(ex: Exception): ResponseEntity<ApiError> {
+        log.error("Unhandled error", ex)
+        return ResponseEntity.status(500).body(
             ApiError(
                 status = 500,
                 code = "INTERNAL_ERROR",
-                message = ex.message ?: "Unexpected error",
+                message = "Unexpected error",
                 correlationId = MDC.get("correlationId"),
             ),
         )
+    }
 }

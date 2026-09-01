@@ -22,10 +22,10 @@ export function HarvestPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('plans')
   const { t } = useI18n()
-  const plans = useHarvestPlansQuery(farmId)
-  const yieldQ = useYieldQuery(farmId)
-  const logistics = useLogisticsLoadsQuery(farmId)
-  const storage = useStorageUnitsQuery(farmId)
+  const plans = useHarvestPlansQuery(farmId, { enabled: tab === 'plans' })
+  const yieldQ = useYieldQuery(farmId, { enabled: tab === 'yield' })
+  const logistics = useLogisticsLoadsQuery(farmId, { enabled: tab === 'logistics' })
+  const storage = useStorageUnitsQuery(farmId, { enabled: tab === 'storage' })
 
   const active =
     tab === 'plans' ? plans : tab === 'yield' ? yieldQ : tab === 'logistics' ? logistics : storage

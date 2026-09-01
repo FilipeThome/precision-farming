@@ -16,4 +16,6 @@ class NotificationEntity(
     @Column(name = "read_at") var readAt: Instant?,
     @Column(name = "created_at") val createdAt: Instant,
 )
-interface NotificationJpaRepository : JpaRepository<NotificationEntity, UUID>
+interface NotificationJpaRepository : JpaRepository<NotificationEntity, UUID> {
+    fun findByUserId(userId: UUID): List<NotificationEntity>
+}

@@ -1,5 +1,6 @@
 package com.precisionfarming.common
 
+import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.common.concurrency.VirtualJobs
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
@@ -33,5 +34,12 @@ class ConcurrencyAndIdTest {
         )
         assertEquals(listOf(1, 2), result)
         assertEquals(setOf("a", "b"), seen)
+    }
+
+    @Test
+    fun cappedTruncatesAboveMaxList() {
+        val items = (1..QueryLimits.MAX_LIST + 10).toList()
+        assertEquals(QueryLimits.MAX_LIST, items.capped().size)
+        assertEquals(listOf(1, 2, 3), listOf(1, 2, 3).capped())
     }
 }

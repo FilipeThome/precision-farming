@@ -20,9 +20,9 @@ export function AgronomyPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('scouting')
   const { t } = useI18n()
-  const scouting = useScoutingQuery(farmId)
-  const soil = useSoilSamplesQuery(farmId)
-  const recommendations = useRecommendationsQuery(farmId)
+  const scouting = useScoutingQuery(farmId, { enabled: tab === 'scouting' })
+  const soil = useSoilSamplesQuery(farmId, { enabled: tab === 'soil' })
+  const recommendations = useRecommendationsQuery(farmId, { enabled: tab === 'recommendations' })
 
   const active =
     tab === 'scouting' ? scouting : tab === 'soil' ? soil : recommendations
