@@ -22,12 +22,24 @@ Skill: `.cursor/skills/cybersecurity-team/SKILL.md`
 | AI feedback unscoped | **Fixed** — load prediction + `requireEntityFarm` |
 | Mobile token memory-only | **Fixed** — Android `TokenStore` (EncryptedSharedPreferences) |
 
+## Hardening slice (post AgOS V4 assessment)
+
+| Finding | Status |
+| --- | --- |
+| No login/refresh rate limit | **Fixed** — `AuthRateLimiter` (IP+email), `AUTH_RATE_LIMIT` (default 20/min) |
+| Swagger/`v3/api-docs` permitAll | **Fixed** — `SPRINGDOC_ENABLED` default **false**; permitAll only when enabled; demo compose sets true |
+| Approve/dispatch UI for all roles | **Fixed** — UI gated to ADMIN/FARM_MANAGER; approve `@PreAuthorize` on agronomy |
+| No idle session timeout (web) | **Fixed** — 30 min idle logout in `AppShell` |
+| Weak AuthZ-deny audit | **Fixed** — `RestExceptionHandler` warns on 401/403 / AccessDenied |
+| Market quotes unscoped stub | **Accepted** — authenticated global stub; documented on controller |
+
 ## Remaining / accepted for MVP
 
 1. Persist user↔farm membership in auth DB (still role→demo map at login).
 2. SCA (OWASP Dependency-Check / OSV) in CI.
 3. iOS Keychain when KMP ios target lands.
-4. Demo credentials (`Precision@123`) local-only.
+4. Demo credentials (`Precision@123`) local-only (`ALLOW_DEMO_SECRETS` / profile `local`).
+5. Known JWT/DB defaults in `demo.env` — local compose only; never expose.
 
 ## Validation
 

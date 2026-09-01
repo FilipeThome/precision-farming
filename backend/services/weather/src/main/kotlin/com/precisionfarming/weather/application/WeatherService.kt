@@ -105,32 +105,30 @@ class WeatherService(
 
     @Transactional
     fun seed() {
-        val keys = listOf("farm-001", "farm-002", "farm-003", "farm-004", "farm-005")
+        val keys = (1..8).map { "farm-%03d".format(it) }
         val missing = keys.map { DemoIds.uuid(it) }.filter { !repo.existsByFarmId(it) }
         if (missing.isNotEmpty()) {
             val rows = VirtualJobs.all(missing.map { farmId -> Callable { provider.demoForecast(farmId).map { it.toEntity() } } })
             repo.saveAll(rows.flatten())
         }
-        if (!windows.existsById(DemoIds.uuid("wwin-001"))) {
-            val now = Instant.now()
-            val types = listOf("SPRAYING", "PLANTING", "HARVEST")
-            val ratings = listOf("FAVORABLE", "MARGINAL", "UNFAVORABLE")
-            windows.saveAll(
-                (1..14).map { i ->
-                    val farm = keys[(i - 1) % keys.size]
-                    val type = types[(i - 1) % types.size]
-                    WeatherWindowEntity(
-                        DemoIds.uuid("wwin-%03d".format(i)),
-                        DemoIds.uuid(farm),
-                        type,
-                        now.plus((i - 1).toLong(), ChronoUnit.DAYS),
-                        now.plus(i.toLong(), ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS),
-                        ratings[i % ratings.size],
-                        "Janela demo $type #$i",
-                    )
-                },
+        val now = Instant.now()
+        val types = listOf("SPRAYING", "PLANTING", "HARVEST")
+        val ratings = listOf("FAVORABLE", "MARGINAL", "UNFAVORABLE")
+        val windowRows = (1..16).map { i ->
+            val farm = keys[(i - 1) % keys.size]
+            val type = types[(i - 1) % types.size]
+            WeatherWindowEntity(
+                DemoIds.uuid("wwin-%03d".format(i)),
+                DemoIds.uuid(farm),
+                type,
+                now.plus((i - 1).toLong(), ChronoUnit.DAYS),
+                now.plus(i.toLong(), ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS),
+                ratings[i % ratings.size],
+                "Janela demo $type #$i",
             )
         }
+        val existingWindows = windows.findAllById(windowRows.map { it.id }).map { it.id }.toHashSet()
+        windows.saveAll(windowRows.filter { it.id !in existingWindows })
     }
 
     private fun ensureForecast(farmId: UUID) {

@@ -186,6 +186,9 @@ class FarmService(
             FarmSeed("farm-003", "Fazenda Horizonte", "Sorriso - MT", "2450"),
             FarmSeed("farm-004", "Fazenda Primavera", "Lucas do Rio Verde - MT", "1650"),
             FarmSeed("farm-005", "Fazenda Campo Alegre", "Dourados - MS", "870"),
+            FarmSeed("farm-006", "Fazenda Vale Verde", "Campo Novo do Parecis - MT", "1420"),
+            FarmSeed("farm-007", "Fazenda Estrela do Sul", "Pedra Preta - MT", "1180"),
+            FarmSeed("farm-008", "Fazenda Nova Esperança", "Chapadão do Sul - MS", "960"),
         )
         val existingFarms = farms.findAllById(farmSeeds.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
         farms.saveAll(
@@ -211,6 +214,12 @@ class FarmService(
             FieldSeed("field-014", "farm-001", "Talhão 04", "70.0", "Milho", -54.56, -19.38),
             FieldSeed("field-015", "farm-002", "Talhão Leste", "130.0", "Soja", -50.91, -17.80),
             FieldSeed("field-016", "farm-005", "Talhão 3", "102.0", "Soja", -54.81, -22.23),
+            FieldSeed("field-017", "farm-006", "Talhão VV-01", "155.0", "Soja", -57.88, -13.68),
+            FieldSeed("field-018", "farm-006", "Talhão VV-02", "140.0", "Milho", -57.86, -13.70),
+            FieldSeed("field-019", "farm-007", "Talhão ES-Norte", "125.0", "Soja", -54.10, -16.62),
+            FieldSeed("field-020", "farm-007", "Talhão ES-Sul", "118.0", "Algodão", -54.08, -16.64),
+            FieldSeed("field-021", "farm-008", "Talhão NE-01", "105.0", "Soja", -52.62, -18.79),
+            FieldSeed("field-022", "farm-008", "Talhão NE-02", "98.0", "Milho", -52.60, -18.81),
         )
         val existingFields = fields.findAllById(fieldSeeds.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
         val missing = fieldSeeds.filter { DemoIds.uuid(it.key) !in existingFields }
@@ -228,20 +237,28 @@ class FarmService(
             )
             fields.saveAll(generated)
         }
-        if (!seasons.existsById(DemoIds.uuid("season-001"))) {
-            seasons.saveAll(
-                listOf(
-                    SeasonEntity(
-                        DemoIds.uuid("season-001"), DemoIds.uuid("farm-001"), "Safra 2025/26", "Soja",
-                        LocalDate.of(2025, 9, 15), LocalDate.of(2026, 3, 30), "ACTIVE",
-                    ),
-                    SeasonEntity(
-                        DemoIds.uuid("season-002"), DemoIds.uuid("farm-001"), "Safrinha 2026", "Milho",
-                        LocalDate.of(2026, 2, 1), LocalDate.of(2026, 7, 15), "PLANNED",
-                    ),
-                ),
-            )
-        }
+        data class SeasonSeed(
+            val key: String, val farm: String, val name: String, val crop: String,
+            val start: LocalDate, val end: LocalDate, val status: String,
+        )
+        val seasonSeeds = listOf(
+            SeasonSeed("season-001", "farm-001", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 15), LocalDate.of(2026, 3, 30), "ACTIVE"),
+            SeasonSeed("season-002", "farm-001", "Safrinha 2026", "Milho", LocalDate.of(2026, 2, 1), LocalDate.of(2026, 7, 15), "PLANNED"),
+            SeasonSeed("season-003", "farm-002", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 20), LocalDate.of(2026, 3, 25), "ACTIVE"),
+            SeasonSeed("season-004", "farm-003", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 10), LocalDate.of(2026, 3, 20), "ACTIVE"),
+            SeasonSeed("season-005", "farm-004", "Safra 2025/26", "Milho", LocalDate.of(2025, 10, 1), LocalDate.of(2026, 4, 15), "ACTIVE"),
+            SeasonSeed("season-006", "farm-005", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 25), LocalDate.of(2026, 3, 28), "ACTIVE"),
+            SeasonSeed("season-007", "farm-006", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 12), LocalDate.of(2026, 3, 22), "ACTIVE"),
+            SeasonSeed("season-008", "farm-007", "Safra 2025/26", "Algodão", LocalDate.of(2025, 10, 5), LocalDate.of(2026, 5, 30), "ACTIVE"),
+            SeasonSeed("season-009", "farm-008", "Safra 2025/26", "Soja", LocalDate.of(2025, 9, 18), LocalDate.of(2026, 3, 26), "ACTIVE"),
+            SeasonSeed("season-010", "farm-002", "Safrinha 2026", "Milho", LocalDate.of(2026, 2, 10), LocalDate.of(2026, 7, 20), "PLANNED"),
+        )
+        val existingSeasons = seasons.findAllById(seasonSeeds.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
+        seasons.saveAll(
+            seasonSeeds.filter { DemoIds.uuid(it.key) !in existingSeasons }.map { s ->
+                SeasonEntity(DemoIds.uuid(s.key), DemoIds.uuid(s.farm), s.name, s.crop, s.start, s.end, s.status)
+            },
+        )
     }
 
     private fun parseMulti(raw: String): Geometry {

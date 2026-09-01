@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import {
   Bell,
   Brain,
+  Cable,
   CloudSun,
   Droplets,
   FileSpreadsheet,
@@ -85,6 +86,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { to: '/ai', labelKey: 'nav.ai', icon: Brain },
       { to: '/alerts', labelKey: 'nav.alerts', icon: Bell },
       { to: '/reports', labelKey: 'nav.reports', icon: FileSpreadsheet },
+      { to: '/integrations', labelKey: 'nav.integrations', icon: Cable },
       { to: '/settings', labelKey: 'nav.settings', icon: Settings },
     ],
   },

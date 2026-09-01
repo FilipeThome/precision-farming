@@ -12,6 +12,13 @@ object DemoMachineFarms {
         DemoIds.uuid("machine-003") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("machine-004") to DemoIds.uuid("farm-002"),
         DemoIds.uuid("machine-005") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("machine-006") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("machine-007") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("machine-008") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("machine-009") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("machine-010") to DemoIds.uuid("farm-006"),
+        DemoIds.uuid("machine-011") to DemoIds.uuid("farm-007"),
+        DemoIds.uuid("machine-012") to DemoIds.uuid("farm-008"),
     )
 
     fun farmId(machineId: UUID): UUID? = BY_MACHINE[machineId]
@@ -47,9 +54,15 @@ object DemoFieldFarms {
         DemoIds.uuid("field-011") to DemoIds.uuid("farm-004"),
         DemoIds.uuid("field-012") to DemoIds.uuid("farm-005"),
         DemoIds.uuid("field-013") to DemoIds.uuid("farm-005"),
-        DemoIds.uuid("field-014") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("field-014") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("field-015") to DemoIds.uuid("farm-002"),
-        DemoIds.uuid("field-016") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("field-016") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("field-017") to DemoIds.uuid("farm-006"),
+        DemoIds.uuid("field-018") to DemoIds.uuid("farm-006"),
+        DemoIds.uuid("field-019") to DemoIds.uuid("farm-007"),
+        DemoIds.uuid("field-020") to DemoIds.uuid("farm-007"),
+        DemoIds.uuid("field-021") to DemoIds.uuid("farm-008"),
+        DemoIds.uuid("field-022") to DemoIds.uuid("farm-008"),
     )
 
     fun farmId(fieldId: UUID): UUID? = BY_FIELD[fieldId]
@@ -75,6 +88,19 @@ object DemoItemFarms {
         DemoIds.uuid("item-001") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("item-002") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("item-003") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("item-004") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("item-005") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("item-006") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("item-007") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("item-008") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("item-009") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("item-010") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("item-011") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("item-012") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("item-013") to DemoIds.uuid("farm-006"),
+        DemoIds.uuid("item-014") to DemoIds.uuid("farm-006"),
+        DemoIds.uuid("item-015") to DemoIds.uuid("farm-007"),
+        DemoIds.uuid("item-016") to DemoIds.uuid("farm-008"),
     )
 
     fun farmId(itemId: UUID): UUID? = BY_ITEM[itemId]

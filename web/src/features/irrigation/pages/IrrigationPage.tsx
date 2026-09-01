@@ -4,6 +4,7 @@ import {
   useIrrigationAssetsQuery,
   useIrrigationRecommendationsQuery,
 } from '@/features/irrigation/queries'
+import { irrigationPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime, formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
@@ -59,7 +60,13 @@ export function IrrigationPage() {
         <div className="grid gap-3 md:grid-cols-2">
           {tab === 'assets'
             ? (assets.data ?? []).map((row) => (
-                <EntityCard key={row.id} title={row.name ?? row.id} subtitle={row.type}>
+                <EntityCard
+                  key={row.id}
+                  title={row.name ?? row.id}
+                  subtitle={row.type}
+                  imageSrc={irrigationPhoto()}
+                  imageAlt={row.name ?? row.type ?? 'irrigation'}
+                >
                   {row.status ? <StatusBadge value={row.status} /> : null}
                 </EntityCard>
               ))
@@ -71,6 +78,8 @@ export function IrrigationPage() {
                     row.volumeMm != null ? `${formatNumber(Number(row.volumeMm), 1)} mm` : undefined
                   }
                   meta={`${row.priority ?? '—'} · ${formatDateTime(row.recommendedAt)}`}
+                  imageSrc={irrigationPhoto()}
+                  imageAlt={row.reason ?? 'irrigation'}
                 />
               ))}
         </div>

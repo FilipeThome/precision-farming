@@ -8,7 +8,7 @@ name: precision-farming
 services:
   telemetry:
     build:
-      context: ../..
+      context: .
       dockerfile: deploy/docker/Dockerfile.jvm
       args:
         GRADLE_PROJECT: :backend:services:telemetry
@@ -31,5 +31,4 @@ services:
 
 networks:
   precision-farming:
-    external: true
     name: precision-farming

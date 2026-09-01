@@ -12,6 +12,10 @@ class I18nMapsTest {
     fun ptAndEnShareKeys() {
         assertEquals(Pt.map.keys, En.map.keys)
         assertTrue(Pt.map.containsKey("nav.more"))
+        assertTrue(Pt.map.containsKey("more.prescriptions"))
+        assertTrue(Pt.map.containsKey("more.sync"))
+        assertTrue(Pt.map.containsKey("prescriptions.title"))
+        assertTrue(Pt.map.containsKey("sync.title"))
         assertEquals("pt-BR", AppLocale.PT_BR.tag)
         assertEquals("en-US", AppLocale.EN_US.tag)
     }

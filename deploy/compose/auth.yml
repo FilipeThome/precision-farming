@@ -1,14 +1,15 @@
 # Local demo Compose overlay for auth-service (optimized multi-stage JVM image).
 # Requires root infra: docker compose up -d
-# Usage:
-#   docker compose -f docker-compose.yml -f deploy/compose/auth.yml --env-file deploy/compose/demo.env up -d --build
+# Usage (repo root):
+#   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/auth.yml \
+#     --env-file deploy/compose/demo.env up -d --build
 
 name: precision-farming
 
 services:
   auth:
     build:
-      context: ../..
+      context: .
       dockerfile: deploy/docker/Dockerfile.jvm
       args:
         GRADLE_PROJECT: :backend:services:auth
@@ -21,6 +22,12 @@ services:
       DB_HOST: postgres
       DB_PORT: "5432"
       SERVER_PORT: "8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 75s
     depends_on:
       postgres:
         condition: service_healthy
@@ -31,5 +38,4 @@ services:
 
 networks:
   precision-farming:
-    external: true
     name: precision-farming

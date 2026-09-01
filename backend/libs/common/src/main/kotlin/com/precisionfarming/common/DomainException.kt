@@ -21,3 +21,8 @@ class UnauthorizedException(message: String = "Unauthorized") :
 
 class ForbiddenException(message: String = "Forbidden", code: String = "FORBIDDEN") :
     DomainException(code, message, 403)
+
+class TooManyRequestsException(
+    message: String = "Too many requests",
+    code: String = "RATE_LIMITED",
+) : DomainException(code, message, 429)

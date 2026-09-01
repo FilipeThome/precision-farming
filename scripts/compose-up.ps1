@@ -4,11 +4,11 @@ param(
   [switch]$Build
 )
 $ErrorActionPreference = "Stop"
-$Root = Resolve-Path "$PSScriptRoot\.."
+$Root = (Resolve-Path "$PSScriptRoot\..").Path
 Set-Location $Root
 
 Write-Host "Starting infra..."
-docker compose -f docker-compose.yml up -d
+docker compose --project-directory $Root -f docker-compose.yml up -d
 if ($LASTEXITCODE -ne 0) { throw "infra compose failed" }
 
 $buildFlag = @()
@@ -16,6 +16,7 @@ if ($Build) { $buildFlag = @("--build") }
 
 Write-Host "Starting apps profile=$Profile ..."
 docker compose `
+  --project-directory $Root `
   -f docker-compose.yml `
   -f deploy/compose/stack.yml `
   --env-file deploy/compose/demo.env `

@@ -54,6 +54,16 @@ const MarketPage = lazy(() =>
 const CompliancePage = lazy(() =>
   import('@/features/compliance/pages/CompliancePage').then((m) => ({ default: m.CompliancePage })),
 )
+const TraceabilityLotPage = lazy(() =>
+  import('@/features/compliance/pages/TraceabilityLotPage').then((m) => ({
+    default: m.TraceabilityLotPage,
+  })),
+)
+const IntegrationsPage = lazy(() =>
+  import('@/features/integrations/pages/IntegrationsPage').then((m) => ({
+    default: m.IntegrationsPage,
+  })),
+)
 const AiInsightsPage = lazy(() =>
   import('@/features/ai/pages/AiInsightsPage').then((m) => ({ default: m.AiInsightsPage })),
 )
@@ -111,9 +121,11 @@ export function AppRouter() {
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/compliance" element={<CompliancePage />} />
+          <Route path="/compliance/lots/:lotCode" element={<TraceabilityLotPage />} />
           <Route path="/ai" element={<AiInsightsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

@@ -62,27 +62,30 @@ class IrrigationService(
 
     @Transactional
     fun seed() {
-        if (assets.existsById(DemoIds.uuid("irr-asset-001"))) return
         val now = Instant.now()
-        assets.saveAll(
-            listOf(
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "Pivô 01", "PIVOT", "IDLE", BigDecimal("8.0")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "Pivô 02", "PIVOT", "RUNNING", BigDecimal("7.5")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-003"), "Gotejo 01", "DRIP", "IDLE", BigDecimal("4.0")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "Pivô Norte", "PIVOT", "IDLE", BigDecimal("9.0")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-005"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-005"), "Aspersão Sul", "SPRINKLER", "MAINTENANCE", BigDecimal("5.5")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-006"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "Pivô A", "PIVOT", "IDLE", BigDecimal("8.5")),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-007"), DemoIds.uuid("farm-004"), null, "Bomba Central", "PUMP", "IDLE", null),
-                IrrigationAssetEntity(DemoIds.uuid("irr-asset-008"), DemoIds.uuid("farm-005"), null, "Reservatório", "RESERVOIR", "IDLE", null),
-            ),
+        val assetRows = listOf(
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "Pivô 01", "PIVOT", "IDLE", BigDecimal("8.0")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "Pivô 02", "PIVOT", "RUNNING", BigDecimal("7.5")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-003"), "Gotejo 01", "DRIP", "IDLE", BigDecimal("4.0")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "Pivô Norte", "PIVOT", "IDLE", BigDecimal("9.0")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-005"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-005"), "Aspersão Sul", "SPRINKLER", "MAINTENANCE", BigDecimal("5.5")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-006"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "Pivô A", "PIVOT", "IDLE", BigDecimal("8.5")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-007"), DemoIds.uuid("farm-004"), null, "Bomba Central", "PUMP", "IDLE", null),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-008"), DemoIds.uuid("farm-005"), null, "Reservatório", "RESERVOIR", "IDLE", null),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-009"), DemoIds.uuid("farm-006"), DemoIds.uuid("field-017"), "Pivô VV", "PIVOT", "IDLE", BigDecimal("7.8")),
+            IrrigationAssetEntity(DemoIds.uuid("irr-asset-010"), DemoIds.uuid("farm-008"), DemoIds.uuid("field-021"), "Gotejo NE", "DRIP", "IDLE", BigDecimal("3.5")),
         )
-        recommendations.saveAll(
-            listOf(
-                IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), DemoIds.uuid("irr-asset-001"), BigDecimal("18"), now, now.plus(12, ChronoUnit.HOURS), "Déficit hídrico estimado", "OPEN"),
-                IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), DemoIds.uuid("irr-asset-002"), BigDecimal("12"), now.plus(6, ChronoUnit.HOURS), now.plus(18, ChronoUnit.HOURS), "Manter umidade no estágio R1", "OPEN"),
-                IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-003"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), DemoIds.uuid("irr-asset-004"), BigDecimal("22"), now.plus(1, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS), "Evapotranspiração alta", "OPEN"),
-            ),
+        val existingAssets = assets.findAllById(assetRows.map { it.id }).map { it.id }.toHashSet()
+        assets.saveAll(assetRows.filter { it.id !in existingAssets })
+
+        val recoRows = listOf(
+            IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), DemoIds.uuid("irr-asset-001"), BigDecimal("18"), now, now.plus(12, ChronoUnit.HOURS), "Déficit hídrico estimado", "OPEN"),
+            IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), DemoIds.uuid("irr-asset-002"), BigDecimal("12"), now.plus(6, ChronoUnit.HOURS), now.plus(18, ChronoUnit.HOURS), "Manter umidade no estágio R1", "OPEN"),
+            IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-003"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), DemoIds.uuid("irr-asset-004"), BigDecimal("22"), now.plus(1, ChronoUnit.DAYS), now.plus(2, ChronoUnit.DAYS), "Evapotranspiração alta", "OPEN"),
+            IrrigationRecommendationEntity(DemoIds.uuid("irr-reco-004"), DemoIds.uuid("farm-006"), DemoIds.uuid("field-017"), DemoIds.uuid("irr-asset-009"), BigDecimal("15"), now.plus(4, ChronoUnit.HOURS), now.plus(16, ChronoUnit.HOURS), "Umidade abaixo do limiar", "OPEN"),
         )
+        val existingRecos = recommendations.findAllById(recoRows.map { it.id }).map { it.id }.toHashSet()
+        recommendations.saveAll(recoRows.filter { it.id !in existingRecos })
     }
 
     private fun IrrigationAssetEntity.toDto() = IrrigationAssetDto(id, farmId, fieldId, name, type, status, capacityMmH)

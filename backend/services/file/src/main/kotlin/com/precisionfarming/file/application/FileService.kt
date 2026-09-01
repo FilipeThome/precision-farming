@@ -72,18 +72,19 @@ class FileService(
                 ),
             )
         }
-        if (!layers.existsById(DemoIds.uuid("layer-ndvi-001"))) {
-            val now = Instant.now()
-            layers.saveAll(
-                listOf(
-                    MapLayerEntity(DemoIds.uuid("layer-ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "NDVI Talhão 01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
-                    MapLayerEntity(DemoIds.uuid("layer-soil-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "Solo P Talhão 01", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
-                    MapLayerEntity(DemoIds.uuid("layer-yield-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-003"), "Produtividade 24/25", "YIELD", "DEMO", "stub://tiles/yield/{z}/{x}/{y}", now, "READY"),
-                    MapLayerEntity(DemoIds.uuid("layer-ndvi-002"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "NDVI Norte", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
-                    MapLayerEntity(DemoIds.uuid("layer-soil-002"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "Solo K Talhão A", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
-                ),
-            )
-        }
+        val now = Instant.now()
+        val layerRows = listOf(
+            MapLayerEntity(DemoIds.uuid("layer-ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "NDVI Talhão 01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-soil-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "Solo P Talhão 01", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-yield-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-003"), "Produtividade 24/25", "YIELD", "DEMO", "stub://tiles/yield/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-ndvi-002"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "NDVI Norte", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-soil-002"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "Solo K Talhão A", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-yield-002"), DemoIds.uuid("farm-004"), DemoIds.uuid("field-009"), "Produtividade Leste", "YIELD", "DEMO", "stub://tiles/yield/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-ndvi-003"), DemoIds.uuid("farm-006"), DemoIds.uuid("field-017"), "NDVI VV-01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
+            MapLayerEntity(DemoIds.uuid("layer-soil-003"), DemoIds.uuid("farm-008"), DemoIds.uuid("field-021"), "Solo P NE-01", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
+        )
+        val existingLayers = layers.findAllById(layerRows.map { it.id }).map { it.id }.toHashSet()
+        layers.saveAll(layerRows.filter { it.id !in existingLayers })
     }
 
     private fun FileMetaEntity.toDto() = FileMetaDto(

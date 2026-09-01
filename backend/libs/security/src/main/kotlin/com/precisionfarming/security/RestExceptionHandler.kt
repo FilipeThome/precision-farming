@@ -18,6 +18,16 @@ class RestExceptionHandler {
     private val log = LoggerFactory.getLogger(javaClass)
     @ExceptionHandler(DomainException::class)
     fun domain(ex: DomainException, request: HttpServletRequest): ResponseEntity<ApiError> {
+        if (ex.httpStatus == 403 || ex.httpStatus == 401) {
+            log.warn(
+                "authz_deny code={} status={} path={} method={} msg={}",
+                ex.code,
+                ex.httpStatus,
+                request.requestURI,
+                request.method,
+                ex.message,
+            )
+        }
         val body = ApiError(
             status = ex.httpStatus,
             code = ex.code,
@@ -29,8 +39,14 @@ class RestExceptionHandler {
     }
 
     @ExceptionHandler(AccessDeniedException::class)
-    fun accessDenied(ex: AccessDeniedException, request: HttpServletRequest): ResponseEntity<ApiError> =
-        ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+    fun accessDenied(ex: AccessDeniedException, request: HttpServletRequest): ResponseEntity<ApiError> {
+        log.warn(
+            "authz_deny code=FORBIDDEN status=403 path={} method={} msg={}",
+            request.requestURI,
+            request.method,
+            ex.message,
+        )
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
             ApiError(
                 status = 403,
                 code = "FORBIDDEN",
@@ -38,6 +54,7 @@ class RestExceptionHandler {
                 correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
             ),
         )
+    }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun validation(ex: MethodArgumentNotValidException): ResponseEntity<ApiError> =

@@ -14,7 +14,8 @@ Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `bui
 ## Prerequisites
 
 1. Docker Desktop with Compose v2
-2. Start infra once: `docker compose up -d` (Postgres, Timescale, Rabbit, Redis, MinIO on `127.0.0.1`)
+2. Prefer repo root + `--project-directory .` so `context` / `env_file` paths resolve correctly
+3. Start infra once: `docker compose --project-directory . up -d` (Postgres, Timescale, Rabbit, Redis, MinIO on `127.0.0.1`)
 
 ## Quick start — core demo
 
@@ -24,19 +25,19 @@ Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `bui
 ```
 
 ```bash
-# Linux / macOS — all containers (default)
+# Linux / macOS — core (default)
 chmod +x scripts/compose-up.sh
 ./scripts/compose-up.sh --build
 
-# core only (auth + farm + gateway + web)
-./scripts/compose-up.sh core --build
+# full stack
+./scripts/compose-up.sh all --build
 ```
 
 Equivalent:
 
 ```bash
-docker compose up -d
-docker compose -f docker-compose.yml -f deploy/compose/stack.yml \
+docker compose --project-directory . up -d
+docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
   --env-file deploy/compose/demo.env --profile all up -d --build
 ```
 
@@ -44,6 +45,8 @@ docker compose -f docker-compose.yml -f deploy/compose/stack.yml \
 - Web: http://localhost:5173  
 - Login: `manager@precisionfarming.demo` / `Precision@123`  
 - Seeds: `APP_SEED=true` in `demo.env`
+- `SPRINGDOC_ENABLED=true` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
+- `AUTH_RATE_LIMIT` applies to auth login/refresh
 
 ## Profiles (`stack.yml`)
 
@@ -59,12 +62,15 @@ docker compose -f docker-compose.yml -f deploy/compose/stack.yml \
 ## Single service overlay
 
 ```powershell
-docker compose -f docker-compose.yml -f deploy/compose/auth.yml --env-file deploy/compose/demo.env up -d --build
+docker compose --project-directory . -f docker-compose.yml -f deploy/compose/auth.yml `
+  --env-file deploy/compose/demo.env up -d --build
 ```
 
 ## Notes
 
 - App containers talk to DBs via Docker DNS (`postgres`, `timescaledb:5432`), not `localhost`.
 - Only **gateway** (`8080`) and **web** (`5173`) are published to the host.
+- Network `precision-farming` is owned by root `docker-compose.yml` (overlays no longer force `external: true`).
+- Gateway waits for auth/farm health when those services are in the active profile.
 - First JVM image build compiles with Gradle inside Docker (slower); rebuilds reuse layers when sources unchanged.
 - Do not use these demo secrets outside local machines.

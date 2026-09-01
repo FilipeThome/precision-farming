@@ -1,7 +1,12 @@
 import { useInventoryQuery } from '@/features/inventory/queries'
+import { inventoryStockBars } from '@/shared/charts/adapters'
+import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
+import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
+import { BarChartBlock } from '@/shared/ui/charts'
+import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
@@ -25,31 +30,29 @@ export function InventoryPage() {
         emptyDescription={t('inventory.emptyDescription')}
         onRetry={() => void inventory.refetch()}
       >
-        <div className="overflow-hidden rounded-[12px] border border-pf-border bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-pf-bg text-pf-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">Item</th>
-                <th className="px-4 py-3 font-medium">Categoria</th>
-                <th className="px-4 py-3 font-medium">Quantidade</th>
-                <th className="px-4 py-3 font-medium">Reservado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(inventory.data ?? []).map((item) => (
-                <tr key={item.id} className="border-t border-pf-border">
-                  <td className="px-4 py-3 font-medium text-pf-green">{item.name}</td>
-                  <td className="px-4 py-3">{item.category}</td>
-                  <td className="px-4 py-3">
-                    {formatNumber(Number(item.quantity), 1)} {item.unit}
-                  </td>
-                  <td className="px-4 py-3">
-                    {formatNumber(Number(item.reserved), 1)} {item.unit}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        {(inventory.data?.length ?? 0) > 0 ? (
+          <ChartCard title={t('charts.inventoryStock')} className="mb-4">
+            <BarChartBlock
+              data={inventoryStockBars(inventory.data ?? [])}
+              xKey="name"
+              bars={[
+                { dataKey: 'stock', name: t('charts.stock'), color: CHART_COLORS.green },
+                { dataKey: 'reserved', name: t('charts.reserved'), color: CHART_COLORS.amber },
+              ]}
+            />
+          </ChartCard>
+        ) : null}
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {(inventory.data ?? []).map((item) => (
+            <EntityCard
+              key={item.id}
+              title={item.name}
+              subtitle={item.category}
+              meta={`${formatNumber(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${formatNumber(Number(item.reserved), 1)}`}
+              imageSrc={inventoryPhoto()}
+              imageAlt={item.name}
+            />
+          ))}
         </div>
       </QueryPageState>
     </section>

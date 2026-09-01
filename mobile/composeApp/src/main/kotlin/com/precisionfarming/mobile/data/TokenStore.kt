@@ -9,12 +9,16 @@ import androidx.security.crypto.MasterKey
 object TokenStore {
     private const val PREFS = "pf_secure_session"
     private const val KEY = "access_token"
+    private const val KEY_USER_ID = "user_id"
 
     @Volatile
     private var prefs: SharedPreferences? = null
 
     @Volatile
     private var memory: String? = null
+
+    @Volatile
+    private var memoryUserId: String? = null
 
     fun init(context: Context) {
         if (prefs != null) return
@@ -34,10 +38,17 @@ object TokenStore {
         }
     }
 
-    fun save(accessToken: String) {
+    fun save(accessToken: String, userId: String? = null) {
         memory = accessToken
+        memoryUserId = userId
         try {
-            prefs?.edit()?.putString(KEY, accessToken)?.apply()
+            prefs?.edit()
+                ?.putString(KEY, accessToken)
+                ?.also { editor ->
+                    if (userId != null) editor.putString(KEY_USER_ID, userId)
+                    else editor.remove(KEY_USER_ID)
+                }
+                ?.apply()
         } catch (_: Exception) {
             // keep memory only
         }
@@ -52,10 +63,20 @@ object TokenStore {
         }
     }
 
+    fun readUserId(): String? {
+        memoryUserId?.let { return it }
+        return try {
+            prefs?.getString(KEY_USER_ID, null)?.also { memoryUserId = it }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     fun clear() {
         memory = null
+        memoryUserId = null
         try {
-            prefs?.edit()?.remove(KEY)?.apply()
+            prefs?.edit()?.remove(KEY)?.remove(KEY_USER_ID)?.apply()
         } catch (_: Exception) {
             // ignore
         }

@@ -45,26 +45,36 @@ class ComplianceService(
 
     @Transactional
     fun seed() {
-        if (traces.existsById(DemoIds.uuid("trace-001"))) return
         val now = Instant.now()
-        traces.saveAll(
-            listOf(
-                TraceabilityEntity(DemoIds.uuid("trace-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "HARVEST", "Colheita talhão 01 vinculada ao silo 01", now.minus(2, ChronoUnit.DAYS)),
-                TraceabilityEntity(DemoIds.uuid("trace-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "APPLICATION", "Aplicação de inseticida registrada", now.minus(20, ChronoUnit.DAYS)),
-                TraceabilityEntity(DemoIds.uuid("trace-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "LOT-BV-002", "Milho", "PLANTING", "Plantio com lote de semente item-003", now.minus(60, ChronoUnit.DAYS)),
-                TraceabilityEntity(DemoIds.uuid("trace-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "LOT-SH-010", "Soja", "TRANSPORT", "Carga load-003 despachada", now.minus(1, ChronoUnit.DAYS)),
-                TraceabilityEntity(DemoIds.uuid("trace-005"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "STORAGE", "Lote recebido no silo A", now.minus(5, ChronoUnit.DAYS)),
-            ),
+        val traceRows = listOf(
+            TraceabilityEntity(DemoIds.uuid("trace-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "HARVEST", "Colheita talhão 01 vinculada ao silo 01", now.minus(2, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "APPLICATION", "Aplicação de inseticida registrada", now.minus(20, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "LOT-BV-002", "Milho", "PLANTING", "Plantio com lote de semente item-003", now.minus(60, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "LOT-SH-010", "Soja", "TRANSPORT", "Carga load-003 despachada", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-005"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "STORAGE", "Lote recebido no silo A", now.minus(5, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-006"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "TRANSPORT", "Carga load-002 em trânsito para Porto Seco", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-007"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "STORAGE", "Lote consolidado no silo 01", now.minus(12, ChronoUnit.HOURS)),
+            TraceabilityEntity(DemoIds.uuid("trace-008"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "HARVEST", "Colheita parcial talhão A", now.minus(8, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-009"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "APPLICATION", "Fungicida pré-colheita", now.minus(25, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-010"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "Soja", "HARVEST", "Colheita talhão ES-Norte", now.minus(3, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-011"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "Soja", "TRANSPORT", "Carga load-008 entregue", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-012"), DemoIds.uuid("farm-004"), DemoIds.uuid("field-009"), "LOT-PR-040", "Soja", "PLANTING", "Plantio talhão Leste", now.minus(90, ChronoUnit.DAYS)),
         )
-        esg.saveAll(
-            listOf(
-                EsgMetricEntity(DemoIds.uuid("esg-001"), DemoIds.uuid("farm-001"), "CO2E_PER_HA", BigDecimal("1.85"), "tCO2e/ha", "2025/26", BigDecimal("78")),
-                EsgMetricEntity(DemoIds.uuid("esg-002"), DemoIds.uuid("farm-001"), "WATER_PER_TON", BigDecimal("420"), "m3/t", "2025/26", BigDecimal("71")),
-                EsgMetricEntity(DemoIds.uuid("esg-003"), DemoIds.uuid("farm-001"), "SOIL_HEALTH", BigDecimal("7.2"), "index", "2025/26", BigDecimal("82")),
-                EsgMetricEntity(DemoIds.uuid("esg-004"), DemoIds.uuid("farm-002"), "CO2E_PER_HA", BigDecimal("2.10"), "tCO2e/ha", "2025/26", BigDecimal("69")),
-                EsgMetricEntity(DemoIds.uuid("esg-005"), DemoIds.uuid("farm-003"), "WATER_PER_TON", BigDecimal("390"), "m3/t", "2025/26", BigDecimal("75")),
-            ),
+        val existingTraces = traces.findAllById(traceRows.map { it.id }).map { it.id }.toHashSet()
+        traces.saveAll(traceRows.filter { it.id !in existingTraces })
+
+        val esgRows = listOf(
+            EsgMetricEntity(DemoIds.uuid("esg-001"), DemoIds.uuid("farm-001"), "CO2E_PER_HA", BigDecimal("1.85"), "tCO2e/ha", "2025/26", BigDecimal("78")),
+            EsgMetricEntity(DemoIds.uuid("esg-002"), DemoIds.uuid("farm-001"), "WATER_PER_TON", BigDecimal("420"), "m3/t", "2025/26", BigDecimal("71")),
+            EsgMetricEntity(DemoIds.uuid("esg-003"), DemoIds.uuid("farm-001"), "SOIL_HEALTH", BigDecimal("7.2"), "index", "2025/26", BigDecimal("82")),
+            EsgMetricEntity(DemoIds.uuid("esg-004"), DemoIds.uuid("farm-002"), "CO2E_PER_HA", BigDecimal("2.10"), "tCO2e/ha", "2025/26", BigDecimal("69")),
+            EsgMetricEntity(DemoIds.uuid("esg-005"), DemoIds.uuid("farm-003"), "WATER_PER_TON", BigDecimal("390"), "m3/t", "2025/26", BigDecimal("75")),
+            EsgMetricEntity(DemoIds.uuid("esg-006"), DemoIds.uuid("farm-004"), "CO2E_PER_HA", BigDecimal("1.95"), "tCO2e/ha", "2025/26", BigDecimal("74")),
+            EsgMetricEntity(DemoIds.uuid("esg-007"), DemoIds.uuid("farm-006"), "SOIL_HEALTH", BigDecimal("6.8"), "index", "2025/26", BigDecimal("70")),
+            EsgMetricEntity(DemoIds.uuid("esg-008"), DemoIds.uuid("farm-008"), "WATER_PER_TON", BigDecimal("405"), "m3/t", "2025/26", BigDecimal("73")),
         )
+        val existingEsg = esg.findAllById(esgRows.map { it.id }).map { it.id }.toHashSet()
+        esg.saveAll(esgRows.filter { it.id !in existingEsg })
     }
 
     private fun TraceabilityEntity.toDto() = TraceabilityDto(id, farmId, fieldId, lotCode, crop, eventType, summary, occurredAt)
