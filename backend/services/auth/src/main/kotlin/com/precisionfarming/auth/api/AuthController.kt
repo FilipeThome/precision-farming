@@ -49,8 +49,9 @@ class AuthController(
     }
 
     private fun clientKey(request: HttpServletRequest): String {
-        val forwarded = request.getHeader("X-Forwarded-For")?.substringBefore(',')?.trim()
-        return forwarded?.takeIf { it.isNotBlank() } ?: (request.remoteAddr ?: "unknown")
+        // Do not trust client-supplied X-Forwarded-For (spoofable through the gateway).
+        // Login keys also include email; refresh is keyed by the immediate peer address.
+        return request.remoteAddr ?: "unknown"
     }
 }
 

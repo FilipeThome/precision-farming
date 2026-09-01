@@ -55,4 +55,5 @@ interface FieldJpaRepository : JpaRepository<FieldEntity, UUID> {
 interface SeasonJpaRepository : JpaRepository<SeasonEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<SeasonEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<SeasonEntity>
+    fun deleteByFarmId(farmId: UUID): Long
 }

@@ -4,6 +4,7 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.UnauthorizedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.Jwt
@@ -92,16 +93,53 @@ class JwtAndFarmAccessTest {
     @Test
     fun demoFarmDirectoryScopesMatchRoles() {
         assertEquals(8, DemoFarmDirectory.ALL.size)
-        assertEquals(DemoFarmDirectory.ALL, DemoFarmDirectory.forRole("ADMIN"))
-        assertEquals(
-            setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
-            DemoFarmDirectory.forRole("FARM_MANAGER"),
+        assertTrue(DemoFarmDirectory.forRole("ADMIN").containsAll(DemoFarmDirectory.ALL))
+        assertTrue(
+            DemoFarmDirectory.forRole("FARM_MANAGER").containsAll(
+                setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
+            ),
         )
-        assertEquals(
-            setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
-            DemoFarmDirectory.forRole("MAINTENANCE"),
+        assertTrue(
+            DemoFarmDirectory.forRole("MAINTENANCE").containsAll(
+                setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
+            ),
         )
         assertEquals(setOf(DemoIds.uuid("farm-001")), DemoFarmDirectory.forRole("OPERATOR"))
+    }
+
+    @Test
+    fun runtimeRegistrationsExtendSeedMapsWithoutReplacingThem() {
+        val field = UUID.randomUUID()
+        val machine = UUID.randomUUID()
+        val item = UUID.randomUUID()
+        val farm = DemoIds.uuid("farm-001")
+        DemoFieldFarms.register(field, farm)
+        DemoMachineFarms.register(machine, farm)
+        DemoItemFarms.register(item, farm)
+        DemoFieldFarms.requireBelongsToFarm(field, farm)
+        DemoMachineFarms.requireBelongsToFarm(machine, farm)
+        DemoItemFarms.requireBelongsToFarm(item, farm)
+        // Seed entries remain
+        assertEquals(DemoIds.uuid("farm-001"), DemoFieldFarms.farmId(DemoIds.uuid("field-001")))
+    }
+
+    @Test
+    fun runtimeFarmsMergeIntoAdminScope() {
+        val created = UUID.randomUUID()
+        DemoFarmDirectory.register(created)
+        try {
+            val scope = farmAccess.fromJwt(
+                jwt(
+                    farmIds = listOf(DemoIds.uuid("farm-001").toString()),
+                    subject = UUID.randomUUID().toString(),
+                    role = "ADMIN",
+                ),
+            )
+            assertTrue(scope.farmIds.contains(created))
+            assertTrue(scope.farmIds.contains(DemoIds.uuid("farm-001")))
+        } finally {
+            DemoFarmDirectory.unregister(created)
+        }
     }
 
     @Test
