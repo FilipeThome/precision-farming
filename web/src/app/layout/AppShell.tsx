@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router'
 
+import { useIdleSessionTimeout } from '@/shared/auth/useIdleSessionTimeout'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useOnline } from '@/shared/lib/useOnline'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
@@ -10,6 +11,7 @@ import { Sidebar } from './Sidebar'
 export function AppShell() {
   const online = useOnline()
   const { t } = useI18n()
+  useIdleSessionTimeout()
 
   return (
     <div className="flex h-screen overflow-hidden bg-pf-bg">

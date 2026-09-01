@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { MapPinOff } from 'lucide-react'
 
 import type { Field } from '@/shared/api/types'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { Card } from '@/shared/ui/Card'
 
 import { geometryToPaths, getGoogleMapsApiKey, loadGoogleMaps } from './loadGoogleMaps'
@@ -9,14 +10,17 @@ import { geometryToPaths, getGoogleMapsApiKey, loadGoogleMaps } from './loadGoog
 type FieldMapProps = {
   fields: Field[]
   className?: string
+  /** Legend/filter only — no GeoTIFF rendering. */
+  activeLayerKinds?: string[]
 }
 
 function fieldsSignature(fields: Field[]): string {
   return fields.map((field) => `${field.id}:${field.geometry}`).join('|')
 }
 
-export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
+export function FieldMap({ fields, className = 'h-[520px]', activeLayerKinds }: FieldMapProps) {
   const apiKey = getGoogleMapsApiKey()
+  const { t } = useI18n()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   const mapsRef = useRef<typeof google.maps | null>(null)
@@ -26,6 +30,7 @@ export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
   const [mapReady, setMapReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
   const signature = fieldsSignature(fields)
+  void activeLayerKinds
 
   useEffect(() => {
     if (!apiKey || !containerRef.current) return
@@ -47,7 +52,7 @@ export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
         setMapReady(true)
       })
       .catch((err: unknown) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Falha ao carregar o mapa')
+        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('map.loadError'))
       })
 
     return () => {
@@ -102,12 +107,9 @@ export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
       <Card className="flex h-full min-h-64 flex-col items-start gap-2 border-dashed">
         <div className="flex items-center gap-2 text-pf-green">
           <MapPinOff className="h-5 w-5" aria-hidden />
-          <strong>Chave do Google Maps ausente</strong>
+          <strong>{t('map.missingKeyTitle')}</strong>
         </div>
-        <p className="text-sm text-pf-muted">
-          Defina <code>VITE_GOOGLE_MAPS_API_KEY</code> no arquivo <code>.env</code> para carregar o
-          mapa satélite real. Nenhum mosaico fictício é exibido.
-        </p>
+        <p className="text-sm text-pf-muted">{t('map.missingKeyBody')}</p>
       </Card>
     )
   }

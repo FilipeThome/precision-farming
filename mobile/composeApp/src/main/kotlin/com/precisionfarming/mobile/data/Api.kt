@@ -17,6 +17,12 @@ import kotlinx.serialization.json.Json
 
 object Session {
     var accessToken: String? = null
+    var userId: String? = null
+
+    fun clear() {
+        accessToken = null
+        userId = null
+    }
 }
 
 val api = HttpClient(OkHttp) {
@@ -143,15 +149,39 @@ data class MaintenanceWorkOrderDto(
     val completedAt: String? = null,
 )
 
+@Serializable
+data class PrescriptionDto(
+    val id: String,
+    val farmId: String,
+    val fieldId: String,
+    val product: String,
+    val rate: Double,
+    val unit: String,
+    val status: String,
+    val createdAt: String? = null,
+    val approvedAt: String? = null,
+)
+
+@Serializable
+data class SyncPullRequest(val deviceId: String, val cursor: String? = null)
+
+@Serializable
+data class SyncPullResponse(
+    val cursor: String? = null,
+    val deviceId: String? = null,
+)
+
 suspend fun login(email: String, password: String): TokenResponse {
     Session.accessToken = null
+    Session.userId = null
     TokenStore.clear()
     val res: TokenResponse = api.post("/api/v1/auth/login") {
         contentType(ContentType.Application.Json)
         setBody(LoginRequest(email, password))
     }.body()
     Session.accessToken = res.accessToken
-    TokenStore.save(res.accessToken)
+    Session.userId = res.userId
+    TokenStore.save(res.accessToken, res.userId)
     return res
 }
 
@@ -174,3 +204,18 @@ suspend fun maintenanceWorkOrders() =
     api.get("/api/v1/maintenance/work-orders").body<List<MaintenanceWorkOrderDto>>()
 suspend fun completeWorkOrder(id: String) =
     api.post("/api/v1/maintenance/work-orders/$id/complete")
+
+suspend fun prescriptions() = api.get("/api/v1/prescriptions").body<List<PrescriptionDto>>()
+
+/** Soft-callable sync pull stub. Prefer [Session.userId]:demo when bound. */
+suspend fun syncPull(deviceId: String, cursor: String? = null): SyncPullResponse =
+    api.post("/api/v1/sync/pull") {
+        contentType(ContentType.Application.Json)
+        setBody(SyncPullRequest(deviceId = deviceId, cursor = cursor))
+    }.body()
+
+fun syncDeviceId(): String {
+    val userId = Session.userId
+    if (userId.isNullOrBlank()) error("Missing userId for sync device binding — sign in again")
+    return "$userId:demo"
+}

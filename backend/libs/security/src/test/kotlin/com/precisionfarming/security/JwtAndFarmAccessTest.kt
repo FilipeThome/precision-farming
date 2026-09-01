@@ -90,6 +90,30 @@ class JwtAndFarmAccessTest {
     }
 
     @Test
+    fun demoFarmDirectoryScopesMatchRoles() {
+        assertEquals(8, DemoFarmDirectory.ALL.size)
+        assertEquals(DemoFarmDirectory.ALL, DemoFarmDirectory.forRole("ADMIN"))
+        assertEquals(
+            setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
+            DemoFarmDirectory.forRole("FARM_MANAGER"),
+        )
+        assertEquals(
+            setOf(DemoIds.uuid("farm-001"), DemoIds.uuid("farm-002"), DemoIds.uuid("farm-003")),
+            DemoFarmDirectory.forRole("MAINTENANCE"),
+        )
+        assertEquals(setOf(DemoIds.uuid("farm-001")), DemoFarmDirectory.forRole("OPERATOR"))
+    }
+
+    @Test
+    fun demoScopeMapsCoverDensifiedIds() {
+        assertEquals(DemoIds.uuid("farm-008"), DemoFieldFarms.farmId(DemoIds.uuid("field-022")))
+        assertEquals(DemoIds.uuid("farm-008"), DemoMachineFarms.farmId(DemoIds.uuid("machine-012")))
+        assertEquals(DemoIds.uuid("farm-008"), DemoItemFarms.farmId(DemoIds.uuid("item-016")))
+        DemoFieldFarms.requireBelongsToFarm(DemoIds.uuid("field-014"), DemoIds.uuid("farm-001"))
+        DemoItemFarms.requireBelongsToFarm(DemoIds.uuid("item-001"), DemoIds.uuid("farm-001"))
+    }
+
+    @Test
     fun emptyFarmIdsFailsClosed() {
         val jwt = jwt(farmIds = emptyList(), subject = UUID.randomUUID().toString())
         val ex = assertThrows(UnauthorizedException::class.java) { farmAccess.fromJwt(jwt) }

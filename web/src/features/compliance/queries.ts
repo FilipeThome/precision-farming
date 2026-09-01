@@ -1,12 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
 
-import { fetchEsg, fetchTraceability } from './api'
+import { fetchEsg, fetchTraceability, fetchTraceabilityById } from './api'
 
 type QueryToggle = { enabled?: boolean }
 
 export const complianceKeys = {
   traceability: (farmId?: string | null) =>
     ['compliance', 'traceability', farmId ?? 'all'] as const,
+  traceabilityEvent: (id: string) => ['compliance', 'traceability', 'event', id] as const,
   esg: (farmId?: string | null) => ['compliance', 'esg', farmId ?? 'all'] as const,
 }
 
@@ -16,6 +17,15 @@ export function useTraceabilityQuery(farmId?: string | null, options?: QueryTogg
     queryFn: () => fetchTraceability(farmId),
     staleTime: 30_000,
     enabled: options?.enabled ?? true,
+  })
+}
+
+export function useTraceabilityEventQuery(id?: string | null) {
+  return useQuery({
+    queryKey: complianceKeys.traceabilityEvent(id ?? ''),
+    queryFn: () => fetchTraceabilityById(id!),
+    staleTime: 30_000,
+    enabled: Boolean(id),
   })
 }
 

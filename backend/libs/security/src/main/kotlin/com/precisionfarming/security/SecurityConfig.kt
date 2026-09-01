@@ -1,5 +1,6 @@
 package com.precisionfarming.security
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,6 +27,7 @@ import javax.crypto.spec.SecretKeySpec
 class SecurityConfig(
     private val jwtProperties: JwtProperties,
     private val correlationFilter: CorrelationFilter,
+    @Value("\${springdoc.api-docs.enabled:false}") private val springdocEnabled: Boolean,
 ) {
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
@@ -61,12 +63,13 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/actuator/health",
                     "/actuator/info",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
                 ).permitAll()
+                // OpenAPI/Swagger only when explicitly enabled (local demo via SPRINGDOC_ENABLED).
+                if (springdocEnabled) {
+                    it.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                }
                 it.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 it.anyRequest().authenticated()
             }

@@ -35,8 +35,11 @@ Recorded after parallel architect review. Implementation may proceed.
 | AuthZ implementation | [kotlin-backend-engineer](04dc0eeb-0cb2-4215-afc7-897dda48b7ce) | Delivered scoped APIs + PreAuthorize; `./gradlew test` green |
 | Audit remediations (2026-09-01) | [kotlin-architect](6f97cc44-6b59-4947-90ab-23d5385603dc) + [infra-architect](02431633-cd0e-4f48-a5aa-41cf29e8bf18) + [kmp-architect](5f325b4f-3200-45c2-902d-55b775894adf) | APPROVED — fail-closed secrets, saga `type=service`, Compose 127.0.0.1 bind, TokenStore |
 | Per-service Compose + slim images | [infra-architect](c15bf290-5d68-43f6-bbe2-7998901b38df) | APPROVED — `deploy/compose/*`, multi-stage Alpine JVM/web, mobile excluded |
+| AgOS V4 demo increment | [kotlin-architect](a5b9673a-c789-40fb-9594-c3ea8d2a42db) + [react-architect](ba94fa1e-295a-421c-a19d-1965563ab423) + [kmp-architect](1b0d7e0b-9c2c-4e4d-b700-a26b68b65a5c) | APPROVED — denser seeds + wire unused APIs; see `docs/agos-v4-demo-increment.md` |
+| Web photos + charts | [react-architect](1ce7ffff-c9bb-4197-902f-3cea499b4b43) | APPROVED — EntityPhoto + Recharts ChartCard; royalty-free `web/public/demo`; finance seed densified for charts |
 | Project skill | `.cursor/skills/cybersecurity-team` | Blue/purple/red/pentester authorized assessment (no exploit PoCs) |
 | Report | `docs/security-assessment-2026-09-01.md` | Findings + remediation status |
+| Security hardening (rate limit, swagger gate, idle timeout, role UI, audit) | kotlin-backend + react (inline) | APPROVED for MVP — see assessment hardening slice |
 
 Adopted Compose hardening: infra ports published as `127.0.0.1:<port>:<container>` only. Production must not publish Postgres/Timescale/Rabbit/Redis/MinIO.
 

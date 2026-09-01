@@ -43,6 +43,7 @@ import com.precisionfarming.mobile.data.IrrigationRecommendationDto
 import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.data.MaintenanceWorkOrderDto
 import com.precisionfarming.mobile.data.OperationDto
+import com.precisionfarming.mobile.data.PrescriptionDto
 import com.precisionfarming.mobile.data.RecommendationDto
 import com.precisionfarming.mobile.data.ScoutingDto
 import com.precisionfarming.mobile.data.SoilSampleDto
@@ -60,10 +61,13 @@ import com.precisionfarming.mobile.data.login
 import com.precisionfarming.mobile.data.machines
 import com.precisionfarming.mobile.data.maintenanceWorkOrders
 import com.precisionfarming.mobile.data.operations
+import com.precisionfarming.mobile.data.prescriptions
 import com.precisionfarming.mobile.data.recommendations
 import com.precisionfarming.mobile.data.scouting
 import com.precisionfarming.mobile.data.soilSamples
 import com.precisionfarming.mobile.data.startOp
+import com.precisionfarming.mobile.data.syncDeviceId
+import com.precisionfarming.mobile.data.syncPull
 import com.precisionfarming.mobile.data.weatherWindows
 import com.precisionfarming.mobile.i18n.AppLocale
 import com.precisionfarming.mobile.i18n.LocaleStore
@@ -80,9 +84,20 @@ private sealed class LoadState<out T> {
 fun AppRoot() {
     // Touch locale so root recomposes when language changes
     LocaleStore.locale
-    val restored = remember { TokenStore.read()?.also { Session.accessToken = it } }
+    val restored = remember {
+        TokenStore.read()?.also { token ->
+            Session.accessToken = token
+            Session.userId = TokenStore.readUserId()
+        }
+    }
+    // Token without userId (pre-persist upgrade) cannot bind sync — force login again.
+    val canRestore = restored != null && !Session.userId.isNullOrBlank()
+    if (restored != null && !canRestore) {
+        TokenStore.clear()
+        Session.clear()
+    }
     val nav = rememberNavController()
-    NavHost(nav, startDestination = if (restored != null) "home" else "login") {
+    NavHost(nav, startDestination = if (canRestore) "home" else "login") {
         composable("login") {
             LoginScreen { nav.navigate("home") { popUpTo("login") { inclusive = true } } }
         }
@@ -218,6 +233,12 @@ fun HomeShell() {
                     insights().map { formatInsight(it) }
                 }
             }
+            composable("mais/prescriptions") {
+                ApiListScreen(S.t("prescriptions.title"), onBack = { nav.popBackStack() }) {
+                    prescriptions().map { formatPrescription(it) }
+                }
+            }
+            composable("mais/sync") { SyncStatusScreen(onBack = { nav.popBackStack() }) }
         }
     }
 }
@@ -231,6 +252,8 @@ fun MoreMenu(onOpen: (String) -> Unit) {
         TextButton(onClick = { onOpen("mais/irrigation") }) { Text(S.t("more.irrigation")) }
         TextButton(onClick = { onOpen("mais/maintenance") }) { Text(S.t("more.maintenance")) }
         TextButton(onClick = { onOpen("mais/insights") }) { Text(S.t("more.insights")) }
+        TextButton(onClick = { onOpen("mais/prescriptions") }) { Text(S.t("more.prescriptions")) }
+        TextButton(onClick = { onOpen("mais/sync") }) { Text(S.t("more.sync")) }
     }
 }
 
@@ -443,6 +466,50 @@ fun MaintenanceScreen(onBack: () -> Unit) {
 }
 
 @Composable
+fun SyncStatusScreen(onBack: () -> Unit) {
+    var lines by remember { mutableStateOf<LoadState<String>>(LoadState.Loading) }
+    val scope = rememberCoroutineScope()
+    fun reload() {
+        scope.launch {
+            lines = LoadState.Loading
+            // Soft-fail: never crash the screen if sync service is down or unbound
+            lines = runCatching {
+                val res = syncPull(syncDeviceId())
+                buildList {
+                    add(S.t("sync.online"))
+                    res.deviceId?.let { add("deviceId · $it") }
+                    add("${S.t("sync.cursor")}: ${res.cursor ?: "—"}")
+                    add(S.t("sync.empty"))
+                }
+            }.fold(
+                onSuccess = { LoadState.Ok(it) },
+                onFailure = {
+                    LoadState.Ok(
+                        listOf(
+                            "${S.t("sync.unavailable")}: ${it.message ?: S.t("common.error")}",
+                        ),
+                    )
+                },
+            )
+        }
+    }
+    LaunchedEffect(LocaleStore.locale) { reload() }
+    LazyColumn(
+        Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        item { TextButton(onClick = onBack) { Text(S.t("common.back")) } }
+        item { Text(S.t("sync.title")) }
+        when (val s = lines) {
+            is LoadState.Loading -> item { Text(S.t("common.loading")) }
+            is LoadState.Err -> item { Text("${S.t("sync.unavailable")}: ${s.message}") }
+            is LoadState.Ok -> items(s.items) { Text(it) }
+        }
+        item { TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) } }
+    }
+}
+
+@Composable
 private fun <T> SectionList(label: String?, state: LoadState<T>, format: (T) -> String) {
     if (label != null) Text(label)
     when (state) {
@@ -487,3 +554,5 @@ private fun formatIrrigationRec(r: IrrigationRecommendationDto) =
     }
 private fun formatWorkOrder(w: MaintenanceWorkOrderDto) =
     listOfNotNull(w.title, w.priority, w.status, w.createdAt).joinToString(" · ").ifBlank { w.id }
+private fun formatPrescription(p: PrescriptionDto) =
+    listOfNotNull(p.product, "${p.rate} ${p.unit}", p.status).joinToString(" · ").ifBlank { p.id }

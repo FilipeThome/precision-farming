@@ -1,9 +1,12 @@
+import { cropPhoto, farmPhoto } from '@/shared/demo/media'
 import { useSeasonsQuery } from '@/features/seasons/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDate } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
+import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
+import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { useUiStore } from '@/shared/ui/uiStore'
 
 export function SeasonsPage() {
@@ -25,29 +28,19 @@ export function SeasonsPage() {
         emptyDescription={t('seasons.emptyDescription')}
         onRetry={() => void seasons.refetch()}
       >
-        <div className="overflow-hidden rounded-[12px] border border-pf-border bg-white">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-pf-bg text-pf-muted">
-              <tr>
-                <th className="px-4 py-3 font-medium">{t('seasons.col.name')}</th>
-                <th className="px-4 py-3 font-medium">{t('seasons.col.crop')}</th>
-                <th className="px-4 py-3 font-medium">{t('seasons.col.status')}</th>
-                <th className="px-4 py-3 font-medium">{t('seasons.col.period')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(seasons.data ?? []).map((season) => (
-                <tr key={season.id} className="border-t border-pf-border">
-                  <td className="px-4 py-3 font-medium text-pf-green">{season.name ?? season.id}</td>
-                  <td className="px-4 py-3">{season.crop ?? '—'}</td>
-                  <td className="px-4 py-3">{season.status ?? '—'}</td>
-                  <td className="px-4 py-3">
-                    {formatDate(season.startDate)} – {formatDate(season.endDate)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {(seasons.data ?? []).map((season) => (
+            <EntityCard
+              key={season.id}
+              title={season.name ?? season.id}
+              subtitle={season.crop ?? undefined}
+              meta={`${formatDate(season.startDate)} – ${formatDate(season.endDate)}`}
+              imageSrc={season.crop ? cropPhoto(season.crop) : farmPhoto(season.farmId)}
+              imageAlt={season.name ?? season.crop ?? 'season'}
+            >
+              {season.status ? <StatusBadge value={season.status} /> : null}
+            </EntityCard>
+          ))}
         </div>
       </QueryPageState>
     </section>

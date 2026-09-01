@@ -16,6 +16,12 @@ const tone: Record<string, { className: string; icon: LucideIcon }> = {
   CRITICAL: { className: 'bg-red-50 text-red-800', icon: AlertTriangle },
   WARNING: { className: 'bg-amber-50 text-amber-800', icon: AlertTriangle },
   INFO: { className: 'bg-sky-50 text-sky-800', icon: Info },
+  DRAFT: { className: 'bg-slate-100 text-slate-700', icon: Clock },
+  APPROVED: { className: 'bg-emerald-50 text-pf-green', icon: CheckCircle2 },
+  QUEUED: { className: 'bg-slate-100 text-slate-700', icon: Clock },
+  DISPATCHED: { className: 'bg-teal-50 text-pf-teal', icon: CheckCircle2 },
+  DELIVERED: { className: 'bg-emerald-50 text-pf-green', icon: CheckCircle2 },
+  DEMO: { className: 'bg-sky-50 text-sky-800', icon: Info },
   FAVORABLE: { className: 'bg-emerald-50 text-pf-green', icon: CheckCircle2 },
   UNFAVORABLE: { className: 'bg-amber-50 text-amber-800', icon: AlertTriangle },
 }

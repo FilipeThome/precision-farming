@@ -1,9 +1,11 @@
 package com.precisionfarming.auth.api
 
+import com.precisionfarming.auth.application.AuthRateLimiter
 import com.precisionfarming.auth.application.AuthService
 import com.precisionfarming.auth.application.LoginCommand
 import com.precisionfarming.auth.application.RefreshCommand
 import com.precisionfarming.auth.application.TokenResponse
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -23,19 +25,32 @@ data class MeResponse(val id: UUID, val name: String, val email: String, val rol
 
 @RestController
 @RequestMapping("/api/v1/auth")
-class AuthController(private val authService: AuthService) {
+class AuthController(
+    private val authService: AuthService,
+    private val rateLimiter: AuthRateLimiter,
+) {
     @PostMapping("/login")
-    fun login(@Valid @RequestBody body: LoginRequest): TokenResponse =
-        authService.login(LoginCommand(body.email.lowercase(), body.password))
+    fun login(@Valid @RequestBody body: LoginRequest, request: HttpServletRequest): TokenResponse {
+        val email = body.email.lowercase()
+        rateLimiter.check("login:${clientKey(request)}:$email")
+        return authService.login(LoginCommand(email, body.password))
+    }
 
     @PostMapping("/refresh")
-    fun refresh(@Valid @RequestBody body: RefreshRequest): TokenResponse =
-        authService.refresh(RefreshCommand(body.refreshToken))
+    fun refresh(@Valid @RequestBody body: RefreshRequest, request: HttpServletRequest): TokenResponse {
+        rateLimiter.check("refresh:${clientKey(request)}")
+        return authService.refresh(RefreshCommand(body.refreshToken))
+    }
 
     @GetMapping("/me")
     fun me(@AuthenticationPrincipal jwt: Jwt): MeResponse {
         val user = authService.me(UUID.fromString(jwt.subject))
         return MeResponse(user.id, user.name, user.email, user.role.name)
+    }
+
+    private fun clientKey(request: HttpServletRequest): String {
+        val forwarded = request.getHeader("X-Forwarded-For")?.substringBefore(',')?.trim()
+        return forwarded?.takeIf { it.isNotBlank() } ?: (request.remoteAddr ?: "unknown")
     }
 }
 

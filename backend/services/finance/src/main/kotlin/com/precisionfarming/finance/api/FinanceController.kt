@@ -28,6 +28,8 @@ class FinanceController(
     @GetMapping("/finance/cashflow")
     fun cashflow(@RequestParam(required = false) farmId: UUID?) = svc.listCashflow(farmAccess.current(), farmId)
 
+    /** Global market stubs (not farm-scoped) — still requires authenticated JWT. */
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/market/quotes")
     fun quotes() = svc.listQuotes()
 

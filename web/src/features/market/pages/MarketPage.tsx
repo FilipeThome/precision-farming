@@ -5,9 +5,12 @@ import {
   useMarketExposureQuery,
   useMarketQuotesQuery,
 } from '@/features/market/queries'
+import { exposureBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime, formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
+import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
+import { BarChartBlock } from '@/shared/ui/charts'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
@@ -61,6 +64,18 @@ export function MarketPage() {
         }
         onRetry={() => void active.refetch()}
       >
+        {tab === 'exposure' && (exposure.data?.length ?? 0) > 0 ? (
+          <ChartCard title={t('charts.marketExposure')} className="mb-4">
+            <BarChartBlock
+              data={exposureBars(exposure.data ?? [])}
+              xKey="name"
+              bars={[
+                { dataKey: 'open', name: t('charts.openTons'), color: CHART_COLORS.amber },
+                { dataKey: 'hedged', name: t('charts.hedgedTons'), color: CHART_COLORS.green },
+              ]}
+            />
+          </ChartCard>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-2">
           {tab === 'quotes'
             ? (quotes.data ?? []).map((row) => (
@@ -72,7 +87,7 @@ export function MarketPage() {
                       ? `${formatNumber(Number(row.price), 2)} ${row.currency ?? ''} / ${row.unit ?? ''}`.trim()
                       : undefined
                   }
-                  meta={`${row.market ?? '—'} · ${formatDateTime(row.quotedAt)}`}
+                  meta={`${row.market ?? row.exchange ?? '—'} · ${formatDateTime(row.quotedAt)}`}
                 />
               ))
             : null}
@@ -81,11 +96,15 @@ export function MarketPage() {
                 <EntityCard
                   key={row.id}
                   title={row.commodity ?? row.id}
-                  subtitle={row.counterparty}
-                  meta={
-                    row.volumeTons != null
-                      ? `${formatNumber(Number(row.volumeTons), 1)} t · ${formatNumber(Number(row.price ?? 0), 2)} ${row.currency ?? ''}`
+                  subtitle={
+                    (row.volumeTons ?? row.volumeT) != null
+                      ? `${formatNumber(Number(row.volumeTons ?? row.volumeT), 1)} t`
                       : undefined
+                  }
+                  meta={
+                    row.price != null
+                      ? `${formatNumber(Number(row.price), 2)} ${row.currency ?? ''} · ${formatDateTime(row.deliveryAt)}`
+                      : formatDateTime(row.deliveryAt)
                   }
                 >
                   {row.status ? <StatusBadge value={row.status} /> : null}
@@ -98,11 +117,15 @@ export function MarketPage() {
                   key={row.id}
                   title={row.commodity ?? row.id}
                   subtitle={
-                    row.netTons != null ? `${formatNumber(Number(row.netTons), 1)} t net` : undefined
+                    row.openT != null
+                      ? `${formatNumber(Number(row.openT), 1)} t open · ${formatNumber(Number(row.hedgedT ?? 0), 1)} t hedged`
+                      : row.netTons != null
+                        ? `${formatNumber(Number(row.netTons), 1)} t net`
+                        : undefined
                   }
                   meta={
-                    row.markToMarket != null
-                      ? `${formatNumber(Number(row.markToMarket), 2)} ${row.currency ?? ''} · ${formatDateTime(row.asOf)}`
+                    row.riskScore != null
+                      ? `${t('charts.risk')}: ${formatNumber(Number(row.riskScore), 1)}`
                       : formatDateTime(row.asOf)
                   }
                 />

@@ -51,12 +51,17 @@ class TelemetryService(private val repo: TelemetryJpaRepository) {
 
     @Transactional
     fun seed() {
-        val machines = listOf("machine-001" to Pair(-19.39, -54.57), "machine-002" to Pair(-19.41, -54.55))
-        if (repo.existsByMachineId(DemoIds.uuid(machines.first().first))) return
+        val machines = listOf(
+            "machine-001" to Pair(-19.39, -54.57),
+            "machine-002" to Pair(-19.41, -54.55),
+            "machine-003" to Pair(-19.37, -54.59),
+        )
+        val missing = machines.filter { !repo.existsByMachineId(DemoIds.uuid(it.first)) }
+        if (missing.isEmpty()) return
         val end = Instant.now().truncatedTo(ChronoUnit.HOURS)
         val start = end.minus(7, ChronoUnit.DAYS)
         val series = VirtualJobs.all(
-            machines.mapIndexed { idx, (key, pos) ->
+            missing.mapIndexed { idx, (key, pos) ->
                 Callable { generateSeries(DemoIds.uuid(key), pos, idx, start, end) }
             },
         )

@@ -158,11 +158,63 @@ export type AgronomyRecommendation = {
   id: string
   farmId?: string
   fieldId?: string
-  type?: string
+  kind?: string
+  title?: string
   priority?: string
   status?: string
   summary?: string
   createdAt?: string
+}
+
+export type Prescription = {
+  id: string
+  farmId: string
+  fieldId: string
+  product: string
+  rate: number
+  unit: string
+  status: string
+  createdAt: string
+  approvedAt: string | null
+}
+
+export type WeatherWindow = {
+  id: string
+  farmId: string
+  windowType: string
+  startAt: string
+  endAt: string
+  rating: string
+  notes: string | null
+}
+
+export type MapLayer = {
+  id: string
+  farmId: string
+  fieldId: string | null
+  name: string
+  kind: string
+  source: string
+  tileUrl: string | null
+  acquiredAt: string | null
+  status: string
+}
+
+export type StorageLot = {
+  id: string
+  unitId: string
+  farmId: string
+  crop: string
+  tons: number
+  quality: string
+  receivedAt: string
+}
+
+export type IntegrationConnector = {
+  name: string
+  type: string
+  mode: string
+  capabilities: string[]
 }
 
 export type IrrigationAsset = {
@@ -194,27 +246,28 @@ export type HarvestPlan = {
   status?: string
   plannedStart?: string | null
   plannedEnd?: string | null
-  estimatedTons?: number
+  expectedTHa?: number
 }
 
 export type YieldRecord = {
   id: string
   farmId?: string
   fieldId?: string
-  crop?: string
-  tons?: number
-  tonsPerHa?: number
-  harvestedAt?: string
+  planId?: string | null
+  recordedAt?: string
+  yieldTHa?: number
+  moisturePct?: number | null
+  areaHa?: number | null
 }
 
 export type LogisticsLoad = {
   id: string
   farmId?: string
-  status?: string
-  truckId?: string
-  origin?: string
+  planId?: string | null
+  truckPlate?: string
   destination?: string
   tons?: number
+  status?: string
   dispatchedAt?: string | null
 }
 
@@ -223,18 +276,18 @@ export type StorageUnit = {
   farmId?: string
   name?: string
   type?: string
-  capacityTons?: number
-  occupiedTons?: number
-  status?: string
+  capacityT?: number
+  usedT?: number
 }
 
 export type FinanceCost = {
   id: string
   farmId?: string
   category?: string
+  description?: string
   amount?: number
   currency?: string
-  period?: string
+  occurredAt?: string
   fieldId?: string
 }
 
@@ -253,20 +306,19 @@ export type FinanceBudget = {
   id: string
   farmId?: string
   category?: string
+  seasonLabel?: string
   planned?: number
   actual?: number
   currency?: string
-  period?: string
 }
 
 export type FinanceCashflow = {
   id: string
   farmId?: string
-  type?: string
+  label?: string
+  direction?: string
   amount?: number
-  currency?: string
-  occurredAt?: string
-  description?: string
+  dueAt?: string
 }
 
 export type MarketQuote = {
@@ -277,6 +329,7 @@ export type MarketQuote = {
   unit?: string
   quotedAt?: string
   market?: string
+  exchange?: string
 }
 
 export type MarketContract = {
@@ -284,16 +337,21 @@ export type MarketContract = {
   farmId?: string
   commodity?: string
   volumeTons?: number
+  volumeT?: number
   price?: number
   currency?: string
   status?: string
   counterparty?: string
+  deliveryAt?: string
 }
 
 export type MarketExposure = {
   id: string
   farmId?: string
   commodity?: string
+  openT?: number
+  hedgedT?: number
+  riskScore?: number
   netTons?: number
   markToMarket?: number
   currency?: string
@@ -302,20 +360,21 @@ export type MarketExposure = {
 
 export type TraceabilityLot = {
   id: string
-  farmId?: string
-  fieldId?: string
-  crop?: string
-  lotCode?: string
-  status?: string
-  harvestedAt?: string
+  farmId: string
+  fieldId: string | null
+  lotCode: string
+  crop: string
+  eventType: string
+  summary: string
+  occurredAt: string
 }
 
 export type EsgMetric = {
   id: string
   farmId?: string
-  name?: string
+  metric?: string
   value?: number
   unit?: string
-  score?: number
-  period?: string
+  score?: number | null
+  periodLabel?: string
 }

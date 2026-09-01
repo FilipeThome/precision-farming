@@ -3,7 +3,7 @@
 # Mobile is excluded. Requires Docker Compose v2.
 #
 # Usage:
-#   ./scripts/compose-up.sh              # profile=all, no rebuild
+#   ./scripts/compose-up.sh              # profile=core, no rebuild
 #   ./scripts/compose-up.sh --build      # rebuild images
 #   ./scripts/compose-up.sh core --build
 #   ./scripts/compose-up.sh all
@@ -15,7 +15,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROFILE="all"
+PROFILE="core"
 BUILD=0
 
 for arg in "$@"; do
@@ -43,7 +43,7 @@ case "$PROFILE" in
 esac
 
 echo "==> Starting infra (postgres, timescaledb, rabbitmq, redis, minio)..."
-docker compose -f docker-compose.yml up -d
+docker compose --project-directory "$ROOT" -f docker-compose.yml up -d
 
 BUILD_ARGS=()
 if [[ "$BUILD" -eq 1 ]]; then
@@ -52,6 +52,7 @@ fi
 
 echo "==> Starting apps profile=${PROFILE}..."
 docker compose \
+  --project-directory "$ROOT" \
   -f docker-compose.yml \
   -f deploy/compose/stack.yml \
   --env-file deploy/compose/demo.env \
