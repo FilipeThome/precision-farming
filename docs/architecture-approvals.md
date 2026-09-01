@@ -34,6 +34,7 @@ Recorded after parallel architect review. Implementation may proceed.
 | AuthZ remediation design | [kotlin-architect](d7301184-6575-4c84-8b0f-7b32449c2a99) | APPROVED — JWT tenantId+farmIds, AccessScope, role matrix, seed ADMIN, DemoSecretsGuard |
 | AuthZ implementation | [kotlin-backend-engineer](04dc0eeb-0cb2-4215-afc7-897dda48b7ce) | Delivered scoped APIs + PreAuthorize; `./gradlew test` green |
 | Audit remediations (2026-09-01) | [kotlin-architect](6f97cc44-6b59-4947-90ab-23d5385603dc) + [infra-architect](02431633-cd0e-4f48-a5aa-41cf29e8bf18) + [kmp-architect](5f325b4f-3200-45c2-902d-55b775894adf) | APPROVED — fail-closed secrets, saga `type=service`, Compose 127.0.0.1 bind, TokenStore |
+| Per-service Compose + slim images | [infra-architect](c15bf290-5d68-43f6-bbe2-7998901b38df) | APPROVED — `deploy/compose/*`, multi-stage Alpine JVM/web, mobile excluded |
 | Project skill | `.cursor/skills/cybersecurity-team` | Blue/purple/red/pentester authorized assessment (no exploit PoCs) |
 | Report | `docs/security-assessment-2026-09-01.md` | Findings + remediation status |
 

@@ -1,0 +1,19 @@
+# Keep build context small (multi-stage Dockerfiles).
+.git
+.idea
+**/.gradle
+**/build
+**/node_modules
+**/dist
+**/.kotlin
+mobile
+docs
+*.log
+.env
+local.properties
+secrets.properties
+agent-transcripts
+.cursor
+canvases
+**/*.iml
+web/coverage

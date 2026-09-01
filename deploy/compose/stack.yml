@@ -1,0 +1,420 @@
+# Convenience app overlays with Compose profiles (infra stays in root docker-compose.yml).
+# Mobile is intentionally excluded.
+#
+# Core demo (gateway + auth + farm + web):
+#   docker compose -f docker-compose.yml -f deploy/compose/stack.yml --env-file deploy/compose/demo.env --profile core up -d --build
+#
+# Full backend + web:
+#   docker compose -f docker-compose.yml -f deploy/compose/stack.yml --env-file deploy/compose/demo.env --profile all up -d --build
+#
+# Single service (example):
+#   docker compose -f docker-compose.yml -f deploy/compose/stack.yml --env-file deploy/compose/demo.env --profile auth up -d --build
+
+name: precision-farming
+
+x-jvm: &jvm
+  restart: unless-stopped
+  env_file:
+    - deploy/compose/demo.env
+  environment: &jvm-env
+    DB_PORT: "5432"
+    SERVER_PORT: "8080"
+  networks:
+    - precision-farming
+
+services:
+  auth:
+    <<: *jvm
+    profiles: [auth, core, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:auth
+        MODULE_DIR: backend/services/auth
+    image: precision-farming-auth:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  farm:
+    <<: *jvm
+    profiles: [farm, core, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:farm
+        MODULE_DIR: backend/services/farm
+    image: precision-farming-farm:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  asset:
+    <<: *jvm
+    profiles: [asset, fleet, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:asset
+        MODULE_DIR: backend/services/asset
+    image: precision-farming-asset:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  telemetry:
+    <<: *jvm
+    profiles: [telemetry, fleet, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:telemetry
+        MODULE_DIR: backend/services/telemetry
+    image: precision-farming-telemetry:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: timescaledb
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  weather:
+    <<: *jvm
+    profiles: [weather, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:weather
+        MODULE_DIR: backend/services/weather
+    image: precision-farming-weather:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  operation:
+    <<: *jvm
+    profiles: [operation, ops, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:operation
+        MODULE_DIR: backend/services/operation
+    image: precision-farming-operation:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  inventory:
+    <<: *jvm
+    profiles: [inventory, ops, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:inventory
+        MODULE_DIR: backend/services/inventory
+    image: precision-farming-inventory:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  alert:
+    <<: *jvm
+    profiles: [alert, ops, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:alert
+        MODULE_DIR: backend/services/alert
+    image: precision-farming-alert:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  ai:
+    <<: *jvm
+    profiles: [ai, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:ai
+        MODULE_DIR: backend/services/ai
+    image: precision-farming-ai:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  notification:
+    <<: *jvm
+    profiles: [notification, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:notification
+        MODULE_DIR: backend/services/notification
+    image: precision-farming-notification:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  file:
+    <<: *jvm
+    profiles: [file, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:file
+        MODULE_DIR: backend/services/file
+    image: precision-farming-file:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  reporting:
+    <<: *jvm
+    profiles: [reporting, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:reporting
+        MODULE_DIR: backend/services/reporting
+    image: precision-farming-reporting:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  sync:
+    <<: *jvm
+    profiles: [sync, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:sync
+        MODULE_DIR: backend/services/sync
+    image: precision-farming-sync:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  integration:
+    <<: *jvm
+    profiles: [integration, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:integration
+        MODULE_DIR: backend/services/integration
+    image: precision-farming-integration:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  agronomy:
+    <<: *jvm
+    profiles: [agronomy, domains, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:agronomy
+        MODULE_DIR: backend/services/agronomy
+    image: precision-farming-agronomy:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  irrigation:
+    <<: *jvm
+    profiles: [irrigation, domains, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:irrigation
+        MODULE_DIR: backend/services/irrigation
+    image: precision-farming-irrigation:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  harvest:
+    <<: *jvm
+    profiles: [harvest, domains, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:harvest
+        MODULE_DIR: backend/services/harvest
+    image: precision-farming-harvest:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  finance:
+    <<: *jvm
+    profiles: [finance, domains, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:finance
+        MODULE_DIR: backend/services/finance
+    image: precision-farming-finance:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  compliance:
+    <<: *jvm
+    profiles: [compliance, domains, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:compliance
+        MODULE_DIR: backend/services/compliance
+    image: precision-farming-compliance:local
+    environment:
+      <<: *jvm-env
+      DB_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  gateway:
+    profiles: [gateway, core, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.gateway
+    image: precision-farming-gateway:local
+    restart: unless-stopped
+    env_file:
+      - deploy/compose/demo.env
+    environment:
+      SERVER_PORT: "8080"
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - precision-farming
+
+  web:
+    profiles: [web, core, all]
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+    image: precision-farming-web:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    networks:
+      - precision-farming
+
+networks:
+  precision-farming:
+    external: true
+    name: precision-farming
