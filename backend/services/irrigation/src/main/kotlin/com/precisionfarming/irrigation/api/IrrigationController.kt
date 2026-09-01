@@ -2,6 +2,8 @@ package com.precisionfarming.irrigation.api
 
 import com.precisionfarming.irrigation.application.IrrigationService
 import com.precisionfarming.irrigation.application.SimulateRequest
+import com.precisionfarming.security.FarmAccess
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -12,20 +14,25 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1/irrigation")
-class IrrigationController(private val svc: IrrigationService) {
+class IrrigationController(
+    private val svc: IrrigationService,
+    private val farmAccess: FarmAccess,
+) {
     @GetMapping("/assets")
-    fun assets(@RequestParam(required = false) farmId: UUID?) = svc.listAssets(farmId)
+    fun assets(@RequestParam(required = false) farmId: UUID?) = svc.listAssets(farmAccess.current(), farmId)
 
     @GetMapping("/recommendations")
-    fun recommendations(@RequestParam(required = false) farmId: UUID?) = svc.listRecommendations(farmId)
+    fun recommendations(@RequestParam(required = false) farmId: UUID?) =
+        svc.listRecommendations(farmAccess.current(), farmId)
 
     @PostMapping("/simulate")
-    fun simulate(@RequestBody body: SimulateRequest) = svc.simulate(body)
+    fun simulate(@RequestBody body: SimulateRequest) = svc.simulate(farmAccess.current(), body)
 }
 
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class IrrigationSeedController(private val svc: IrrigationService) {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset() = mapOf("status" to "seeded", "service" to "irrigation").also { svc.seed() }
 }

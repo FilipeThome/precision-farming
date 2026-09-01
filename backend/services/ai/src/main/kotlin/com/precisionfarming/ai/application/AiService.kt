@@ -3,6 +3,8 @@ package com.precisionfarming.ai.application
 import com.precisionfarming.ai.infrastructure.PredictionEntity
 import com.precisionfarming.ai.infrastructure.PredictionJpaRepository
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoMachineFarms
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -20,9 +22,18 @@ data class PredictionDto(
 
 @Service
 class AiService(private val repo: PredictionJpaRepository) {
-    fun insights(farmId: UUID?) = repo.findAll().map { it.toDto() }
-    fun predictions(fieldId: UUID) = repo.findByEntityId(fieldId).map { it.toDto() }
-    fun machineRisk(machineId: UUID) = repo.findByEntityId(machineId).map { it.toDto() }
+    fun insights(scope: AccessScope, farmId: UUID?): List<PredictionDto> {
+        farmId?.let { scope.requireFarm(it) }
+        return repo.findAll().map { it.toDto() }
+    }
+
+    fun predictions(scope: AccessScope, fieldId: UUID) = repo.findByEntityId(fieldId).map { it.toDto() }
+
+    fun machineRisk(scope: AccessScope, machineId: UUID): List<PredictionDto> {
+        DemoMachineFarms.requireMachine(scope, machineId)
+        return repo.findByEntityId(machineId).map { it.toDto() }
+    }
+
     fun feedback(id: UUID) = mapOf("id" to id, "status" to "recorded")
 
     @Transactional

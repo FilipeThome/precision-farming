@@ -36,9 +36,11 @@ class EsgMetricEntity(
 
 interface TraceabilityJpaRepository : JpaRepository<TraceabilityEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<TraceabilityEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<TraceabilityEntity>
     fun findByIdAndFarmId(id: UUID, farmId: UUID): TraceabilityEntity?
 }
 
 interface EsgMetricJpaRepository : JpaRepository<EsgMetricEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<EsgMetricEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<EsgMetricEntity>
 }

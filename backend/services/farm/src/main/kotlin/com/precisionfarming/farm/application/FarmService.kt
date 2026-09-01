@@ -12,6 +12,7 @@ import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonEntity
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
+import com.precisionfarming.security.AccessScope
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
@@ -77,8 +78,12 @@ class FarmService(
     private val wktReader = WKTReader(gf)
     private val json = ObjectMapper()
 
-    fun listFarms() = farms.findAll().map { it.toDto() }
-    fun getFarm(id: UUID) = farms.findById(id).orElseThrow { NotFoundException("FARM_NOT_FOUND", "Farm not found") }.toDto()
+    fun listFarms(scope: AccessScope) = farms.findAllById(scope.farmIds).map { it.toDto() }
+
+    fun getFarm(scope: AccessScope, id: UUID): FarmDto {
+        scope.requireFarm(id)
+        return farms.findById(id).orElseThrow { NotFoundException("FARM_NOT_FOUND", "Farm not found") }.toDto()
+    }
 
     @Transactional
     fun createFarm(cmd: UpsertFarm): FarmDto {
@@ -87,7 +92,8 @@ class FarmService(
     }
 
     @Transactional
-    fun patchFarm(id: UUID, cmd: UpsertFarm): FarmDto {
+    fun patchFarm(scope: AccessScope, id: UUID, cmd: UpsertFarm): FarmDto {
+        scope.requireFarm(id)
         val e = farms.findById(id).orElseThrow { NotFoundException("FARM_NOT_FOUND", "Farm not found") }
         e.name = cmd.name
         e.location = cmd.location
@@ -97,19 +103,25 @@ class FarmService(
     }
 
     @Transactional
-    fun deleteFarm(id: UUID) {
+    fun deleteFarm(scope: AccessScope, id: UUID) {
+        scope.requireFarm(id)
         if (!farms.existsById(id)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         fields.deleteByFarmId(id)
         farms.deleteById(id)
     }
 
-    fun listFields(farmId: UUID?) =
-        (farmId?.let { fields.findByFarmId(it) } ?: fields.findAll()).map { it.toDto() }
+    fun listFields(scope: AccessScope, farmId: UUID?) =
+        fields.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun getField(id: UUID) = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }.toDto()
+    fun getField(scope: AccessScope, id: UUID): FieldDto {
+        val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
+        scope.requireEntityFarm(e.farmId)
+        return e.toDto()
+    }
 
     @Transactional
-    fun createField(cmd: UpsertField): FieldDto {
+    fun createField(scope: AccessScope, cmd: UpsertField): FieldDto {
+        scope.requireFarm(cmd.farmId)
         if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         val geom = parseMulti(cmd.geometry)
         val entity = FieldEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.areaHa, cmd.crop, cmd.variety, geom, geom.centroid)
@@ -117,8 +129,10 @@ class FarmService(
     }
 
     @Transactional
-    fun patchField(id: UUID, cmd: UpsertField): FieldDto {
+    fun patchField(scope: AccessScope, id: UUID, cmd: UpsertField): FieldDto {
         val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
+        scope.requireEntityFarm(e.farmId)
+        scope.requireFarm(cmd.farmId)
         val geom = parseMulti(cmd.geometry)
         e.farmId = cmd.farmId
         e.name = cmd.name
@@ -131,16 +145,18 @@ class FarmService(
     }
 
     @Transactional
-    fun deleteField(id: UUID) {
-        if (!fields.existsById(id)) throw NotFoundException("FIELD_NOT_FOUND", "Field not found")
+    fun deleteField(scope: AccessScope, id: UUID) {
+        val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
+        scope.requireEntityFarm(e.farmId)
         fields.deleteById(id)
     }
 
-    fun listSeasons(farmId: UUID?) =
-        (farmId?.let { seasons.findByFarmId(it) } ?: seasons.findAll()).map { it.toDto() }
+    fun listSeasons(scope: AccessScope, farmId: UUID?) =
+        seasons.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createSeason(cmd: UpsertSeason): SeasonDto {
+    fun createSeason(scope: AccessScope, cmd: UpsertSeason): SeasonDto {
+        scope.requireFarm(cmd.farmId)
         if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         return seasons.save(
             SeasonEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.crop, cmd.startDate, cmd.endDate, cmd.status),
@@ -148,8 +164,10 @@ class FarmService(
     }
 
     @Transactional
-    fun patchSeason(id: UUID, cmd: UpsertSeason): SeasonDto {
+    fun patchSeason(scope: AccessScope, id: UUID, cmd: UpsertSeason): SeasonDto {
         val e = seasons.findById(id).orElseThrow { NotFoundException("SEASON_NOT_FOUND", "Season not found") }
+        scope.requireEntityFarm(e.farmId)
+        scope.requireFarm(cmd.farmId)
         e.farmId = cmd.farmId
         e.name = cmd.name
         e.crop = cmd.crop

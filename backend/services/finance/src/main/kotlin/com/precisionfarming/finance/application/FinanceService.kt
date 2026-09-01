@@ -1,6 +1,7 @@
 package com.precisionfarming.finance.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.finance.domain.MarketQuoteProvider
 import com.precisionfarming.finance.domain.PnlSummary
@@ -51,10 +52,11 @@ class FinanceService(
     private val exposures: MarketExposureJpaRepository,
     private val market: MarketQuoteProvider,
 ) {
-    fun listCosts(farmId: UUID?) = (farmId?.let { costs.findByFarmId(it) } ?: costs.findAll()).map { it.toDto() }
+    fun listCosts(scope: AccessScope, farmId: UUID?) =
+        costs.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun pnl(farmId: UUID?): PnlSummary {
-        val rows = farmId?.let { costs.findByFarmId(it) } ?: costs.findAll()
+    fun pnl(scope: AccessScope, farmId: UUID?): PnlSummary {
+        val rows = costs.findByFarmIdIn(scope.resolveFarms(farmId))
         val revenue = rows.filter { it.category == "REVENUE" }.fold(BigDecimal.ZERO) { a, e -> a.add(e.amount) }
             .let { if (it.compareTo(BigDecimal.ZERO) == 0) BigDecimal("1850000") else it }
         val cost = rows.filter { it.category != "REVENUE" }.fold(BigDecimal.ZERO) { a, e -> a.add(e.amount) }
@@ -64,11 +66,15 @@ class FinanceService(
         return PnlSummary(revenue, cost, gross, margin)
     }
 
-    fun listBudget(farmId: UUID?) = (farmId?.let { budgets.findByFarmId(it) } ?: budgets.findAll()).map { it.toDto() }
-    fun listCashflow(farmId: UUID?) = (farmId?.let { cashflows.findByFarmId(it) } ?: cashflows.findAll()).map { it.toDto() }
+    fun listBudget(scope: AccessScope, farmId: UUID?) =
+        budgets.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+    fun listCashflow(scope: AccessScope, farmId: UUID?) =
+        cashflows.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
     fun listQuotes() = quotes.findAll().map { it.toDto() }
-    fun listContracts(farmId: UUID?) = (farmId?.let { contracts.findByFarmId(it) } ?: contracts.findAll()).map { it.toDto() }
-    fun listExposure(farmId: UUID?) = (farmId?.let { exposures.findByFarmId(it) } ?: exposures.findAll()).map { it.toDto() }
+    fun listContracts(scope: AccessScope, farmId: UUID?) =
+        contracts.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+    fun listExposure(scope: AccessScope, farmId: UUID?) =
+        exposures.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
     fun seed() {

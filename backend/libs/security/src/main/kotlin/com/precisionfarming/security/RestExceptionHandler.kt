@@ -6,6 +6,8 @@ import com.precisionfarming.common.DomainException
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.MDC
 import org.springframework.http.ResponseEntity
+import org.springframework.http.HttpStatus
+import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -23,6 +25,17 @@ class RestExceptionHandler {
         )
         return ResponseEntity.status(ex.httpStatus).body(body)
     }
+
+    @ExceptionHandler(AccessDeniedException::class)
+    fun accessDenied(ex: AccessDeniedException, request: HttpServletRequest): ResponseEntity<ApiError> =
+        ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            ApiError(
+                status = 403,
+                code = "FORBIDDEN",
+                message = ex.message ?: "Forbidden",
+                correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
+            ),
+        )
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun validation(ex: MethodArgumentNotValidException): ResponseEntity<ApiError> =

@@ -1,6 +1,7 @@
 package com.precisionfarming.irrigation.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.irrigation.domain.IrrigationSimulator
 import com.precisionfarming.irrigation.domain.SimulationInput
 import com.precisionfarming.irrigation.infrastructure.IrrigationAssetEntity
@@ -40,12 +41,14 @@ class IrrigationService(
     private val simulations: IrrigationSimulationJpaRepository,
     private val simulator: IrrigationSimulator,
 ) {
-    fun listAssets(farmId: UUID?) = (farmId?.let { assets.findByFarmId(it) } ?: assets.findAll()).map { it.toDto() }
-    fun listRecommendations(farmId: UUID?) =
-        (farmId?.let { recommendations.findByFarmId(it) } ?: recommendations.findAll()).map { it.toDto() }
+    fun listAssets(scope: AccessScope, farmId: UUID?) =
+        assets.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+    fun listRecommendations(scope: AccessScope, farmId: UUID?) =
+        recommendations.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun simulate(cmd: SimulateRequest): SimulationDto {
+    fun simulate(scope: AccessScope, cmd: SimulateRequest): SimulationDto {
+        scope.requireFarm(cmd.farmId)
         val result = simulator.simulate(SimulationInput(cmd.farmId, cmd.fieldId, cmd.mm, cmd.areaHa))
         return simulations.save(
             IrrigationSimulationEntity(

@@ -45,6 +45,7 @@ management:
 app:
   security:
     jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
+    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:true}
     issuer: precision-farming
   seed: ${APP_SEED:true}
   clients:

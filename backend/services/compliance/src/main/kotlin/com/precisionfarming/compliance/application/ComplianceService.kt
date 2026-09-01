@@ -2,6 +2,7 @@ package com.precisionfarming.compliance.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.compliance.infrastructure.EsgMetricEntity
 import com.precisionfarming.compliance.infrastructure.EsgMetricJpaRepository
 import com.precisionfarming.compliance.infrastructure.TraceabilityEntity
@@ -30,12 +31,17 @@ class ComplianceService(
     private val traces: TraceabilityJpaRepository,
     private val esg: EsgMetricJpaRepository,
 ) {
-    fun listTraceability(farmId: UUID?) = (farmId?.let { traces.findByFarmId(it) } ?: traces.findAll()).map { it.toDto() }
+    fun listTraceability(scope: AccessScope, farmId: UUID?) =
+        traces.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun getTraceability(id: UUID) =
-        traces.findById(id).orElseThrow { NotFoundException("TRACE_NOT_FOUND", "Traceability record not found") }.toDto()
+    fun getTraceability(scope: AccessScope, id: UUID): TraceabilityDto {
+        val e = traces.findById(id).orElseThrow { NotFoundException("TRACE_NOT_FOUND", "Traceability record not found") }
+        scope.requireEntityFarm(e.farmId)
+        return e.toDto()
+    }
 
-    fun listEsg(farmId: UUID?) = (farmId?.let { esg.findByFarmId(it) } ?: esg.findAll()).map { it.toDto() }
+    fun listEsg(scope: AccessScope, farmId: UUID?) =
+        esg.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
     fun seed() {

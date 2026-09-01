@@ -67,16 +67,20 @@ class PrescriptionEntity(
 
 interface ScoutingJpaRepository : JpaRepository<ScoutingEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<ScoutingEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<ScoutingEntity>
 }
 
 interface SoilSampleJpaRepository : JpaRepository<SoilSampleEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<SoilSampleEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<SoilSampleEntity>
 }
 
 interface RecommendationJpaRepository : JpaRepository<RecommendationEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<RecommendationEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<RecommendationEntity>
 }
 
 interface PrescriptionJpaRepository : JpaRepository<PrescriptionEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<PrescriptionEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<PrescriptionEntity>
 }

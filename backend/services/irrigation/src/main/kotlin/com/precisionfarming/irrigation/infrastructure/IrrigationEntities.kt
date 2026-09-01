@@ -50,10 +50,12 @@ class IrrigationSimulationEntity(
 
 interface IrrigationAssetJpaRepository : JpaRepository<IrrigationAssetEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<IrrigationAssetEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<IrrigationAssetEntity>
 }
 
 interface IrrigationRecommendationJpaRepository : JpaRepository<IrrigationRecommendationEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<IrrigationRecommendationEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<IrrigationRecommendationEntity>
 }
 
 interface IrrigationSimulationJpaRepository : JpaRepository<IrrigationSimulationEntity, UUID>

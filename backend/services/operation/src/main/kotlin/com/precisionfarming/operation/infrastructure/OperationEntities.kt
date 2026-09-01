@@ -41,5 +41,6 @@ class SagaEntity(
 
 interface OperationJpaRepository : JpaRepository<OperationEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<OperationEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<OperationEntity>
 }
 interface SagaJpaRepository : JpaRepository<SagaEntity, UUID>

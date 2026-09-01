@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.security.access.prepost.PreAuthorize
 
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -33,6 +34,7 @@ class ReportingController {
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class ReportingSeedController {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset() = mapOf("status" to "seeded", "service" to "reporting")
 }

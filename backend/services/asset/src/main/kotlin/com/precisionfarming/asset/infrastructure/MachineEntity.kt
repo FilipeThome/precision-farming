@@ -34,8 +34,10 @@ class WorkOrderEntity(
 
 interface MachineJpaRepository : JpaRepository<MachineEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<MachineEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<MachineEntity>
 }
 
 interface WorkOrderJpaRepository : JpaRepository<WorkOrderEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<WorkOrderEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<WorkOrderEntity>
 }

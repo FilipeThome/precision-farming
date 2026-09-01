@@ -1,6 +1,8 @@
 package com.precisionfarming.compliance.api
 
 import com.precisionfarming.compliance.application.ComplianceService
+import com.precisionfarming.security.FarmAccess
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -11,20 +13,24 @@ import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1")
-class ComplianceController(private val svc: ComplianceService) {
+class ComplianceController(
+    private val svc: ComplianceService,
+    private val farmAccess: FarmAccess,
+) {
     @GetMapping("/traceability")
-    fun list(@RequestParam(required = false) farmId: UUID?) = svc.listTraceability(farmId)
+    fun list(@RequestParam(required = false) farmId: UUID?) = svc.listTraceability(farmAccess.current(), farmId)
 
     @GetMapping("/traceability/{id}")
-    fun get(@PathVariable id: UUID) = svc.getTraceability(id)
+    fun get(@PathVariable id: UUID) = svc.getTraceability(farmAccess.current(), id)
 
     @GetMapping("/esg")
-    fun esg(@RequestParam(required = false) farmId: UUID?) = svc.listEsg(farmId)
+    fun esg(@RequestParam(required = false) farmId: UUID?) = svc.listEsg(farmAccess.current(), farmId)
 }
 
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class ComplianceSeedController(private val svc: ComplianceService) {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset() = mapOf("status" to "seeded", "service" to "compliance").also { svc.seed() }
 }
