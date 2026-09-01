@@ -3,10 +3,14 @@ package com.precisionfarming.security
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.ForbiddenException
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
-/** Demo seed machine → farm mapping for telemetry/AI when no farm column exists. */
+/**
+ * Demo seed machine → farm mapping, plus runtime registrations for machines
+ * created via API (seed map is never removed).
+ */
 object DemoMachineFarms {
-    private val BY_MACHINE: Map<UUID, UUID> = mapOf(
+    private val SEED: Map<UUID, UUID> = mapOf(
         DemoIds.uuid("machine-001") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("machine-002") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("machine-003") to DemoIds.uuid("farm-001"),
@@ -21,7 +25,13 @@ object DemoMachineFarms {
         DemoIds.uuid("machine-012") to DemoIds.uuid("farm-008"),
     )
 
-    fun farmId(machineId: UUID): UUID? = BY_MACHINE[machineId]
+    private val runtime = ConcurrentHashMap<UUID, UUID>()
+
+    fun register(machineId: UUID, farmId: UUID) {
+        runtime[machineId] = farmId
+    }
+
+    fun farmId(machineId: UUID): UUID? = runtime[machineId] ?: SEED[machineId]
 
     fun requireMachine(scope: AccessScope, machineId: UUID) {
         val farmId = farmId(machineId)
@@ -38,9 +48,9 @@ object DemoMachineFarms {
     }
 }
 
-/** Demo seed field → farm mapping when the caller has a field id only. */
+/** Demo seed field → farm mapping, plus runtime registrations for API-created fields. */
 object DemoFieldFarms {
-    private val BY_FIELD: Map<UUID, UUID> = mapOf(
+    private val SEED: Map<UUID, UUID> = mapOf(
         DemoIds.uuid("field-001") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("field-002") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("field-003") to DemoIds.uuid("farm-001"),
@@ -65,7 +75,13 @@ object DemoFieldFarms {
         DemoIds.uuid("field-022") to DemoIds.uuid("farm-008"),
     )
 
-    fun farmId(fieldId: UUID): UUID? = BY_FIELD[fieldId]
+    private val runtime = ConcurrentHashMap<UUID, UUID>()
+
+    fun register(fieldId: UUID, farmId: UUID) {
+        runtime[fieldId] = farmId
+    }
+
+    fun farmId(fieldId: UUID): UUID? = runtime[fieldId] ?: SEED[fieldId]
 
     fun requireField(scope: AccessScope, fieldId: UUID) {
         val farmId = farmId(fieldId)
@@ -82,9 +98,9 @@ object DemoFieldFarms {
     }
 }
 
-/** Demo seed inventory item → farm mapping for operation create validation. */
+/** Demo seed inventory item → farm mapping, plus runtime registrations for API-created items. */
 object DemoItemFarms {
-    private val BY_ITEM: Map<UUID, UUID> = mapOf(
+    private val SEED: Map<UUID, UUID> = mapOf(
         DemoIds.uuid("item-001") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("item-002") to DemoIds.uuid("farm-001"),
         DemoIds.uuid("item-003") to DemoIds.uuid("farm-002"),
@@ -103,7 +119,13 @@ object DemoItemFarms {
         DemoIds.uuid("item-016") to DemoIds.uuid("farm-008"),
     )
 
-    fun farmId(itemId: UUID): UUID? = BY_ITEM[itemId]
+    private val runtime = ConcurrentHashMap<UUID, UUID>()
+
+    fun register(itemId: UUID, farmId: UUID) {
+        runtime[itemId] = farmId
+    }
+
+    fun farmId(itemId: UUID): UUID? = runtime[itemId] ?: SEED[itemId]
 
     fun requireBelongsToFarm(itemId: UUID, farmId: UUID) {
         val mapped = farmId(itemId)

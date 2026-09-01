@@ -4,6 +4,7 @@ import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoItemFarms
 import com.precisionfarming.inventory.infrastructure.ItemEntity
 import com.precisionfarming.inventory.infrastructure.ItemJpaRepository
 import com.precisionfarming.inventory.infrastructure.MovementEntity
@@ -35,7 +36,11 @@ class InventoryService(
     @Transactional
     fun create(scope: AccessScope, cmd: UpsertItem): ItemDto {
         scope.requireFarm(cmd.farmId)
-        return items.save(ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity)).toDto()
+        val saved = items.save(
+            ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity),
+        ).toDto()
+        DemoItemFarms.register(saved.id, saved.farmId)
+        return saved
     }
 
     @Transactional

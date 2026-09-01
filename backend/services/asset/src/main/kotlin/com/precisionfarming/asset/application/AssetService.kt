@@ -48,7 +48,11 @@ class AssetService(
     @Transactional
     fun create(scope: AccessScope, cmd: UpsertMachine): MachineDto {
         scope.requireFarm(cmd.farmId)
-        return repo.save(MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status)).toDto()
+        val saved = repo.save(
+            MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status),
+        ).toDto()
+        DemoMachineFarms.register(saved.id, saved.farmId)
+        return saved
     }
 
     @Transactional

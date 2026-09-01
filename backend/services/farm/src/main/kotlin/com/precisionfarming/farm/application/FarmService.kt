@@ -13,6 +13,8 @@ import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonEntity
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoFarmDirectory
+import com.precisionfarming.security.DemoFieldFarms
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
@@ -88,7 +90,9 @@ class FarmService(
     @Transactional
     fun createFarm(cmd: UpsertFarm): FarmDto {
         val entity = FarmEntity(UUID.randomUUID(), cmd.name, cmd.location, cmd.areaHa, cmd.timezone)
-        return farms.save(entity).toDto()
+        val saved = farms.save(entity).toDto()
+        DemoFarmDirectory.register(saved.id)
+        return saved
     }
 
     @Transactional
@@ -106,8 +110,10 @@ class FarmService(
     fun deleteFarm(scope: AccessScope, id: UUID) {
         scope.requireFarm(id)
         if (!farms.existsById(id)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
+        seasons.deleteByFarmId(id)
         fields.deleteByFarmId(id)
         farms.deleteById(id)
+        DemoFarmDirectory.unregister(id)
     }
 
     fun listFields(scope: AccessScope, farmId: UUID?) =
@@ -125,7 +131,9 @@ class FarmService(
         if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         val geom = parseMulti(cmd.geometry)
         val entity = FieldEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.areaHa, cmd.crop, cmd.variety, geom, geom.centroid)
-        return fields.save(entity).toDto()
+        val saved = fields.save(entity).toDto()
+        DemoFieldFarms.register(saved.id, saved.farmId)
+        return saved
     }
 
     @Transactional
