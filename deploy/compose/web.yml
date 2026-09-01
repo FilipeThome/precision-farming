@@ -1,0 +1,23 @@
+# Local demo Compose overlay for React web (Node Alpine build → nginx Alpine).
+# Browser calls host gateway at http://localhost:8080 (build-arg VITE_API_BASE_URL).
+
+name: precision-farming
+
+services:
+  web:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: http://localhost:8080
+    image: precision-farming-web:local
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    networks:
+      - precision-farming
+
+networks:
+  precision-farming:
+    external: true
+    name: precision-farming

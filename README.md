@@ -13,7 +13,7 @@ Protótipo executável de gestão agrícola de precisão: **microserviços Kotli
 
 Aprovações de arquitetura: [docs/architecture-approvals.md](docs/architecture-approvals.md).
 
-## Subir local
+## Subir local (Gradle / hybrid)
 
 ```bash
 cp .env.example .env
@@ -43,6 +43,27 @@ docker compose up -d
 ./gradlew :backend:gateway:bootRun
 cd web && npm install && npm run dev
 ```
+
+## Subir local (Docker Compose por serviço)
+
+Imagens **multi-stage Alpine** (JDK/Node no builder; JRE/nginx no runtime). Mobile não entra no Compose.
+
+```powershell
+docker compose up -d
+.\scripts\compose-up.ps1 -Profile core -Build
+# ou stack completo:
+# .\scripts\compose-up.ps1 -Profile all -Build
+```
+
+Linux / macOS:
+
+```bash
+chmod +x scripts/compose-up.sh
+./scripts/compose-up.sh --build          # todos os containers (profile all)
+# ./scripts/compose-up.sh core --build   # só core
+```
+
+Detalhes: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`.
 
 Opcional: `WEB_GOOGLE_MAPS_API_KEY` / `VITE_GOOGLE_MAPS_API_KEY` (nunca commitar). Sem chave, o mapa mostra status e retry — não um PNG estático.
 

@@ -1,0 +1,35 @@
+# Local demo Compose overlay for inventory-service (optimized multi-stage JVM image).
+# Requires root infra: docker compose up -d
+# Usage:
+#   docker compose -f docker-compose.yml -f deploy/compose/inventory.yml --env-file deploy/compose/demo.env up -d --build
+
+name: precision-farming
+
+services:
+  inventory:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile.jvm
+      args:
+        GRADLE_PROJECT: :backend:services:inventory
+        MODULE_DIR: backend/services/inventory
+    image: precision-farming-inventory:local
+    restart: unless-stopped
+    env_file:
+      - deploy/compose/demo.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      SERVER_PORT: "8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - precision-farming
+
+networks:
+  precision-farming:
+    external: true
+    name: precision-farming
