@@ -5,6 +5,8 @@ import { Sprout } from 'lucide-react'
 import { useLoginMutation } from '@/features/auth/queries'
 import { ApiError } from '@/shared/api/client'
 import { useAuthStore } from '@/shared/auth/store'
+import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 
@@ -12,6 +14,7 @@ export function LoginPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
   const login = useLoginMutation()
+  const { t } = useI18n()
   const [email, setEmail] = useState('manager@precisionfarming.demo')
   const [password, setPassword] = useState('')
 
@@ -30,24 +33,27 @@ export function LoginPage() {
     login.error instanceof ApiError
       ? login.error.message
       : login.isError
-        ? 'Não foi possível entrar. Verifique as credenciais.'
+        ? t('login.error')
         : null
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-pf-bg p-6">
       <Card className="w-full max-w-md p-8">
-        <div className="mb-6 flex items-center gap-3 text-pf-green">
-          <span className="rounded-[12px] bg-pf-green p-2 text-white">
-            <Sprout className="h-6 w-6" aria-hidden />
-          </span>
-          <div>
-            <h1 className="text-xl font-semibold">Precision Farming</h1>
-            <p className="text-sm text-pf-muted">Acesso ao painel web</p>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3 text-pf-green">
+            <span className="rounded-[12px] bg-pf-green p-2 text-white">
+              <Sprout className="h-6 w-6" aria-hidden />
+            </span>
+            <div>
+              <h1 className="text-xl font-semibold">{t('chrome.brand')}</h1>
+              <p className="text-sm text-pf-muted">{t('login.subtitle')}</p>
+            </div>
           </div>
+          <LocaleToggle />
         </div>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <label htmlFor="email" className="flex flex-col gap-1 text-sm">
-            E-mail
+            {t('login.email')}
             <input
               id="email"
               type="email"
@@ -60,7 +66,7 @@ export function LoginPage() {
             />
           </label>
           <label htmlFor="password" className="flex flex-col gap-1 text-sm">
-            Senha
+            {t('login.password')}
             <input
               id="password"
               type="password"
@@ -78,11 +84,11 @@ export function LoginPage() {
             </p>
           ) : null}
           <Button type="submit" disabled={login.isPending}>
-            {login.isPending ? 'Entrando…' : 'Entrar'}
+            {login.isPending ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
         <p className="mt-4 text-xs text-pf-muted">
-          Demo: <code>manager@precisionfarming.demo</code> / <code>Precision@123</code>
+          {t('login.demoHint')} <code>manager@precisionfarming.demo</code> / <code>Precision@123</code>
         </p>
       </Card>
     </div>

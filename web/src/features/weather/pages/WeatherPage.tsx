@@ -1,4 +1,5 @@
 import { useForecastQuery } from '@/features/weather/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDate, formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
@@ -11,18 +12,19 @@ export function WeatherPage() {
   const farmId = useUiStore((s) => s.farmId)
   const forecast = useForecastQuery(farmId)
   const err = queryError(forecast.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Clima" description="Previsão e janela de pulverização." />
+      <PageHeader title={t('weather.title')} description={t('weather.description')} />
       <QueryPageState
         isLoading={forecast.isLoading}
         isError={forecast.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!forecast.isLoading && (forecast.data?.length ?? 0) === 0}
-        emptyTitle="Sem previsão disponível"
-        emptyDescription="O serviço de clima não retornou dados para esta fazenda."
+        emptyTitle={t('weather.emptyTitle')}
+        emptyDescription={t('weather.emptyDescription')}
         onRetry={() => void forecast.refetch()}
       >
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

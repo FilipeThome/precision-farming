@@ -6,6 +6,7 @@ import com.precisionfarming.farm.application.UpsertField
 import com.precisionfarming.farm.infrastructure.FarmJpaRepository
 import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
+import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -19,7 +20,8 @@ import java.util.UUID
 class FarmServiceTest {
     private val farms = mockk<FarmJpaRepository>()
     private val fields = mockk<FieldJpaRepository>()
-    private val svc = FarmService(farms, fields)
+    private val seasons = mockk<SeasonJpaRepository>()
+    private val svc = FarmService(farms, fields, seasons)
 
     @Test
     fun createFieldPersistsParsedGeoJsonCoordinates() {

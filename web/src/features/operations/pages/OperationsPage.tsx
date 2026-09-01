@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { useOperationCommands, useOperationsQuery } from '@/features/operations/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatDateTime } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
@@ -14,6 +15,7 @@ export function OperationsPage() {
   const farmId = useUiStore((s) => s.farmId)
   const operations = useOperationsQuery(farmId)
   const commands = useOperationCommands()
+  const { t } = useI18n()
   const [pauseReason, setPauseReason] = useState('Pausa solicitada pelo operador')
   const err = queryError(operations.error)
   const commandError =
@@ -24,7 +26,7 @@ export function OperationsPage() {
 
   return (
     <section>
-      <PageHeader title="Operações" description="Inicie, pause ou conclua operações no servidor." />
+      <PageHeader title={t('operations.title')} description={t('operations.description')} />
       <label className="mb-4 flex max-w-md flex-col gap-1 text-sm">
         Motivo da pausa
         <input
@@ -44,8 +46,8 @@ export function OperationsPage() {
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!operations.isLoading && (operations.data?.length ?? 0) === 0}
-        emptyTitle="Nenhuma operação encontrada"
-        emptyDescription="Ainda não há operações no serviço."
+        emptyTitle={t('operations.emptyTitle')}
+        emptyDescription={t('operations.emptyDescription')}
         onRetry={() => void operations.refetch()}
       >
         <div className="flex flex-col gap-3">

@@ -3,6 +3,7 @@ package com.precisionfarming.farm.api
 import com.precisionfarming.farm.application.FarmService
 import com.precisionfarming.farm.application.UpsertFarm
 import com.precisionfarming.farm.application.UpsertField
+import com.precisionfarming.farm.application.UpsertSeason
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 
 data class FarmRequest(
@@ -31,6 +33,15 @@ data class FieldRequest(
     @field:NotBlank val crop: String,
     val variety: String?,
     @field:NotBlank val geometry: String,
+)
+
+data class SeasonRequest(
+    val farmId: UUID,
+    @field:NotBlank val name: String,
+    @field:NotBlank val crop: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate?,
+    @field:NotBlank val status: String,
 )
 
 @RestController
@@ -69,6 +80,17 @@ class FarmController(private val farmService: FarmService) {
 
     @DeleteMapping("/fields/{id}")
     fun deleteField(@PathVariable id: UUID) = farmService.deleteField(id)
+
+    @GetMapping("/seasons")
+    fun seasons(@RequestParam(required = false) farmId: UUID?) = farmService.listSeasons(farmId)
+
+    @PostMapping("/seasons")
+    fun createSeason(@Valid @RequestBody body: SeasonRequest) =
+        farmService.createSeason(UpsertSeason(body.farmId, body.name, body.crop, body.startDate, body.endDate, body.status))
+
+    @PatchMapping("/seasons/{id}")
+    fun patchSeason(@PathVariable id: UUID, @Valid @RequestBody body: SeasonRequest) =
+        farmService.patchSeason(id, UpsertSeason(body.farmId, body.name, body.crop, body.startDate, body.endDate, body.status))
 }
 
 @RestController

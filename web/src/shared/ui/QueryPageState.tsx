@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 import { AlertTriangle, Inbox } from 'lucide-react'
 
+import { useI18n } from '@/shared/i18n/useI18n'
+
 import { Button } from './Button'
 import { Card } from './Card'
 
@@ -27,6 +29,8 @@ export function QueryPageState({
   onRetry,
   children,
 }: QueryPageStateProps) {
+  const { t } = useI18n()
+
   if (isLoading) {
     return (
       <div className="grid gap-3" aria-busy="true" aria-live="polite">
@@ -41,17 +45,17 @@ export function QueryPageState({
       <Card className="flex flex-col items-start gap-3">
         <div className="flex items-center gap-2 text-red-800">
           <AlertTriangle className="h-5 w-5" aria-hidden />
-          <strong>Não foi possível carregar os dados</strong>
+          <strong>{t('common.loadError')}</strong>
         </div>
-        <p className="text-sm text-pf-muted">{errorMessage ?? 'Erro inesperado.'}</p>
+        <p className="text-sm text-pf-muted">{errorMessage ?? t('common.unexpectedError')}</p>
         {correlationId ? (
           <p className="text-xs text-pf-muted">
-            ID de correlação: <code>{correlationId}</code>
+            {t('common.correlationId')} <code>{correlationId}</code>
           </p>
         ) : null}
         {onRetry ? (
           <Button onClick={onRetry} variant="secondary">
-            Tentar novamente
+            {t('common.retry')}
           </Button>
         ) : null}
       </Card>

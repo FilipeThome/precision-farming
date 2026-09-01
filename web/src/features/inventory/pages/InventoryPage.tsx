@@ -1,4 +1,5 @@
 import { useInventoryQuery } from '@/features/inventory/queries'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { formatNumber } from '@/shared/lib/format'
 import { queryError } from '@/shared/lib/queryError'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -9,18 +10,19 @@ export function InventoryPage() {
   const farmId = useUiStore((s) => s.farmId)
   const inventory = useInventoryQuery(farmId)
   const err = queryError(inventory.error)
+  const { t } = useI18n()
 
   return (
     <section>
-      <PageHeader title="Estoque" description="Itens e quantidades disponíveis." />
+      <PageHeader title={t('inventory.title')} description={t('inventory.description')} />
       <QueryPageState
         isLoading={inventory.isLoading}
         isError={inventory.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!inventory.isLoading && (inventory.data?.length ?? 0) === 0}
-        emptyTitle="Estoque vazio"
-        emptyDescription="Nenhum item retornado pelo serviço de inventário."
+        emptyTitle={t('inventory.emptyTitle')}
+        emptyDescription={t('inventory.emptyDescription')}
         onRetry={() => void inventory.refetch()}
       >
         <div className="overflow-hidden rounded-[12px] border border-pf-border bg-white">

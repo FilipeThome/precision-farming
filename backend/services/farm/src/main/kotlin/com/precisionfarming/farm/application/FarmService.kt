@@ -10,6 +10,8 @@ import com.precisionfarming.farm.infrastructure.FarmEntity
 import com.precisionfarming.farm.infrastructure.FarmJpaRepository
 import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
+import com.precisionfarming.farm.infrastructure.SeasonEntity
+import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
@@ -24,6 +26,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.UUID
 import java.util.concurrent.Callable
 
@@ -46,11 +49,29 @@ data class UpsertField(
     val variety: String?,
     val geometry: String,
 )
+data class SeasonDto(
+    val id: UUID,
+    val farmId: UUID,
+    val name: String,
+    val crop: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate?,
+    val status: String,
+)
+data class UpsertSeason(
+    val farmId: UUID,
+    val name: String,
+    val crop: String,
+    val startDate: LocalDate,
+    val endDate: LocalDate?,
+    val status: String,
+)
 
 @Service
 class FarmService(
     private val farms: FarmJpaRepository,
     private val fields: FieldJpaRepository,
+    private val seasons: SeasonJpaRepository,
 ) {
     private val gf = GeometryFactory(PrecisionModel(), 4326)
     private val wktReader = WKTReader(gf)
@@ -115,6 +136,29 @@ class FarmService(
         fields.deleteById(id)
     }
 
+    fun listSeasons(farmId: UUID?) =
+        (farmId?.let { seasons.findByFarmId(it) } ?: seasons.findAll()).map { it.toDto() }
+
+    @Transactional
+    fun createSeason(cmd: UpsertSeason): SeasonDto {
+        if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
+        return seasons.save(
+            SeasonEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.crop, cmd.startDate, cmd.endDate, cmd.status),
+        ).toDto()
+    }
+
+    @Transactional
+    fun patchSeason(id: UUID, cmd: UpsertSeason): SeasonDto {
+        val e = seasons.findById(id).orElseThrow { NotFoundException("SEASON_NOT_FOUND", "Season not found") }
+        e.farmId = cmd.farmId
+        e.name = cmd.name
+        e.crop = cmd.crop
+        e.startDate = cmd.startDate
+        e.endDate = cmd.endDate
+        e.status = cmd.status
+        return seasons.save(e).toDto()
+    }
+
     @Transactional
     fun seed() {
         data class FarmSeed(val key: String, val name: String, val location: String, val area: String)
@@ -122,6 +166,8 @@ class FarmService(
             FarmSeed("farm-001", "Fazenda Boa Vista", "São Gabriel do Oeste - MS", "1250"),
             FarmSeed("farm-002", "Fazenda Santa Helena", "Rio Verde - GO", "980"),
             FarmSeed("farm-003", "Fazenda Horizonte", "Sorriso - MT", "2450"),
+            FarmSeed("farm-004", "Fazenda Primavera", "Lucas do Rio Verde - MT", "1650"),
+            FarmSeed("farm-005", "Fazenda Campo Alegre", "Dourados - MS", "870"),
         )
         val existingFarms = farms.findAllById(farmSeeds.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
         farms.saveAll(
@@ -137,6 +183,16 @@ class FarmService(
             FieldSeed("field-004", "farm-002", "Talhão Norte", "210.0", "Soja", -50.92, -17.79),
             FieldSeed("field-005", "farm-002", "Talhão Sul", "175.0", "Milho", -50.90, -17.81),
             FieldSeed("field-006", "farm-003", "Talhão A", "320.0", "Soja", -55.47, -12.54),
+            FieldSeed("field-007", "farm-003", "Talhão B", "280.0", "Milho", -55.45, -12.56),
+            FieldSeed("field-008", "farm-003", "Talhão C", "190.0", "Algodão", -55.49, -12.52),
+            FieldSeed("field-009", "farm-004", "Talhão Leste", "150.0", "Soja", -55.90, -13.05),
+            FieldSeed("field-010", "farm-004", "Talhão Oeste", "140.0", "Milho", -55.92, -13.07),
+            FieldSeed("field-011", "farm-004", "Talhão Centro", "110.0", "Soja", -55.91, -13.06),
+            FieldSeed("field-012", "farm-005", "Talhão 1", "95.0", "Soja", -54.80, -22.22),
+            FieldSeed("field-013", "farm-005", "Talhão 2", "88.0", "Milho", -54.82, -22.24),
+            FieldSeed("field-014", "farm-001", "Talhão 04", "70.0", "Milho", -54.56, -19.38),
+            FieldSeed("field-015", "farm-002", "Talhão Leste", "130.0", "Soja", -50.91, -17.80),
+            FieldSeed("field-016", "farm-005", "Talhão 3", "102.0", "Soja", -54.81, -22.23),
         )
         val existingFields = fields.findAllById(fieldSeeds.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
         val missing = fieldSeeds.filter { DemoIds.uuid(it.key) !in existingFields }
@@ -153,6 +209,20 @@ class FarmService(
                 },
             )
             fields.saveAll(generated)
+        }
+        if (!seasons.existsById(DemoIds.uuid("season-001"))) {
+            seasons.saveAll(
+                listOf(
+                    SeasonEntity(
+                        DemoIds.uuid("season-001"), DemoIds.uuid("farm-001"), "Safra 2025/26", "Soja",
+                        LocalDate.of(2025, 9, 15), LocalDate.of(2026, 3, 30), "ACTIVE",
+                    ),
+                    SeasonEntity(
+                        DemoIds.uuid("season-002"), DemoIds.uuid("farm-001"), "Safrinha 2026", "Milho",
+                        LocalDate.of(2026, 2, 1), LocalDate.of(2026, 7, 15), "PLANNED",
+                    ),
+                ),
+            )
         }
     }
 
@@ -253,6 +323,7 @@ class FarmService(
 
     private fun FarmEntity.toDto() = FarmDto(id, name, location, areaHa, timezone)
     private fun FieldEntity.toDto() = FieldDto(id, farmId, name, areaHa, crop, variety, toGeoJson(geometry))
+    private fun SeasonEntity.toDto() = SeasonDto(id, farmId, name, crop, startDate, endDate, status)
 }
 
 @Service
