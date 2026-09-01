@@ -26,6 +26,16 @@ Recorded after parallel architect review. Implementation may proceed.
 | Web | [react-architect](536d4b43-57f8-45e6-8bdf-6ea9ca97f4b4) | APPROVED — custom i18n pt-BR/en-US, BR/US flags in Header, grouped nav + new gateway-backed pages |
 | Mobile | [kmp-architect](f4e0a910-16fc-4f53-b082-c70df75275b3) | APPROVED — LocaleStore + string maps, flags on login/home, secondary screens under Mais |
 
+## Security
+
+| Area | Agent / skill | Decision |
+| --- | --- | --- |
+| Branch security review | [security-review](49901fe7-94e1-4bd8-afda-fc6228c609fa) | High IDOR / missing authZ (initial findings) |
+| AuthZ remediation design | [kotlin-architect](d7301184-6575-4c84-8b0f-7b32449c2a99) | APPROVED — JWT tenantId+farmIds, AccessScope, role matrix, seed ADMIN, DemoSecretsGuard |
+| AuthZ implementation | [kotlin-backend-engineer](04dc0eeb-0cb2-4215-afc7-897dda48b7ce) | Delivered scoped APIs + PreAuthorize; `./gradlew test` green |
+| Project skill | `.cursor/skills/cybersecurity-team` | Blue/purple/red/pentester authorized assessment (no exploit PoCs) |
+| Report | `docs/security-assessment-2026-09-01.md` | Findings + remediation status |
+
 See `docs/full-spec-implementation-slice.md`.
 
 ## Deferred (next slices)

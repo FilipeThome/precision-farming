@@ -7,6 +7,8 @@ import com.precisionfarming.farm.infrastructure.FarmJpaRepository
 import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoTenant
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,6 +25,8 @@ class FarmServiceTest {
     private val seasons = mockk<SeasonJpaRepository>()
     private val svc = FarmService(farms, fields, seasons)
 
+    private fun scope(farmId: UUID) = AccessScope(DemoTenant.ID, setOf(farmId), "ADMIN")
+
     @Test
     fun createFieldPersistsParsedGeoJsonCoordinates() {
         val farmId = UUID.randomUUID()
@@ -30,6 +34,7 @@ class FarmServiceTest {
         every { fields.save(any()) } answers { firstArg<FieldEntity>() }
 
         val dto = svc.createField(
+            scope(farmId),
             UpsertField(
                 farmId = farmId,
                 name = "Talhão Norte",
@@ -53,6 +58,7 @@ class FarmServiceTest {
 
         val ex = assertThrows(DomainException::class.java) {
             svc.createField(
+                scope(farmId),
                 UpsertField(
                     farmId = farmId,
                     name = "Ponto",

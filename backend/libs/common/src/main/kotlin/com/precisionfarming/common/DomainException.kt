@@ -18,3 +18,6 @@ class ConflictException(
 
 class UnauthorizedException(message: String = "Unauthorized") :
     DomainException("UNAUTHORIZED", message, 401)
+
+class ForbiddenException(message: String = "Forbidden", code: String = "FORBIDDEN") :
+    DomainException(code, message, 403)

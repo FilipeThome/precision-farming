@@ -4,6 +4,7 @@ import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.SagaEntity
@@ -36,21 +37,29 @@ class OperationService(
     private val inventory: InventorySagaClient,
 ) {
 
-    fun list(farmId: UUID? = null) =
-        (farmId?.let { repo.findByFarmId(it) } ?: repo.findAll()).map { it.toDto() }
-    fun get(id: UUID) = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }.toDto()
+    fun list(scope: AccessScope, farmId: UUID? = null) =
+        repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+
+    fun get(scope: AccessScope, id: UUID): OperationDto {
+        val e = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }
+        scope.requireEntityFarm(e.farmId)
+        return e.toDto()
+    }
 
     @Transactional
-    fun create(cmd: CreateOperation) = repo.save(
-        OperationEntity(
-            UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
-            cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity,
-        ),
-    ).toDto()
+    fun create(scope: AccessScope, cmd: CreateOperation): OperationDto {
+        scope.requireFarm(cmd.farmId)
+        return repo.save(
+            OperationEntity(
+                UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
+                cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity,
+            ),
+        ).toDto()
+    }
 
     @Transactional
-    fun start(id: UUID): OperationDto {
-        val op = load(id)
+    fun start(scope: AccessScope, id: UUID): OperationDto {
+        val op = load(scope, id)
         if (op.status != "PLANNED" && op.status != "PAUSED") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
         }
@@ -87,8 +96,8 @@ class OperationService(
     }
 
     @Transactional
-    fun pause(id: UUID, reason: String?): OperationDto {
-        val op = load(id)
+    fun pause(scope: AccessScope, id: UUID, reason: String?): OperationDto {
+        val op = load(scope, id)
         if (op.status != "IN_PROGRESS") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot pause from ${op.status}")
         }
@@ -98,8 +107,8 @@ class OperationService(
     }
 
     @Transactional
-    fun complete(id: UUID): OperationDto {
-        val op = load(id)
+    fun complete(scope: AccessScope, id: UUID): OperationDto {
+        val op = load(scope, id)
         if (op.status != "IN_PROGRESS" && op.status != "PAUSED") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
         }
@@ -139,7 +148,11 @@ class OperationService(
         return true
     }
 
-    private fun load(id: UUID) = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }
+    private fun load(scope: AccessScope, id: UUID): OperationEntity {
+        val op = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }
+        scope.requireEntityFarm(op.farmId)
+        return op
+    }
 
     @Transactional
     fun seed() {

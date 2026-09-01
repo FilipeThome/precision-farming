@@ -8,4 +8,6 @@ data class JwtProperties(
     val issuer: String = "precision-farming",
     val accessMinutes: Long = 30,
     val refreshDays: Long = 7,
+    /** When false, DemoSecretsGuard refuses demo JWT/DB defaults unless profile `local`. */
+    val allowDemoSecrets: Boolean = true,
 )

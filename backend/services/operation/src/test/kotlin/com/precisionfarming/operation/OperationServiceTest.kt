@@ -7,6 +7,8 @@ import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.SagaEntity
 import com.precisionfarming.operation.infrastructure.SagaJpaRepository
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoTenant
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -23,6 +25,8 @@ class OperationServiceTest {
     private val inventory = mockk<InventorySagaClient>(relaxUnitFun = true)
     private val svc = OperationService(repo, sagas, inventory)
 
+    private fun scopeFor(op: OperationEntity) = AccessScope(DemoTenant.ID, setOf(op.farmId), "OPERATOR")
+
     @Test
     fun startFromPlannedReservesInventory() {
         val op = operation("PLANNED")
@@ -30,7 +34,7 @@ class OperationServiceTest {
         every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
         every { repo.save(any()) } answers { firstArg<OperationEntity>() }
 
-        val dto = svc.start(op.id)
+        val dto = svc.start(scopeFor(op), op.id)
 
         assertEquals("IN_PROGRESS", dto.status)
         verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString()) }
@@ -44,7 +48,7 @@ class OperationServiceTest {
         every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
         every { repo.save(any()) } answers { firstArg<OperationEntity>() }
 
-        val dto = svc.start(op.id)
+        val dto = svc.start(scopeFor(op), op.id)
 
         assertEquals("IN_PROGRESS", dto.status)
         verify(exactly = 0) { inventory.move(any(), any(), any(), any()) }
@@ -57,7 +61,7 @@ class OperationServiceTest {
         every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
         every { repo.save(any()) } throws RuntimeException("persist failed")
 
-        val ex = assertThrows(ConflictException::class.java) { svc.start(op.id) }
+        val ex = assertThrows(ConflictException::class.java) { svc.start(scopeFor(op), op.id) }
         assertEquals("SAGA_FAILED", ex.code)
         verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString()) }
         verify(exactly = 1) { inventory.move(op.itemId!!, "RELEASE", op.itemQuantity!!, op.id.toString()) }
@@ -70,7 +74,7 @@ class OperationServiceTest {
         every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
         every { repo.save(any()) } throws RuntimeException("persist failed")
 
-        val ex = assertThrows(ConflictException::class.java) { svc.complete(op.id) }
+        val ex = assertThrows(ConflictException::class.java) { svc.complete(scopeFor(op), op.id) }
         assertEquals("SAGA_FAILED", ex.code)
         verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", op.itemQuantity!!, op.id.toString()) }
         verify(exactly = 1) { inventory.move(op.itemId!!, "IN", op.itemQuantity!!, op.id.toString()) }

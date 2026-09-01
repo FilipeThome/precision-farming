@@ -2,6 +2,7 @@ package com.precisionfarming.harvest.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.harvest.domain.HarvestPlanStatus
 import com.precisionfarming.harvest.domain.LoadStatus
 import com.precisionfarming.harvest.infrastructure.HarvestPlanEntity
@@ -49,10 +50,12 @@ class HarvestService(
     private val units: StorageUnitJpaRepository,
     private val lots: StorageLotJpaRepository,
 ) {
-    fun listPlans(farmId: UUID?) = (farmId?.let { plans.findByFarmId(it) } ?: plans.findAll()).map { it.toDto() }
+    fun listPlans(scope: AccessScope, farmId: UUID?) =
+        plans.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createPlan(cmd: CreateHarvestPlan): HarvestPlanDto {
+    fun createPlan(scope: AccessScope, cmd: CreateHarvestPlan): HarvestPlanDto {
+        scope.requireFarm(cmd.farmId)
         val now = Instant.now()
         return plans.save(
             HarvestPlanEntity(
@@ -62,19 +65,24 @@ class HarvestService(
         ).toDto()
     }
 
-    fun listYield(farmId: UUID?) = (farmId?.let { yields.findByFarmId(it) } ?: yields.findAll()).map { it.toDto() }
-    fun listLoads(farmId: UUID?) = (farmId?.let { loads.findByFarmId(it) } ?: loads.findAll()).map { it.toDto() }
+    fun listYield(scope: AccessScope, farmId: UUID?) =
+        yields.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+    fun listLoads(scope: AccessScope, farmId: UUID?) =
+        loads.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun dispatch(cmd: DispatchRequest): LogisticsLoadDto {
+    fun dispatch(scope: AccessScope, cmd: DispatchRequest): LogisticsLoadDto {
         val e = loads.findById(cmd.loadId).orElseThrow { NotFoundException("LOAD_NOT_FOUND", "Load not found") }
+        scope.requireEntityFarm(e.farmId)
         e.status = LoadStatus.DISPATCHED.name
         e.dispatchedAt = Instant.now()
         return loads.save(e).toDto()
     }
 
-    fun listUnits(farmId: UUID?) = (farmId?.let { units.findByFarmId(it) } ?: units.findAll()).map { it.toDto() }
-    fun listLots(farmId: UUID?) = (farmId?.let { lots.findByFarmId(it) } ?: lots.findAll()).map { it.toDto() }
+    fun listUnits(scope: AccessScope, farmId: UUID?) =
+        units.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+    fun listLots(scope: AccessScope, farmId: UUID?) =
+        lots.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
     fun seed() {

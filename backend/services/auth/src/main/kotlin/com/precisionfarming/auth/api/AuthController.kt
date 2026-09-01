@@ -7,6 +7,7 @@ import com.precisionfarming.auth.application.TokenResponse
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.GetMapping
@@ -41,6 +42,7 @@ class AuthController(private val authService: AuthService) {
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class SeedController(private val authService: AuthService) {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset(): Map<String, String> {
         authService.seed()

@@ -34,6 +34,7 @@ class MovementEntity(
 
 interface ItemJpaRepository : JpaRepository<ItemEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<ItemEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<ItemEntity>
 }
 
 interface MovementJpaRepository : JpaRepository<MovementEntity, UUID>

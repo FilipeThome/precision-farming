@@ -73,16 +73,21 @@ class StorageLotEntity(
 
 interface HarvestPlanJpaRepository : JpaRepository<HarvestPlanEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<HarvestPlanEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<HarvestPlanEntity>
 }
 interface HarvestYieldJpaRepository : JpaRepository<HarvestYieldEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<HarvestYieldEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<HarvestYieldEntity>
 }
 interface LogisticsLoadJpaRepository : JpaRepository<LogisticsLoadEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<LogisticsLoadEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<LogisticsLoadEntity>
 }
 interface StorageUnitJpaRepository : JpaRepository<StorageUnitEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<StorageUnitEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<StorageUnitEntity>
 }
 interface StorageLotJpaRepository : JpaRepository<StorageLotEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<StorageLotEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<StorageLotEntity>
 }

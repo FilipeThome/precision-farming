@@ -12,6 +12,7 @@ import com.precisionfarming.agronomy.infrastructure.SoilSampleEntity
 import com.precisionfarming.agronomy.infrastructure.SoilSampleJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.concurrency.VirtualJobs
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
@@ -53,18 +54,23 @@ class AgronomyService(
     private val prescriptions: PrescriptionJpaRepository,
     private val lab: LabAdapter,
 ) {
-    fun listScouting(farmId: UUID?) = (farmId?.let { scouting.findByFarmId(it) } ?: scouting.findAll()).map { it.toDto() }
+    fun listScouting(scope: AccessScope, farmId: UUID?) =
+        scouting.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createScouting(cmd: CreateScouting) =
-        scouting.save(
+    fun createScouting(scope: AccessScope, cmd: CreateScouting): ScoutingDto {
+        scope.requireFarm(cmd.farmId)
+        return scouting.save(
             ScoutingEntity(UUID.randomUUID(), cmd.farmId, cmd.fieldId, Instant.now(), cmd.pest, cmd.severity, cmd.notes, "OPEN"),
         ).toDto()
+    }
 
-    fun listSoil(farmId: UUID?) = (farmId?.let { soils.findByFarmId(it) } ?: soils.findAll()).map { it.toDto() }
+    fun listSoil(scope: AccessScope, farmId: UUID?) =
+        soils.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createSoil(cmd: CreateSoilSample): SoilSampleDto {
+    fun createSoil(scope: AccessScope, cmd: CreateSoilSample): SoilSampleDto {
+        scope.requireFarm(cmd.farmId)
         val id = UUID.randomUUID()
         val result = lab.analyze(id.toString().take(8))
         return soils.save(
@@ -75,24 +81,27 @@ class AgronomyService(
         ).toDto()
     }
 
-    fun listRecommendations(farmId: UUID?) =
-        (farmId?.let { recommendations.findByFarmId(it) } ?: recommendations.findAll()).map { it.toDto() }
+    fun listRecommendations(scope: AccessScope, farmId: UUID?) =
+        recommendations.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun listPrescriptions(farmId: UUID?) =
-        (farmId?.let { prescriptions.findByFarmId(it) } ?: prescriptions.findAll()).map { it.toDto() }
+    fun listPrescriptions(scope: AccessScope, farmId: UUID?) =
+        prescriptions.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createPrescription(cmd: CreatePrescription) =
-        prescriptions.save(
+    fun createPrescription(scope: AccessScope, cmd: CreatePrescription): PrescriptionDto {
+        scope.requireFarm(cmd.farmId)
+        return prescriptions.save(
             PrescriptionEntity(
                 UUID.randomUUID(), cmd.farmId, cmd.fieldId, cmd.product, cmd.rate, cmd.unit,
                 PrescriptionStatus.DRAFT.name, Instant.now(), null,
             ),
         ).toDto()
+    }
 
     @Transactional
-    fun approvePrescription(id: UUID): PrescriptionDto {
+    fun approvePrescription(scope: AccessScope, id: UUID): PrescriptionDto {
         val e = prescriptions.findById(id).orElseThrow { NotFoundException("PRESCRIPTION_NOT_FOUND", "Prescription not found") }
+        scope.requireEntityFarm(e.farmId)
         e.status = PrescriptionStatus.APPROVED.name
         e.approvedAt = Instant.now()
         return prescriptions.save(e).toDto()

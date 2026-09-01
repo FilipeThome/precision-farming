@@ -4,6 +4,7 @@ import com.precisionfarming.alert.infrastructure.AlertEntity
 import com.precisionfarming.alert.infrastructure.AlertJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -19,10 +20,12 @@ data class AlertDto(
 
 @Service
 class AlertService(private val repo: AlertJpaRepository) {
-    fun list(farmId: UUID? = null) = (farmId?.let { repo.findByFarmId(it) } ?: repo.findAll()).map { it.toDto() }
+    fun list(scope: AccessScope, farmId: UUID? = null) =
+        repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
     @Transactional
-    fun ack(id: UUID): AlertDto {
+    fun ack(scope: AccessScope, id: UUID): AlertDto {
         val e = repo.findById(id).orElseThrow { NotFoundException("ALERT_NOT_FOUND", "Alert not found") }
+        scope.requireEntityFarm(e.farmId)
         e.status = "ACKED"
         return repo.save(e).toDto()
     }

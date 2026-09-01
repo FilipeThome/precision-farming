@@ -6,6 +6,7 @@ import com.precisionfarming.asset.infrastructure.WorkOrderEntity
 import com.precisionfarming.asset.infrastructure.WorkOrderJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -34,33 +35,46 @@ class AssetService(
     private val repo: MachineJpaRepository,
     private val workOrders: WorkOrderJpaRepository,
 ) {
-    fun list(farmId: UUID?) = (farmId?.let { repo.findByFarmId(it) } ?: repo.findAll()).map { it.toDto() }
-    fun get(id: UUID) = repo.findById(id).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }.toDto()
+    fun list(scope: AccessScope, farmId: UUID?) =
+        repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    @Transactional
-    fun create(cmd: UpsertMachine) =
-        repo.save(MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status)).toDto()
-
-    @Transactional
-    fun patch(id: UUID, cmd: UpsertMachine): MachineDto {
+    fun get(scope: AccessScope, id: UUID): MachineDto {
         val e = repo.findById(id).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }
+        scope.requireEntityFarm(e.farmId)
+        return e.toDto()
+    }
+
+    @Transactional
+    fun create(scope: AccessScope, cmd: UpsertMachine): MachineDto {
+        scope.requireFarm(cmd.farmId)
+        return repo.save(MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status)).toDto()
+    }
+
+    @Transactional
+    fun patch(scope: AccessScope, id: UUID, cmd: UpsertMachine): MachineDto {
+        val e = repo.findById(id).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }
+        scope.requireEntityFarm(e.farmId)
+        scope.requireFarm(cmd.farmId)
         e.farmId = cmd.farmId; e.name = cmd.name; e.type = cmd.type
         e.manufacturer = cmd.manufacturer; e.model = cmd.model; e.status = cmd.status
         return repo.save(e).toDto()
     }
 
-    fun listWorkOrders(farmId: UUID?) =
-        (farmId?.let { workOrders.findByFarmId(it) } ?: workOrders.findAll()).map { it.toDto() }
+    fun listWorkOrders(scope: AccessScope, farmId: UUID?) =
+        workOrders.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun createWorkOrder(cmd: CreateWorkOrder) =
-        workOrders.save(
+    fun createWorkOrder(scope: AccessScope, cmd: CreateWorkOrder): WorkOrderDto {
+        scope.requireFarm(cmd.farmId)
+        return workOrders.save(
             WorkOrderEntity(UUID.randomUUID(), cmd.farmId, cmd.machineId, cmd.title, cmd.priority, "OPEN", Instant.now(), null),
         ).toDto()
+    }
 
     @Transactional
-    fun completeWorkOrder(id: UUID): WorkOrderDto {
+    fun completeWorkOrder(scope: AccessScope, id: UUID): WorkOrderDto {
         val e = workOrders.findById(id).orElseThrow { NotFoundException("WO_NOT_FOUND", "Work order not found") }
+        scope.requireEntityFarm(e.farmId)
         e.status = "COMPLETED"
         e.completedAt = Instant.now()
         return workOrders.save(e).toDto()

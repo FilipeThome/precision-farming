@@ -33,7 +33,10 @@ class MapLayerEntity(
     val status: String,
 )
 
-interface FileJpaRepository : JpaRepository<FileMetaEntity, UUID>
+interface FileJpaRepository : JpaRepository<FileMetaEntity, UUID> {
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<FileMetaEntity>
+}
 interface MapLayerJpaRepository : JpaRepository<MapLayerEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<MapLayerEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<MapLayerEntity>
 }

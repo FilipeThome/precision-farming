@@ -18,7 +18,12 @@ class AuthServiceLogicTest {
         val jwt = JwtService(com.precisionfarming.security.JwtProperties())
         val token = jwt.createAccessToken(java.util.UUID.randomUUID(), "a@b.c", "ADMIN")
         assertTrue(token.split(".").size == 3)
-        assertTrue(jwt.parse(token)["role"] == "ADMIN")
+        val claims = jwt.parse(token)
+        assertTrue(claims["role"] == "ADMIN")
+        @Suppress("UNCHECKED_CAST")
+        val farmIds = claims["farmIds"] as List<String>
+        assertTrue(farmIds.isNotEmpty())
+        assertTrue(claims["tenantId"] is String)
     }
 
     @Test

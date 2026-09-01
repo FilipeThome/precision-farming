@@ -81,17 +81,22 @@ class MarketExposureEntity(
 
 interface CostJpaRepository : JpaRepository<CostEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<CostEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<CostEntity>
 }
 interface BudgetJpaRepository : JpaRepository<BudgetEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<BudgetEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<BudgetEntity>
 }
 interface CashflowJpaRepository : JpaRepository<CashflowEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<CashflowEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<CashflowEntity>
 }
 interface MarketQuoteJpaRepository : JpaRepository<MarketQuoteEntity, UUID>
 interface MarketContractJpaRepository : JpaRepository<MarketContractEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<MarketContractEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<MarketContractEntity>
 }
 interface MarketExposureJpaRepository : JpaRepository<MarketExposureEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<MarketExposureEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<MarketExposureEntity>
 }

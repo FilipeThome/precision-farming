@@ -3,6 +3,7 @@ package com.precisionfarming.inventory.application
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.inventory.infrastructure.ItemEntity
 import com.precisionfarming.inventory.infrastructure.ItemJpaRepository
 import com.precisionfarming.inventory.infrastructure.MovementEntity
@@ -28,15 +29,19 @@ class InventoryService(
     private val items: ItemJpaRepository,
     private val movements: MovementJpaRepository,
 ) {
-    fun list(farmId: UUID?) = (farmId?.let { items.findByFarmId(it) } ?: items.findAll()).map { it.toDto() }
+    fun list(scope: AccessScope, farmId: UUID?) =
+        items.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun create(cmd: UpsertItem) =
-        items.save(ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity)).toDto()
+    fun create(scope: AccessScope, cmd: UpsertItem): ItemDto {
+        scope.requireFarm(cmd.farmId)
+        return items.save(ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity)).toDto()
+    }
 
     @Transactional
-    fun move(cmd: MovementCmd): ItemDto {
+    fun move(scope: AccessScope, cmd: MovementCmd): ItemDto {
         val item = items.findById(cmd.itemId).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
+        scope.requireEntityFarm(item.farmId)
         when (cmd.type) {
             "RESERVE" -> {
                 if (item.quantity - item.reserved < cmd.quantity) {

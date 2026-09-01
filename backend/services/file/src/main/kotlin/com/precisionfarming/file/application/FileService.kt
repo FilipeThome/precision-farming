@@ -2,6 +2,7 @@ package com.precisionfarming.file.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.file.infrastructure.FileJpaRepository
 import com.precisionfarming.file.infrastructure.FileMetaEntity
 import com.precisionfarming.file.infrastructure.MapLayerEntity
@@ -31,13 +32,14 @@ class FileService(
     private val repo: FileJpaRepository,
     private val layers: MapLayerJpaRepository,
 ) {
-    fun list() = repo.findAll()
+    fun list(scope: AccessScope) = repo.findByFarmIdIn(scope.farmIds)
 
-    fun listLayers(farmId: UUID?) =
-        (farmId?.let { layers.findByFarmId(it) } ?: layers.findAll()).map { it.toDto() }
+    fun listLayers(scope: AccessScope, farmId: UUID?) =
+        layers.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
-    fun tileStub(layerId: UUID): Map<String, Any> {
+    fun tileStub(scope: AccessScope, layerId: UUID): Map<String, Any> {
         val layer = layers.findById(layerId).orElseThrow { NotFoundException("LAYER_NOT_FOUND", "Map layer not found") }
+        scope.requireEntityFarm(layer.farmId)
         return mapOf(
             "layerId" to layer.id,
             "kind" to layer.kind,

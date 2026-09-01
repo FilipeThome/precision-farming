@@ -1,6 +1,7 @@
 package com.precisionfarming.weather.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.weather.infrastructure.WeatherEntity
 import com.precisionfarming.weather.infrastructure.WeatherJpaRepository
@@ -60,19 +61,23 @@ class WeatherService(
 ) {
     private val provider: WeatherProvider = DemoWeatherProvider()
 
-    fun current(farmId: UUID): WeatherEntity? {
+    fun current(scope: AccessScope, farmId: UUID): WeatherEntity? {
+        scope.requireFarm(farmId)
         ensureForecast(farmId)
         val now = Instant.now()
         return repo.findFirstByFarmIdAndForecastAtGreaterThanEqualOrderByForecastAtAsc(farmId, now)
             ?: repo.findFirstByFarmIdAndForecastAtLessThanOrderByForecastAtDesc(farmId, now)
     }
 
-    fun forecast(farmId: UUID) = repo.findByFarmIdOrderByForecastAtAsc(farmId).ifEmpty {
-        provider.demoForecast(farmId).also { repo.saveAll(it) }
+    fun forecast(scope: AccessScope, farmId: UUID): List<WeatherEntity> {
+        scope.requireFarm(farmId)
+        return repo.findByFarmIdOrderByForecastAtAsc(farmId).ifEmpty {
+            provider.demoForecast(farmId).also { repo.saveAll(it) }
+        }
     }
 
-    fun listWindows(farmId: UUID?, type: String?) =
-        (farmId?.let { windows.findByFarmId(it) } ?: windows.findAll())
+    fun listWindows(scope: AccessScope, farmId: UUID?, type: String?) =
+        windows.findByFarmIdIn(scope.resolveFarms(farmId))
             .filter { type == null || it.windowType.equals(type, ignoreCase = true) }
             .map { WeatherWindowDto(it.id, it.farmId, it.windowType, it.startAt, it.endAt, it.rating, it.notes) }
 

@@ -14,24 +14,38 @@ class JwtService(private val props: JwtProperties) {
     private val key: SecretKey = Keys.hmacShaKeyFor(props.jwtSecret.toByteArray())
     private val serviceTokens = ConcurrentHashMap<String, CachedToken>(4)
 
-    fun createAccessToken(userId: UUID, email: String, role: String): String {
+    fun createAccessToken(
+        userId: UUID,
+        email: String,
+        role: String,
+        tenantId: UUID = DemoTenant.ID,
+        farmIds: Collection<UUID> = DemoFarmDirectory.forRole(role),
+    ): String {
         val now = Instant.now()
         return Jwts.builder()
             .issuer(props.issuer)
             .subject(userId.toString())
             .claim("email", email)
             .claim("role", role)
+            .claim("tenantId", tenantId.toString())
+            .claim("farmIds", farmIds.map { it.toString() })
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plusSeconds(props.accessMinutes * 60)))
             .signWith(key)
             .compact()
     }
 
-    fun cachedAccessToken(userId: UUID, email: String, role: String): String {
-        val cacheKey = "$userId:$role"
+    fun cachedAccessToken(
+        userId: UUID,
+        email: String,
+        role: String,
+        tenantId: UUID = DemoTenant.ID,
+        farmIds: Collection<UUID> = DemoFarmDirectory.forRole(role),
+    ): String {
+        val cacheKey = "$userId:$role:${farmIds.sorted().joinToString()}"
         val now = Instant.now()
         serviceTokens[cacheKey]?.takeIf { now.isBefore(it.validUntil) }?.let { return it.token }
-        val token = createAccessToken(userId, email, role)
+        val token = createAccessToken(userId, email, role, tenantId, farmIds)
         val ttl = (props.accessMinutes * 60 - 60).coerceAtLeast(30)
         serviceTokens[cacheKey] = CachedToken(token, now.plusSeconds(ttl))
         return token

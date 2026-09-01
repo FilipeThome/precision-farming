@@ -1,6 +1,8 @@
 package com.precisionfarming.telemetry.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoMachineFarms
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.telemetry.infrastructure.TelemetryEntity
 import com.precisionfarming.telemetry.infrastructure.TelemetryJpaRepository
@@ -25,12 +27,16 @@ data class TrackPoint(val lat: Double, val lon: Double, val observedAt: Instant)
 
 @Service
 class TelemetryService(private val repo: TelemetryJpaRepository) {
-    fun history(machineId: UUID, from: Instant, to: Instant) =
-        repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
+    fun history(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TelemetryPoint> {
+        DemoMachineFarms.requireMachine(scope, machineId)
+        return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
+    }
 
-    fun track(machineId: UUID, from: Instant, to: Instant) =
-        repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
+    fun track(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TrackPoint> {
+        DemoMachineFarms.requireMachine(scope, machineId)
+        return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
             .map { TrackPoint(it.lat, it.lon, it.observedAt) }
+    }
 
     @Transactional
     fun seed() {
