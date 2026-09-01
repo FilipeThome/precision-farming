@@ -17,11 +17,12 @@ class DemoSecretsGuard(
         val local = env.activeProfiles.contains("local")
         if (local || props.allowDemoSecrets) return
         val demoSecret = props.jwtSecret == DEMO_JWT
+        val weakSecret = props.jwtSecret.toByteArray(Charsets.UTF_8).size < 32
         val demoDb = env.getProperty("spring.datasource.password") == DEMO_DB_PASSWORD
-        if (demoSecret || demoDb) {
+        if (demoSecret || weakSecret || demoDb) {
             error(
-                "Refusing to start with demo JWT/DB secrets outside profile 'local'. " +
-                    "Set real secrets or app.security.allow-demo-secrets=true for local-like demos.",
+                "Refusing to start with demo/weak JWT or demo DB secrets outside profile 'local'. " +
+                    "Set real secrets or ALLOW_DEMO_SECRETS=true / app.security.allow-demo-secrets=true for local-like demos.",
             )
         }
     }

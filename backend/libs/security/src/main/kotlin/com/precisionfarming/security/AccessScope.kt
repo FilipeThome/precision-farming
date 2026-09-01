@@ -7,6 +7,7 @@ data class AccessScope(
     val tenantId: UUID,
     val farmIds: Set<UUID>,
     val role: String,
+    val userId: UUID? = null,
 ) {
     fun resolveFarms(requested: UUID?): Set<UUID> {
         if (requested != null) {
@@ -23,4 +24,7 @@ data class AccessScope(
     }
 
     fun requireEntityFarm(farmId: UUID) = requireFarm(farmId)
+
+    fun requireUserId(): UUID =
+        userId ?: throw ForbiddenException("Missing subject", "SUBJECT_REQUIRED")
 }

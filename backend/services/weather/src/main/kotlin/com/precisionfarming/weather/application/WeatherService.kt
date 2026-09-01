@@ -19,15 +19,29 @@ import java.util.UUID
 import java.util.concurrent.Callable
 
 interface WeatherProvider {
-    fun demoForecast(farmId: UUID): List<WeatherEntity>
+    fun demoForecast(farmId: UUID): List<WeatherDto>
 }
 
+data class WeatherDto(
+    val id: UUID,
+    val farmId: UUID,
+    val forecastAt: Instant,
+    val temperatureMin: BigDecimal,
+    val temperatureMax: BigDecimal,
+    val rainMm: BigDecimal,
+    val rainProbability: BigDecimal,
+    val windKmh: BigDecimal,
+    val humidityPct: BigDecimal,
+    val sprayingWindow: String,
+    val vintage: String,
+)
+
 class DemoWeatherProvider : WeatherProvider {
-    override fun demoForecast(farmId: UUID): List<WeatherEntity> {
+    override fun demoForecast(farmId: UUID): List<WeatherDto> {
         val now = Instant.now().truncatedTo(ChronoUnit.DAYS)
         return (-14..7).map { day ->
             val rain = if (day % 3 == 0) BigDecimal("4.8") else BigDecimal("0.2")
-            WeatherEntity(
+            WeatherDto(
                 id = UUID.randomUUID(),
                 farmId = farmId,
                 forecastAt = now.plus(day.toLong(), ChronoUnit.DAYS),
@@ -61,32 +75,40 @@ class WeatherService(
 ) {
     private val provider: WeatherProvider = DemoWeatherProvider()
 
-    fun current(scope: AccessScope, farmId: UUID): WeatherEntity? {
+    fun current(scope: AccessScope, farmId: UUID): WeatherDto? {
         scope.requireFarm(farmId)
         ensureForecast(farmId)
         val now = Instant.now()
-        return repo.findFirstByFarmIdAndForecastAtGreaterThanEqualOrderByForecastAtAsc(farmId, now)
+        val row = repo.findFirstByFarmIdAndForecastAtGreaterThanEqualOrderByForecastAtAsc(farmId, now)
             ?: repo.findFirstByFarmIdAndForecastAtLessThanOrderByForecastAtDesc(farmId, now)
+        return row?.toDto()
     }
 
-    fun forecast(scope: AccessScope, farmId: UUID): List<WeatherEntity> {
+    fun forecast(scope: AccessScope, farmId: UUID): List<WeatherDto> {
         scope.requireFarm(farmId)
-        return repo.findByFarmIdOrderByForecastAtAsc(farmId).ifEmpty {
-            provider.demoForecast(farmId).also { repo.saveAll(it) }
-        }
+        val stored = repo.findByFarmIdOrderByForecastAtAsc(farmId)
+        if (stored.isNotEmpty()) return stored.map { it.toDto() }
+        val generated = provider.demoForecast(farmId)
+        repo.saveAll(generated.map { it.toEntity() })
+        return generated
     }
 
-    fun listWindows(scope: AccessScope, farmId: UUID?, type: String?) =
-        windows.findByFarmIdIn(scope.resolveFarms(farmId))
-            .filter { type == null || it.windowType.equals(type, ignoreCase = true) }
-            .map { WeatherWindowDto(it.id, it.farmId, it.windowType, it.startAt, it.endAt, it.rating, it.notes) }
+    fun listWindows(scope: AccessScope, farmId: UUID?, type: String?): List<WeatherWindowDto> {
+        val farms = scope.resolveFarms(farmId)
+        val rows = if (type.isNullOrBlank()) {
+            windows.findByFarmIdIn(farms)
+        } else {
+            windows.findByFarmIdInAndWindowTypeIgnoreCase(farms, type)
+        }
+        return rows.map { WeatherWindowDto(it.id, it.farmId, it.windowType, it.startAt, it.endAt, it.rating, it.notes) }
+    }
 
     @Transactional
     fun seed() {
         val keys = listOf("farm-001", "farm-002", "farm-003", "farm-004", "farm-005")
         val missing = keys.map { DemoIds.uuid(it) }.filter { !repo.existsByFarmId(it) }
         if (missing.isNotEmpty()) {
-            val rows = VirtualJobs.all(missing.map { farmId -> Callable { provider.demoForecast(farmId) } })
+            val rows = VirtualJobs.all(missing.map { farmId -> Callable { provider.demoForecast(farmId).map { it.toEntity() } } })
             repo.saveAll(rows.flatten())
         }
         if (!windows.existsById(DemoIds.uuid("wwin-001"))) {
@@ -113,9 +135,17 @@ class WeatherService(
 
     private fun ensureForecast(farmId: UUID) {
         if (!repo.existsByFarmId(farmId)) {
-            repo.saveAll(provider.demoForecast(farmId))
+            repo.saveAll(provider.demoForecast(farmId).map { it.toEntity() })
         }
     }
+
+    private fun WeatherDto.toEntity() = WeatherEntity(
+        id, farmId, forecastAt, temperatureMin, temperatureMax, rainMm, rainProbability, windKmh, humidityPct, sprayingWindow, vintage,
+    )
+
+    private fun WeatherEntity.toDto() = WeatherDto(
+        id, farmId, forecastAt, temperatureMin, temperatureMax, rainMm, rainProbability, windKmh, humidityPct, sprayingWindow, vintage,
+    )
 }
 
 @Service

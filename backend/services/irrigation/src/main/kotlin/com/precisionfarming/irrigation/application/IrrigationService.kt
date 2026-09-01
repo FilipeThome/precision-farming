@@ -2,6 +2,7 @@ package com.precisionfarming.irrigation.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.irrigation.domain.IrrigationSimulator
 import com.precisionfarming.irrigation.domain.SimulationInput
 import com.precisionfarming.irrigation.infrastructure.IrrigationAssetEntity
@@ -49,6 +50,7 @@ class IrrigationService(
     @Transactional
     fun simulate(scope: AccessScope, cmd: SimulateRequest): SimulationDto {
         scope.requireFarm(cmd.farmId)
+        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         val result = simulator.simulate(SimulationInput(cmd.farmId, cmd.fieldId, cmd.mm, cmd.areaHa))
         return simulations.save(
             IrrigationSimulationEntity(

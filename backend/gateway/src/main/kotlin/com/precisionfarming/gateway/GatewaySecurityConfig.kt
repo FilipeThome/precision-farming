@@ -7,9 +7,13 @@ import org.springframework.http.HttpMethod
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.web.server.ServerHttpSecurity
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm
+import org.springframework.security.oauth2.jwt.JwtException
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
 import org.springframework.security.web.server.SecurityWebFilterChain
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.reactive.CorsConfigurationSource
+import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
 import javax.crypto.spec.SecretKeySpec
 
 @Configuration
@@ -19,7 +23,30 @@ class GatewaySecurityConfig(
     @Bean
     fun jwtDecoder(): ReactiveJwtDecoder {
         val key = SecretKeySpec(jwtSecret.toByteArray(), "HmacSHA256")
-        return NimbusReactiveJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusReactiveJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        return ReactiveJwtDecoder { token ->
+            nimbus.decode(token).handle { jwt, sink ->
+                val type = jwt.getClaimAsString("type")
+                if (!"access".equals(type, ignoreCase = true)) {
+                    sink.error(JwtException("Access token required"))
+                } else {
+                    sink.next(jwt)
+                }
+            }
+        }
+    }
+
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val config = CorsConfiguration().apply {
+            allowedOriginPatterns = listOf("http://localhost:*", "http://127.0.0.1:*")
+            allowedMethods = listOf("*")
+            allowedHeaders = listOf("*")
+            allowCredentials = true
+        }
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", config)
+        }
     }
 
     @Bean

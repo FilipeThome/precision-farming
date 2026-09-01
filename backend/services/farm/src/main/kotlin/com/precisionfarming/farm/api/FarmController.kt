@@ -55,6 +55,7 @@ class FarmController(
     @GetMapping("/farms")
     fun farms() = farmService.listFarms(farmAccess.current())
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/farms")
     fun createFarm(@Valid @RequestBody body: FarmRequest) =
         farmService.createFarm(UpsertFarm(body.name, body.location, body.areaHa, body.timezone))
@@ -62,10 +63,12 @@ class FarmController(
     @GetMapping("/farms/{id}")
     fun farm(@PathVariable id: UUID) = farmService.getFarm(farmAccess.current(), id)
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PatchMapping("/farms/{id}")
     fun patchFarm(@PathVariable id: UUID, @Valid @RequestBody body: FarmRequest) =
         farmService.patchFarm(farmAccess.current(), id, UpsertFarm(body.name, body.location, body.areaHa, body.timezone))
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @DeleteMapping("/farms/{id}")
     fun deleteFarm(@PathVariable id: UUID) = farmService.deleteFarm(farmAccess.current(), id)
 
@@ -73,6 +76,7 @@ class FarmController(
     fun fields(@RequestParam(required = false) farmId: UUID?) =
         farmService.listFields(farmAccess.current(), farmId)
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PostMapping("/fields")
     fun createField(@Valid @RequestBody body: FieldRequest) =
         farmService.createField(
@@ -83,6 +87,7 @@ class FarmController(
     @GetMapping("/fields/{id}")
     fun field(@PathVariable id: UUID) = farmService.getField(farmAccess.current(), id)
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PatchMapping("/fields/{id}")
     fun patchField(@PathVariable id: UUID, @Valid @RequestBody body: FieldRequest) =
         farmService.patchField(
@@ -91,6 +96,7 @@ class FarmController(
             UpsertField(body.farmId, body.name, body.areaHa, body.crop, body.variety, body.geometry),
         )
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @DeleteMapping("/fields/{id}")
     fun deleteField(@PathVariable id: UUID) = farmService.deleteField(farmAccess.current(), id)
 
@@ -98,6 +104,7 @@ class FarmController(
     fun seasons(@RequestParam(required = false) farmId: UUID?) =
         farmService.listSeasons(farmAccess.current(), farmId)
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PostMapping("/seasons")
     fun createSeason(@Valid @RequestBody body: SeasonRequest) =
         farmService.createSeason(
@@ -105,6 +112,7 @@ class FarmController(
             UpsertSeason(body.farmId, body.name, body.crop, body.startDate, body.endDate, body.status),
         )
 
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PatchMapping("/seasons/{id}")
     fun patchSeason(@PathVariable id: UUID, @Valid @RequestBody body: SeasonRequest) =
         farmService.patchSeason(

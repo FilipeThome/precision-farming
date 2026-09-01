@@ -11,46 +11,40 @@ type FieldMapProps = {
   className?: string
 }
 
+function fieldsSignature(fields: Field[]): string {
+  return fields.map((field) => `${field.id}:${field.geometry}`).join('|')
+}
+
 export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
   const apiKey = getGoogleMapsApiKey()
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<google.maps.Map | null>(null)
+  const mapsRef = useRef<typeof google.maps | null>(null)
+  const polygonsRef = useRef<google.maps.Polygon[]>([])
+  const fieldsRef = useRef(fields)
+  fieldsRef.current = fields
+  const [mapReady, setMapReady] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
+  const signature = fieldsSignature(fields)
 
   useEffect(() => {
     if (!apiKey || !containerRef.current) return
     const node = containerRef.current
-    let map: google.maps.Map | undefined
     let cancelled = false
 
     loadGoogleMaps(apiKey)
       .then((maps) => {
         if (cancelled || !node) return
-        map = new maps.Map(node, {
+        mapsRef.current = maps
+        const map = new maps.Map(node, {
           mapTypeId: maps.MapTypeId.SATELLITE,
           tilt: 0,
           streetViewControl: false,
           fullscreenControl: true,
         })
-        const bounds = new maps.LatLngBounds()
-        let hasPath = false
-        for (const field of fields) {
-          for (const path of geometryToPaths(field.geometry)) {
-            if (path.length === 0) continue
-            hasPath = true
-            new maps.Polygon({
-              map,
-              paths: path,
-              strokeColor: '#0D9488',
-              strokeOpacity: 1,
-              strokeWeight: 2,
-              fillColor: '#1B5E3B',
-              fillOpacity: 0.35,
-            })
-            path.forEach((point) => bounds.extend(point))
-          }
-        }
-        if (hasPath) map.fitBounds(bounds, 48)
-        else map.setCenter({ lat: -19.0, lng: -54.5 })
+        map.setCenter({ lat: -19.0, lng: -54.5 })
+        mapRef.current = map
+        setMapReady(true)
       })
       .catch((err: unknown) => {
         if (!cancelled) setLoadError(err instanceof Error ? err.message : 'Falha ao carregar o mapa')
@@ -58,8 +52,50 @@ export function FieldMap({ fields, className = 'h-[520px]' }: FieldMapProps) {
 
     return () => {
       cancelled = true
+      polygonsRef.current.forEach((polygon) => polygon.setMap(null))
+      polygonsRef.current = []
+      mapRef.current = null
+      mapsRef.current = null
+      setMapReady(false)
     }
-  }, [apiKey, fields])
+  }, [apiKey])
+
+  useEffect(() => {
+    const map = mapRef.current
+    const maps = mapsRef.current
+    if (!mapReady || !map || !maps) return
+
+    polygonsRef.current.forEach((polygon) => polygon.setMap(null))
+    polygonsRef.current = []
+
+    const bounds = new maps.LatLngBounds()
+    let hasPath = false
+    for (const field of fieldsRef.current) {
+      for (const path of geometryToPaths(field.geometry)) {
+        if (path.length === 0) continue
+        hasPath = true
+        polygonsRef.current.push(
+          new maps.Polygon({
+            map,
+            paths: path,
+            strokeColor: '#0D9488',
+            strokeOpacity: 1,
+            strokeWeight: 2,
+            fillColor: '#1B5E3B',
+            fillOpacity: 0.35,
+          }),
+        )
+        path.forEach((point) => bounds.extend(point))
+      }
+    }
+    if (hasPath) map.fitBounds(bounds, 48)
+    else map.setCenter({ lat: -19.0, lng: -54.5 })
+
+    return () => {
+      polygonsRef.current.forEach((polygon) => polygon.setMap(null))
+      polygonsRef.current = []
+    }
+  }, [mapReady, signature])
 
   if (!apiKey) {
     return (

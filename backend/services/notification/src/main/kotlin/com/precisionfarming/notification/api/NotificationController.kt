@@ -1,13 +1,17 @@
 package com.precisionfarming.notification.api
 
 import com.precisionfarming.notification.application.NotificationService
+import org.springframework.security.core.annotation.AuthenticationPrincipal
+import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.*
 import org.springframework.security.access.prepost.PreAuthorize
+import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1/notifications")
 class NotificationController(private val svc: NotificationService) {
-    @GetMapping fun list() = svc.list()
+    @GetMapping
+    fun list(@AuthenticationPrincipal jwt: Jwt) = svc.list(UUID.fromString(jwt.subject))
 }
 
 @RestController

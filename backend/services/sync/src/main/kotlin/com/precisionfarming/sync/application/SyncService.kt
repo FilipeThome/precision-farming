@@ -1,5 +1,9 @@
 package com.precisionfarming.sync.application
 
+import com.precisionfarming.common.DomainException
+import com.precisionfarming.common.ForbiddenException
+import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.security.AccessScope
 import com.precisionfarming.sync.api.PushRequest
 import com.precisionfarming.sync.infrastructure.SyncCommandEntity
 import com.precisionfarming.sync.infrastructure.SyncJpaRepository
@@ -11,7 +15,11 @@ import java.util.UUID
 @Service
 class SyncService(private val repo: SyncJpaRepository) {
     @Transactional
-    fun push(body: PushRequest): Map<String, Any> {
+    fun push(scope: AccessScope, body: PushRequest): Map<String, Any> {
+        requireDeviceBound(scope, body.deviceId)
+        if (body.commands.size > QueryLimits.MAX_SYNC_COMMANDS) {
+            throw DomainException("SYNC_BATCH_TOO_LARGE", "At most ${QueryLimits.MAX_SYNC_COMMANDS} commands per push")
+        }
         val ids = body.commands.map { it.clientOperationId }
         val existing = if (ids.isEmpty()) {
             HashSet()
@@ -37,9 +45,20 @@ class SyncService(private val repo: SyncJpaRepository) {
         return mapOf("results" to applied)
     }
 
-    fun pull(deviceId: String, cursor: String?) = mapOf(
-        "commands" to emptyList<Any>(),
-        "cursor" to Instant.now().toString(),
-        "deviceId" to deviceId,
-    )
+    fun pull(scope: AccessScope, deviceId: String, cursor: String?): Map<String, Any> {
+        requireDeviceBound(scope, deviceId)
+        return mapOf(
+            "commands" to emptyList<Any>(),
+            "cursor" to Instant.now().toString(),
+            "deviceId" to deviceId,
+        )
+    }
+
+    private fun requireDeviceBound(scope: AccessScope, deviceId: String) {
+        val userId = scope.requireUserId().toString()
+        val ok = deviceId == userId || deviceId.startsWith("$userId:")
+        if (!ok) {
+            throw ForbiddenException("Device not bound to caller", "DEVICE_SCOPE_DENIED")
+        }
+    }
 }

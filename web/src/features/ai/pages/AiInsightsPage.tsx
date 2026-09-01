@@ -43,8 +43,8 @@ export function AiInsightsPage() {
                 Score {formatPercent(item.score)} · confiança {formatPercent(item.confidence)}
               </p>
               <ul className="list-disc pl-5 text-sm text-pf-muted">
-                {item.explanation.map((line) => (
-                  <li key={line}>{line}</li>
+                {item.explanation.map((line, index) => (
+                  <li key={`${item.id}-${index}`}>{line}</li>
                 ))}
               </ul>
             </Card>

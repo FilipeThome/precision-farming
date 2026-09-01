@@ -144,11 +144,14 @@ data class MaintenanceWorkOrderDto(
 )
 
 suspend fun login(email: String, password: String): TokenResponse {
+    Session.accessToken = null
+    TokenStore.clear()
     val res: TokenResponse = api.post("/api/v1/auth/login") {
         contentType(ContentType.Application.Json)
         setBody(LoginRequest(email, password))
     }.body()
     Session.accessToken = res.accessToken
+    TokenStore.save(res.accessToken)
     return res
 }
 

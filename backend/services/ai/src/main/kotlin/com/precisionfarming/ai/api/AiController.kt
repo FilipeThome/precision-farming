@@ -22,7 +22,7 @@ class AiController(
     fun risk(@RequestParam machineId: UUID) = svc.machineRisk(farmAccess.current(), machineId)
 
     @PostMapping("/recommendations/{id}/feedback")
-    fun feedback(@PathVariable id: UUID) = svc.feedback(id)
+    fun feedback(@PathVariable id: UUID) = svc.feedback(farmAccess.current(), id)
 }
 
 @RestController

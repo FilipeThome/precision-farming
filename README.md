@@ -5,10 +5,11 @@ Protótipo executável de gestão agrícola de precisão: **microserviços Kotli
 ## Stack
 
 - Backend: Spring Boot 3.5, Java 21 (virtual threads), Spring Cloud Gateway
-- Dados: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose completo, pronto mesmo se um serviço ainda não usa)
+- Dados: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose; portas só em `127.0.0.1` — prod não deve publicar)
 - Web: React + TypeScript + Vite + Tailwind
 - Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS)
 - Auth: JWT + refresh. Demo: `manager@precisionfarming.demo` / `Precision@123`
+- Segredos demo: `.env.example` define `ALLOW_DEMO_SECRETS=true`; sem isso (e sem profile `local`) o boot recusa JWT/DB demo
 
 Aprovações de arquitetura: [docs/architecture-approvals.md](docs/architecture-approvals.md).
 
@@ -18,6 +19,7 @@ Aprovações de arquitetura: [docs/architecture-approvals.md](docs/architecture-
 cp .env.example .env
 docker compose up -d
 ./gradlew test
+# ALLOW_DEMO_SECRETS=true (via .env) ou Spring profile `local`
 # terminais separados:
 ./gradlew :backend:services:auth:bootRun
 ./gradlew :backend:services:farm:bootRun

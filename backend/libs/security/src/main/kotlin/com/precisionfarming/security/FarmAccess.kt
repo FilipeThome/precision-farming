@@ -23,7 +23,10 @@ class FarmAccess {
             ?.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
             ?.toSet()
             .orEmpty()
-        val farmIds = claimed.ifEmpty { DemoFarmDirectory.forRole(role) }
-        return AccessScope(tenantId = tenantId, farmIds = farmIds, role = role)
+        if (claimed.isEmpty()) {
+            throw UnauthorizedException("Missing farmIds claim")
+        }
+        val userId = runCatching { UUID.fromString(jwt.subject) }.getOrNull()
+        return AccessScope(tenantId = tenantId, farmIds = claimed, role = role, userId = userId)
     }
 }

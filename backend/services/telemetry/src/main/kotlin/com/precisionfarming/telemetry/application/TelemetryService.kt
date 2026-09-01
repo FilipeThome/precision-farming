@@ -1,6 +1,8 @@
 package com.precisionfarming.telemetry.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
+import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoMachineFarms
 import com.precisionfarming.common.concurrency.VirtualJobs
@@ -11,6 +13,7 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -29,13 +32,21 @@ data class TrackPoint(val lat: Double, val lon: Double, val observedAt: Instant)
 class TelemetryService(private val repo: TelemetryJpaRepository) {
     fun history(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TelemetryPoint> {
         DemoMachineFarms.requireMachine(scope, machineId)
+        requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
     }
 
     fun track(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TrackPoint> {
         DemoMachineFarms.requireMachine(scope, machineId)
+        requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
             .map { TrackPoint(it.lat, it.lon, it.observedAt) }
+    }
+
+    private fun requireRange(from: Instant, to: Instant) {
+        if (!to.isAfter(from) || Duration.between(from, to).toDays() > QueryLimits.MAX_TELEMETRY_DAYS) {
+            throw DomainException("TELEMETRY_RANGE_EXCEEDED", "Range exceeds ${QueryLimits.MAX_TELEMETRY_DAYS} days")
+        }
     }
 
     @Transactional

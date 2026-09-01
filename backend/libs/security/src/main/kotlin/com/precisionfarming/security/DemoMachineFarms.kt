@@ -21,4 +21,69 @@ object DemoMachineFarms {
             ?: throw ForbiddenException("Machine out of scope", "FARM_SCOPE_DENIED")
         scope.requireFarm(farmId)
     }
+
+    fun requireBelongsToFarm(machineId: UUID, farmId: UUID) {
+        val mapped = farmId(machineId)
+            ?: throw ForbiddenException("Machine out of scope", "FARM_SCOPE_DENIED")
+        if (mapped != farmId) {
+            throw ForbiddenException("Machine does not belong to farm", "FARM_SCOPE_DENIED")
+        }
+    }
+}
+
+/** Demo seed field → farm mapping when the caller has a field id only. */
+object DemoFieldFarms {
+    private val BY_FIELD: Map<UUID, UUID> = mapOf(
+        DemoIds.uuid("field-001") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("field-002") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("field-003") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("field-004") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("field-005") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("field-006") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("field-007") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("field-008") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("field-009") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("field-010") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("field-011") to DemoIds.uuid("farm-004"),
+        DemoIds.uuid("field-012") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("field-013") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("field-014") to DemoIds.uuid("farm-005"),
+        DemoIds.uuid("field-015") to DemoIds.uuid("farm-002"),
+        DemoIds.uuid("field-016") to DemoIds.uuid("farm-003"),
+    )
+
+    fun farmId(fieldId: UUID): UUID? = BY_FIELD[fieldId]
+
+    fun requireField(scope: AccessScope, fieldId: UUID) {
+        val farmId = farmId(fieldId)
+            ?: throw ForbiddenException("Field out of scope", "FARM_SCOPE_DENIED")
+        scope.requireFarm(farmId)
+    }
+
+    fun requireBelongsToFarm(fieldId: UUID, farmId: UUID) {
+        val mapped = farmId(fieldId)
+            ?: throw ForbiddenException("Field out of scope", "FARM_SCOPE_DENIED")
+        if (mapped != farmId) {
+            throw ForbiddenException("Field does not belong to farm", "FARM_SCOPE_DENIED")
+        }
+    }
+}
+
+/** Demo seed inventory item → farm mapping for operation create validation. */
+object DemoItemFarms {
+    private val BY_ITEM: Map<UUID, UUID> = mapOf(
+        DemoIds.uuid("item-001") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("item-002") to DemoIds.uuid("farm-001"),
+        DemoIds.uuid("item-003") to DemoIds.uuid("farm-002"),
+    )
+
+    fun farmId(itemId: UUID): UUID? = BY_ITEM[itemId]
+
+    fun requireBelongsToFarm(itemId: UUID, farmId: UUID) {
+        val mapped = farmId(itemId)
+            ?: throw ForbiddenException("Item out of scope", "FARM_SCOPE_DENIED")
+        if (mapped != farmId) {
+            throw ForbiddenException("Item does not belong to farm", "FARM_SCOPE_DENIED")
+        }
+    }
 }

@@ -5,6 +5,8 @@ import jakarta.persistence.Entity
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -82,6 +84,18 @@ class MarketExposureEntity(
 interface CostJpaRepository : JpaRepository<CostEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<CostEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<CostEntity>
+
+    @Query("select coalesce(sum(c.amount), 0) from CostEntity c where c.farmId in :farmIds and c.category = :category")
+    fun sumAmountByFarmIdInAndCategory(
+        @Param("farmIds") farmIds: Collection<UUID>,
+        @Param("category") category: String,
+    ): java.math.BigDecimal
+
+    @Query("select coalesce(sum(c.amount), 0) from CostEntity c where c.farmId in :farmIds and c.category <> :category")
+    fun sumAmountByFarmIdInAndCategoryNot(
+        @Param("farmIds") farmIds: Collection<UUID>,
+        @Param("category") category: String,
+    ): java.math.BigDecimal
 }
 interface BudgetJpaRepository : JpaRepository<BudgetEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<BudgetEntity>

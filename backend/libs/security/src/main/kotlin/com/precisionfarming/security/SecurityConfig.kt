@@ -33,7 +33,12 @@ class SecurityConfig(
     @Bean
     fun jwtDecoder(): JwtDecoder {
         val key = SecretKeySpec(jwtProperties.jwtSecret.toByteArray(), "HmacSHA256")
-        return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        return JwtDecoder { token ->
+            val jwt = nimbus.decode(token)
+            JwtAccessType.requireResourceToken(jwt.getClaimAsString(JwtAccessType.CLAIM))
+            jwt
+        }
     }
 
     @Bean
@@ -75,7 +80,7 @@ class SecurityConfig(
     @Bean
     fun corsSource(): UrlBasedCorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf("*")
+            allowedOriginPatterns = LocalCors.ORIGINS
             allowedMethods = listOf("*")
             allowedHeaders = listOf("*")
             allowCredentials = true

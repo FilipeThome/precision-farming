@@ -20,8 +20,10 @@ export function IrrigationPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('assets')
   const { t } = useI18n()
-  const assets = useIrrigationAssetsQuery(farmId)
-  const recommendations = useIrrigationRecommendationsQuery(farmId)
+  const assets = useIrrigationAssetsQuery(farmId, { enabled: tab === 'assets' })
+  const recommendations = useIrrigationRecommendationsQuery(farmId, {
+    enabled: tab === 'recommendations',
+  })
   const active = tab === 'assets' ? assets : recommendations
   const err = queryError(active.error)
 
