@@ -133,24 +133,14 @@ class AgronomyService(
                     ScoutingEntity(
                         DemoIds.uuid("scout-%03d".format(i)), DemoIds.uuid(farm), DemoIds.uuid(field),
                         now.minus(i.toLong(), ChronoUnit.DAYS),
-                        listOf("Helicoverpa", "Lagarta", "Ferrugem", "Percevejo", null)[i % 5],
+                        listOf("HELICOVERPA", "CATERPILLAR", "RUST", "STINK_BUG", "HEALTHY")[i % 5],
                         listOf("LOW", "MEDIUM", "HIGH", "CRITICAL")[i % 4],
-                        "Observação demo $i", "OPEN",
+                        "DEMO_SCOUT_$i", "OPEN",
                     )
                 }
             },
         )
-        val existingScout = scouting.findAllById(scoutRows.map { it.id }).associateBy { it.id }
-        val scoutToReplace = scoutRows.filter { desired ->
-            val existing = existingScout[desired.id] ?: return@filter false
-            existing.farmId != desired.farmId || existing.fieldId != desired.fieldId
-        }
-        if (scoutToReplace.isNotEmpty()) {
-            scouting.deleteAllById(scoutToReplace.map { it.id })
-        }
-        scouting.saveAll(
-            scoutRows.filter { it.id !in existingScout || scoutToReplace.any { r -> r.id == it.id } },
-        )
+        scouting.saveAll(scoutRows)
 
         val soilRows = (1..30).map { i ->
             val field = fields[(i - 1) % fields.size]
@@ -162,26 +152,15 @@ class AgronomyService(
                 labResult.ph, labResult.organicMatterPct, labResult.pPpm, labResult.kPpm, labResult.labRef, "ANALYZED",
             )
         }
-        val existingSoil = soils.findAllById(soilRows.map { it.id }).associateBy { it.id }
-        val soilToReplace = soilRows.filter { desired ->
-            val existing = existingSoil[desired.id] ?: return@filter false
-            existing.farmId != desired.farmId || existing.fieldId != desired.fieldId
-        }
-        if (soilToReplace.isNotEmpty()) {
-            soils.deleteAllById(soilToReplace.map { it.id })
-        }
-        soils.saveAll(
-            soilRows.filter { it.id !in existingSoil || soilToReplace.any { r -> r.id == it.id } },
-        )
+        soils.saveAll(soilRows)
 
         val recoRows = listOf(
-            RecommendationEntity(DemoIds.uuid("reco-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "FERTILIZER", "Correção de P", "Aplicar MAP em taxa variável", "HIGH", "OPEN", now),
-            RecommendationEntity(DemoIds.uuid("reco-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "PROTECTION", "Janela de pulverização", "Aplicar inseticida nas próximas 48h", "CRITICAL", "OPEN", now),
-            RecommendationEntity(DemoIds.uuid("reco-003"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "IRRIGATION", "Déficit hídrico", "Irrigar 18 mm no Talhão Norte", "MEDIUM", "OPEN", now),
-            RecommendationEntity(DemoIds.uuid("reco-004"), DemoIds.uuid("farm-003"), null, "SCOUTING", "Monitorar ferrugem", "Intensificar scouting em talhões A", "LOW", "OPEN", now),
+            RecommendationEntity(DemoIds.uuid("reco-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "FERTILIZER", "P_CORRECTION", "APPLY_MAP_VR", "HIGH", "OPEN", now),
+            RecommendationEntity(DemoIds.uuid("reco-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "PROTECTION", "SPRAY_WINDOW_REC", "APPLY_INSECTICIDE_48H", "CRITICAL", "OPEN", now),
+            RecommendationEntity(DemoIds.uuid("reco-003"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "IRRIGATION", "WATER_DEFICIT", "IRRIGATE_NORTH", "MEDIUM", "OPEN", now),
+            RecommendationEntity(DemoIds.uuid("reco-004"), DemoIds.uuid("farm-003"), null, "SCOUTING", "MONITOR_RUST", "INTENSIFY_SCOUTING_A", "LOW", "OPEN", now),
         )
-        val existingReco = recommendations.findAllById(recoRows.map { it.id }).map { it.id }.toHashSet()
-        recommendations.saveAll(recoRows.filter { it.id !in existingReco })
+        recommendations.saveAll(recoRows)
         val rxRows = (1..16).map { i ->
             val field = fields[(i - 1) % fields.size]
             val farm = fieldFarm.getValue(field)
@@ -189,7 +168,7 @@ class AgronomyService(
                 DemoIds.uuid("rx-%03d".format(i)),
                 DemoIds.uuid(farm),
                 DemoIds.uuid(field),
-                listOf("Glifosato", "MAP", "Ureia", "Inseticida")[i % 4],
+                listOf("GLYPHOSATE", "MAP", "UREA", "INSECTICIDE")[i % 4],
                 BigDecimal("${1 + i % 5}.${i % 10}"),
                 if (i % 2 == 0) "L/ha" else "kg/ha",
                 if (i % 3 == 0) PrescriptionStatus.APPROVED.name else PrescriptionStatus.DRAFT.name,
@@ -197,8 +176,7 @@ class AgronomyService(
                 if (i % 3 == 0) now.minus((i - 1).toLong(), ChronoUnit.DAYS) else null,
             )
         }
-        val existingRx = prescriptions.findAllById(rxRows.map { it.id }).map { it.id }.toHashSet()
-        prescriptions.saveAll(rxRows.filter { it.id !in existingRx })
+        prescriptions.saveAll(rxRows)
     }
 
     private fun ScoutingEntity.toDto() = ScoutingDto(id, farmId, fieldId, observedAt, pest, severity, notes, status)

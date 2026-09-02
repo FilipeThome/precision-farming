@@ -23,6 +23,8 @@ const MACHINE_PHOTOS: Record<string, string> = {
   '4a764502-e9d8-315e-a22b-afae790d1352': '/demo/machines/machine-010.jpg',
   'b408224c-1bd9-3a7e-a9e6-b4970fe86693': '/demo/machines/machine-011.jpg',
   'd4b460c4-37b3-321d-a601-535f9ecd8583': '/demo/machines/machine-012.jpg',
+  '9861d50d-527b-385c-b89b-b0674467015f': '/demo/machines/machine-013.jpg',
+  '9b2296fa-d133-37db-be2f-be69dc802915': '/demo/machines/machine-014.jpg',
 }
 
 const TYPE_FALLBACK: Record<string, string> = {
@@ -30,6 +32,12 @@ const TYPE_FALLBACK: Record<string, string> = {
   Pulverizador: '/demo/machines/machine-002.jpg',
   Colheitadeira: '/demo/machines/machine-003.jpg',
   Plantadeira: '/demo/machines/machine-005.jpg',
+  Drone: '/demo/machines/machine-013.jpg',
+  TRACTOR: '/demo/machines/machine-001.jpg',
+  SPRAYER: '/demo/machines/machine-002.jpg',
+  HARVESTER: '/demo/machines/machine-003.jpg',
+  PLANTER: '/demo/machines/machine-005.jpg',
+  DRONE: '/demo/machines/machine-013.jpg',
 }
 
 const CROP_PHOTOS: Record<string, string> = {
@@ -38,7 +46,9 @@ const CROP_PHOTOS: Record<string, string> = {
   algodão: '/demo/crops/algodao.jpg',
   algodao: '/demo/crops/algodao.jpg',
   soy: '/demo/crops/soja.jpg',
+  soybean: '/demo/crops/soja.jpg',
   corn: '/demo/crops/milho.jpg',
+  maize: '/demo/crops/milho.jpg',
   cotton: '/demo/crops/algodao.jpg',
 }
 

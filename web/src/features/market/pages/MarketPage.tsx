@@ -7,7 +7,7 @@ import {
 } from '@/features/market/queries'
 import { exposureBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
@@ -24,6 +24,7 @@ export function MarketPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('quotes')
   const { t } = useI18n()
+  const { number, dateTime, label } = useFormat()
   const quotes = useMarketQuotesQuery(farmId, { enabled: tab === 'quotes' })
   const contracts = useMarketContractsQuery(farmId, { enabled: tab === 'contracts' })
   const exposure = useMarketExposureQuery(farmId, { enabled: tab === 'exposure' })
@@ -67,7 +68,7 @@ export function MarketPage() {
         {tab === 'exposure' && (exposure.data?.length ?? 0) > 0 ? (
           <ChartCard title={t('charts.marketExposure')} className="mb-4">
             <BarChartBlock
-              data={exposureBars(exposure.data ?? [])}
+              data={exposureBars(exposure.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'open', name: t('charts.openTons'), color: CHART_COLORS.amber },
@@ -81,13 +82,13 @@ export function MarketPage() {
             ? (quotes.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.commodity ?? row.id}
+                  title={label(row.commodity, row.id)}
                   subtitle={
                     row.price != null
-                      ? `${formatNumber(Number(row.price), 2)} ${row.currency ?? ''} / ${row.unit ?? ''}`.trim()
+                      ? `${number(Number(row.price), 2)} ${row.currency ?? ''} / ${row.unit ?? ''}`.trim()
                       : undefined
                   }
-                  meta={`${row.market ?? row.exchange ?? '—'} · ${formatDateTime(row.quotedAt)}`}
+                  meta={`${row.market ?? row.exchange ?? '—'} · ${dateTime(row.quotedAt)}`}
                 />
               ))
             : null}
@@ -95,16 +96,16 @@ export function MarketPage() {
             ? (contracts.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.commodity ?? row.id}
+                  title={label(row.commodity, row.id)}
                   subtitle={
                     (row.volumeTons ?? row.volumeT) != null
-                      ? `${formatNumber(Number(row.volumeTons ?? row.volumeT), 1)} t`
+                      ? `${number(Number(row.volumeTons ?? row.volumeT), 1)} t`
                       : undefined
                   }
                   meta={
                     row.price != null
-                      ? `${formatNumber(Number(row.price), 2)} ${row.currency ?? ''} · ${formatDateTime(row.deliveryAt)}`
-                      : formatDateTime(row.deliveryAt)
+                      ? `${number(Number(row.price), 2)} ${row.currency ?? ''} · ${dateTime(row.deliveryAt)}`
+                      : dateTime(row.deliveryAt)
                   }
                 >
                   {row.status ? <StatusBadge value={row.status} /> : null}
@@ -115,18 +116,21 @@ export function MarketPage() {
             ? (exposure.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.commodity ?? row.id}
+                  title={label(row.commodity, row.id)}
                   subtitle={
                     row.openT != null
-                      ? `${formatNumber(Number(row.openT), 1)} t open · ${formatNumber(Number(row.hedgedT ?? 0), 1)} t hedged`
+                      ? t('market.openHedged', {
+                          open: number(Number(row.openT), 1),
+                          hedged: number(Number(row.hedgedT ?? 0), 1),
+                        })
                       : row.netTons != null
-                        ? `${formatNumber(Number(row.netTons), 1)} t net`
+                        ? t('market.netTons', { net: number(Number(row.netTons), 1) })
                         : undefined
                   }
                   meta={
                     row.riskScore != null
-                      ? `${t('charts.risk')}: ${formatNumber(Number(row.riskScore), 1)}`
-                      : formatDateTime(row.asOf)
+                      ? `${t('charts.risk')}: ${number(Number(row.riskScore), 1)}`
+                      : dateTime(row.asOf)
                   }
                 />
               ))

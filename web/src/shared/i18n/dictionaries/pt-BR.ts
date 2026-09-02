@@ -225,13 +225,10 @@ export const ptBR = {
   'fields.emptyTitle': 'Nenhum talhão encontrado',
   'fields.emptyDescription': 'Ajuste o filtro de fazenda ou cadastre talhões no backend.',
   'map.title': 'Mapa',
-  'map.description': 'Polígonos dos talhões em satélite quando a chave do Google Maps estiver configurada.',
+  'map.description': 'Vista de satélite dos talhões da fazenda selecionada. Alterne NDVI, solo e produtividade.',
   'map.layers.title': 'Camadas',
   'map.layers.empty': 'Nenhuma camada disponível',
-  'map.layers.legend': 'Camadas ativas (legenda — sem mosaico GeoTIFF)',
-  'map.missingKeyTitle': 'Chave do Google Maps ausente',
-  'map.missingKeyBody':
-    'Defina VITE_GOOGLE_MAPS_API_KEY no arquivo .env para carregar o mapa satélite real. Nenhum mosaico fictício é exibido.',
+  'map.layers.legend': 'Camadas ativas (estilo dos polígonos — sem mosaico GeoTIFF)',
   'map.loadError': 'Falha ao carregar o mapa',
   'machines.title': 'Máquinas',
   'machines.description': 'Frota e status operacional.',
@@ -299,6 +296,25 @@ export const ptBR = {
   'settings.description': 'Perfil autenticado via GET /api/v1/auth/me.',
   'settings.emptyTitle': 'Usuário não encontrado',
   'settings.emptyDescription': 'Não foi possível obter o perfil.',
+  'settings.name': 'Nome',
+  'settings.email': 'E-mail',
+  'settings.role': 'Papel',
+  'settings.id': 'ID',
+
+  'finance.revCost': 'Receita {revenue} · Custo {cost}',
+  'finance.marginPeriod': 'Margem {margin} · {period}',
+  'finance.planActual': 'Planejado {planned} · Realizado {actual}',
+
+  'market.openHedged': '{open} t em aberto · {hedged} t com hedge',
+  'market.netTons': '{net} t líquido',
+
+  'ai.demoModel': 'Modelo demo',
+  'ai.scoreConfidence': 'Score {score} · confiança {confidence}',
+
+  'reports.operations': 'Operações',
+  'reports.inventory': 'Estoque',
+  'reports.download': 'Baixar',
+  'reports.downloading': 'Baixando…',
 } as const
 
 export type MessageKey = keyof typeof ptBR

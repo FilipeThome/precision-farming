@@ -28,11 +28,10 @@ class NotificationService(private val repo: NotificationJpaRepository) {
 
     @Transactional
     fun seed() {
-        if (repo.existsById(DemoIds.uuid("notif-001"))) return
         repo.save(
             NotificationEntity(
                 DemoIds.uuid("notif-001"), DemoIds.uuid("manager@precisionfarming.demo"),
-                "ALERT", "Alerta crítico", "Trator 01 com risco de falha (modelo demo)", null, Instant.now(),
+                "ALERT", "CRITICAL", "MACHINE_FAILURE_RISK", null, Instant.now(),
             ),
         )
     }

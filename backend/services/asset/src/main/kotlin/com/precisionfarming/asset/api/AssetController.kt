@@ -18,12 +18,14 @@ class AssetController(
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER','MAINTENANCE')")
     fun create(@RequestBody body: UpsertMachine) = svc.create(farmAccess.current(), body)
 
     @GetMapping("/{id}")
     fun get(@PathVariable id: UUID) = svc.get(farmAccess.current(), id)
 
     @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER','MAINTENANCE')")
     fun patch(@PathVariable id: UUID, @RequestBody body: UpsertMachine) =
         svc.patch(farmAccess.current(), id, body)
 }
@@ -38,6 +40,7 @@ class MaintenanceController(
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.listWorkOrders(farmAccess.current(), farmId)
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','MAINTENANCE','FARM_MANAGER')")
     fun create(@RequestBody body: CreateWorkOrder) = svc.createWorkOrder(farmAccess.current(), body)
 
     @PreAuthorize("hasAnyRole('ADMIN','MAINTENANCE','FARM_MANAGER')")

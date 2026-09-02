@@ -55,6 +55,7 @@ class TelemetryService(private val repo: TelemetryJpaRepository) {
             "machine-001" to Pair(-19.39, -54.57),
             "machine-002" to Pair(-19.41, -54.55),
             "machine-003" to Pair(-19.37, -54.59),
+            "machine-013" to Pair(-12.54, -55.47),
         )
         val missing = machines.filter { !repo.existsByMachineId(DemoIds.uuid(it.first)) }
         if (missing.isEmpty()) return

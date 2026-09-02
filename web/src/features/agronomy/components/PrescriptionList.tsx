@@ -3,7 +3,7 @@ import type { Prescription } from '@/shared/api/types'
 import { useCanManageFarmOps } from '@/shared/auth/roles'
 import { cropPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
 import { EntityCard } from '@/shared/ui/EntityCard'
@@ -15,6 +15,7 @@ type Props = {
 
 export function PrescriptionList({ items }: Props) {
   const { t } = useI18n()
+  const { number, dateTime, label } = useFormat()
   const canApprove = useCanManageFarmOps()
   const approve = useApprovePrescription()
   const err = approve.error ? queryError(approve.error) : null
@@ -31,14 +32,14 @@ export function PrescriptionList({ items }: Props) {
         {items.map((row) => (
           <EntityCard
             key={row.id}
-            title={row.product}
+            title={label(row.product)}
             subtitle={t('agronomy.prescriptions.rate', {
-              rate: formatNumber(Number(row.rate), 2),
+              rate: number(Number(row.rate), 2),
               unit: row.unit,
             })}
-            meta={formatDateTime(row.approvedAt ?? row.createdAt)}
+            meta={dateTime(row.approvedAt ?? row.createdAt)}
             imageSrc={cropPhoto()}
-            imageAlt={row.product}
+            imageAlt={label(row.product)}
           >
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge value={row.status} />

@@ -64,14 +64,12 @@ class FileService(
 
     @Transactional
     fun seed() {
-        if (!repo.existsById(DemoIds.uuid("ndvi-001"))) {
-            repo.save(
-                FileMetaEntity(
-                    DemoIds.uuid("ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"),
-                    "NDVI_DEMO", "Demo NDVI", "demo/ndvi/field-001.json", Instant.now(), "0.1.0", "DEMO",
-                ),
-            )
-        }
+        repo.save(
+            FileMetaEntity(
+                DemoIds.uuid("ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"),
+                "NDVI_DEMO", "Demo NDVI", "demo/ndvi/field-001.json", Instant.now(), "0.1.0", "DEMO",
+            ),
+        )
         val now = Instant.now()
         val layerRows = listOf(
             MapLayerEntity(DemoIds.uuid("layer-ndvi-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "NDVI Talhão 01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
@@ -83,8 +81,7 @@ class FileService(
             MapLayerEntity(DemoIds.uuid("layer-ndvi-003"), DemoIds.uuid("farm-006"), DemoIds.uuid("field-017"), "NDVI VV-01", "NDVI", "DEMO", "stub://tiles/ndvi/{z}/{x}/{y}", now, "READY"),
             MapLayerEntity(DemoIds.uuid("layer-soil-003"), DemoIds.uuid("farm-008"), DemoIds.uuid("field-021"), "Solo P NE-01", "SOIL", "DEMO", "stub://tiles/soil/{z}/{x}/{y}", now, "READY"),
         )
-        val existingLayers = layers.findAllById(layerRows.map { it.id }).map { it.id }.toHashSet()
-        layers.saveAll(layerRows.filter { it.id !in existingLayers })
+        layers.saveAll(layerRows)
     }
 
     private fun FileMetaEntity.toDto() = FileMetaDto(

@@ -1,9 +1,14 @@
 import { apiDownload } from '@/shared/api/client'
 
-export async function downloadOperationsReport(): Promise<void> {
-  return apiDownload('/api/v1/reports/operations.csv', 'operations.csv')
+export function reportsCsvPath(kind: 'operations' | 'inventory', farmId?: string | null): string {
+  const q = farmId ? `?farmId=${encodeURIComponent(farmId)}` : ''
+  return `/api/v1/reports/${kind}.csv${q}`
 }
 
-export async function downloadInventoryReport(): Promise<void> {
-  return apiDownload('/api/v1/reports/inventory.csv', 'inventory.csv')
+export async function downloadOperationsReport(farmId?: string | null): Promise<void> {
+  return apiDownload(reportsCsvPath('operations', farmId), 'operations.csv')
+}
+
+export async function downloadInventoryReport(farmId?: string | null): Promise<void> {
+  return apiDownload(reportsCsvPath('inventory', farmId), 'inventory.csv')
 }

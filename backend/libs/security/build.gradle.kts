@@ -21,6 +21,7 @@ dependencies {
     api(libs.jackson.kotlin)
     testImplementation(libs.spring.boot.test)
     testImplementation(libs.kotlin.test)
+    testImplementation(project(":backend:libs:security-issuer"))
 }
 
 tasks.withType<Test> {

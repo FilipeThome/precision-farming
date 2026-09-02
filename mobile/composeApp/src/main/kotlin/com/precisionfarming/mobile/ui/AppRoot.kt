@@ -70,6 +70,7 @@ import com.precisionfarming.mobile.data.syncDeviceId
 import com.precisionfarming.mobile.data.syncPull
 import com.precisionfarming.mobile.data.weatherWindows
 import com.precisionfarming.mobile.i18n.AppLocale
+import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import kotlinx.coroutines.launch
@@ -126,8 +127,8 @@ fun LocaleFlagButtons() {
 
 @Composable
 fun LoginScreen(onOk: () -> Unit) {
-    var email by remember { mutableStateOf("manager@precisionfarming.demo") }
-    var password by remember { mutableStateOf("Precision@123") }
+    var email by remember { mutableStateOf(DemoLoginHints.EMAIL) }
+    var password by remember { mutableStateOf(DemoLoginHints.PASSWORD) }
     var error by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     Column(
@@ -336,7 +337,7 @@ fun OpsScreen() {
                 if (s.items.isEmpty()) item { Text(S.t("common.empty")) }
                 items(s.items, key = { it.id }) { op ->
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${op.type} · ${op.status}")
+                        Text("${DomainLabels.label(op.type)} · ${DomainLabels.label(op.status)}")
                         TextButton(onClick = {
                             scope.launch {
                                 runCatching { startOp(op.id) }.onFailure { msg = it.message }
@@ -373,7 +374,7 @@ fun ScoutingScreen(onBack: () -> Unit) {
             recs = runCatching { recommendations() }.fold({ LoadState.Ok(it) }, { LoadState.Err(it.message ?: S.t("common.error")) })
         }
     }
-    LaunchedEffect(Unit) { reload() }
+    LaunchedEffect(LocaleStore.locale) { reload() }
     Column(
         Modifier
             .padding(16.dp)
@@ -404,7 +405,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
                 .fold({ LoadState.Ok(it) }, { LoadState.Err(it.message ?: S.t("common.error")) })
         }
     }
-    LaunchedEffect(Unit) { reload() }
+    LaunchedEffect(LocaleStore.locale) { reload() }
     Column(
         Modifier
             .padding(16.dp)
@@ -433,7 +434,7 @@ fun MaintenanceScreen(onBack: () -> Unit) {
                 .fold({ LoadState.Ok(it) }, { LoadState.Err(it.message ?: S.t("common.error")) })
         }
     }
-    LaunchedEffect(Unit) { reload() }
+    LaunchedEffect(LocaleStore.locale) { reload() }
     Column(
         Modifier
             .padding(16.dp)
@@ -522,37 +523,42 @@ private fun <T> SectionList(label: String?, state: LoadState<T>, format: (T) -> 
     }
 }
 
-private fun formatFarm(f: FarmDto) = "${f.name} · ${f.location}"
-private fun formatMachine(m: MachineDto) = "${m.name} · ${m.status}"
-private fun formatAlert(a: AlertDto) = "${a.title} · ${a.severity}"
-private fun formatInsight(i: InsightDto) = "${i.type} (${i.model}) · ${i.score}"
+private fun formatFarm(f: FarmDto) = "${DomainLabels.label(f.id)} · ${f.location}"
+private fun formatMachine(m: MachineDto) =
+    "${DomainLabels.label(m.id)} · ${DomainLabels.label(m.type)} · ${DomainLabels.label(m.status)}"
+private fun formatAlert(a: AlertDto) = "${DomainLabels.label(a.title)} · ${DomainLabels.label(a.severity)}"
+private fun formatInsight(i: InsightDto) = "${DomainLabels.label(i.type)} (${i.model}) · ${i.score}"
 private fun formatScouting(s: ScoutingDto) =
-    listOfNotNull(s.pest, s.severity, s.status, s.notes).joinToString(" · ").ifBlank { s.id }
+    listOfNotNull(DomainLabels.label(s.pest), DomainLabels.label(s.severity), DomainLabels.label(s.status), s.notes?.let { DomainLabels.label(it) })
+        .joinToString(" · ").ifBlank { DomainLabels.label(s.fieldId) }
 private fun formatSoil(s: SoilSampleDto) =
     buildString {
-        append(s.id.take(8))
+        append(DomainLabels.label(s.fieldId ?: s.id))
         s.ph?.let { append(" · pH $it") }
         s.pPpm?.let { append(" · P $it") }
         s.kPpm?.let { append(" · K $it") }
-        s.status?.let { append(" · $it") }
+        s.status?.let { append(" · ${DomainLabels.label(it)}") }
     }
 private fun formatRecommendation(r: RecommendationDto) =
-    listOfNotNull(r.kind, r.title, r.priority, r.summary, r.status).joinToString(" · ").ifBlank { r.id }
+    listOfNotNull(DomainLabels.label(r.kind), DomainLabels.label(r.title), DomainLabels.label(r.priority), r.summary?.let { DomainLabels.label(it) }, DomainLabels.label(r.status))
+        .joinToString(" · ").ifBlank { DomainLabels.label(r.id) }
 private fun formatWindow(w: WeatherWindowDto) =
-    listOfNotNull(w.windowType, w.rating, w.startAt, w.notes).joinToString(" · ").ifBlank { w.id }
+    listOfNotNull(DomainLabels.label(w.windowType), DomainLabels.label(w.rating), w.startAt, w.notes?.let { DomainLabels.label(it) })
+        .joinToString(" · ").ifBlank { DomainLabels.label(w.id) }
 private fun formatIrrigationAsset(a: IrrigationAssetDto) =
     buildString {
-        append(listOfNotNull(a.name, a.type, a.status).joinToString(" · ").ifBlank { a.id })
+        append(listOfNotNull(a.name, a.type, a.status).joinToString(" · ") { DomainLabels.label(it) }.ifBlank { DomainLabels.label(a.id) })
         a.capacityMmH?.let { append(" · ${it}mm/h") }
     }
 private fun formatIrrigationRec(r: IrrigationRecommendationDto) =
     buildString {
-        append(r.id.take(8))
+        append(DomainLabels.label(r.fieldId ?: r.id))
         r.recommendedMm?.let { append(" · ${it}mm") }
-        r.status?.let { append(" · $it") }
-        r.reason?.let { append(" · $it") }
+        r.status?.let { append(" · ${DomainLabels.label(it)}") }
+        r.reason?.let { append(" · ${DomainLabels.label(it)}") }
     }
 private fun formatWorkOrder(w: MaintenanceWorkOrderDto) =
-    listOfNotNull(w.title, w.priority, w.status, w.createdAt).joinToString(" · ").ifBlank { w.id }
+    listOfNotNull(DomainLabels.label(w.title), DomainLabels.label(w.priority), DomainLabels.label(w.status), w.createdAt)
+        .joinToString(" · ").ifBlank { DomainLabels.label(w.id) }
 private fun formatPrescription(p: PrescriptionDto) =
-    listOfNotNull(p.product, "${p.rate} ${p.unit}", p.status).joinToString(" · ").ifBlank { p.id }
+    listOfNotNull(DomainLabels.label(p.product), "${p.rate} ${p.unit}", DomainLabels.label(p.status)).joinToString(" · ").ifBlank { DomainLabels.label(p.id) }

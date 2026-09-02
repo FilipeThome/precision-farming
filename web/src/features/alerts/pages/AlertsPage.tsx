@@ -1,7 +1,7 @@
 import { useAckAlertMutation, useAlertsQuery } from '@/features/alerts/queries'
 import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -18,6 +18,7 @@ export function AlertsPage() {
   const err = queryError(alerts.error)
   const ackErr = ack.error ? queryError(ack.error) : null
   const { t } = useI18n()
+  const { label, dateTime } = useFormat()
 
   return (
     <section>
@@ -46,15 +47,15 @@ export function AlertsPage() {
             return (
               <Card key={alert.id} className="flex flex-wrap items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
-                  <EntityPhoto variant="thumb" src={thumb} alt={alert.title} />
+                  <EntityPhoto variant="thumb" src={thumb} alt={label(alert.title)} />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h2 className="font-semibold text-pf-green">{alert.title}</h2>
+                      <h2 className="font-semibold text-pf-green">{label(alert.title)}</h2>
                       <StatusBadge value={alert.severity} />
                       <StatusBadge value={alert.status} />
                     </div>
-                    <p className="mt-1 text-sm text-pf-muted">{alert.message}</p>
-                    <p className="mt-1 text-xs text-pf-muted">{formatDateTime(alert.createdAt)}</p>
+                    <p className="mt-1 text-sm text-pf-muted">{label(alert.message)}</p>
+                    <p className="mt-1 text-xs text-pf-muted">{dateTime(alert.createdAt)}</p>
                   </div>
                 </div>
                 {alert.status === 'OPEN' ? (

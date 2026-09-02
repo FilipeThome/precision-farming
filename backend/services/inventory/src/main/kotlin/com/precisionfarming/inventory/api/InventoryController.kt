@@ -18,9 +18,11 @@ class InventoryController(
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     fun create(@RequestBody body: UpsertItem) = svc.create(farmAccess.current(), body)
 
     @PostMapping("/movements")
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER','SERVICE')")
     fun move(@RequestBody body: MovementCmd) = svc.move(farmAccess.current(), body)
 }
 

@@ -1,126 +1,108 @@
 import { useEffect, useRef, useState } from 'react'
-import { MapPinOff } from 'lucide-react'
+import * as L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 
-import type { Field } from '@/shared/api/types'
+import type { Field, MapLayer } from '@/shared/api/types'
+import { fieldPolygons, fieldSetKey, fitBoundsOf } from '@/shared/maps/fieldMapModel'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { Card } from '@/shared/ui/Card'
-
-import { geometryToPaths, getGoogleMapsApiKey, loadGoogleMaps } from './loadGoogleMaps'
 
 type FieldMapProps = {
   fields: Field[]
   className?: string
-  /** Legend/filter only — no GeoTIFF rendering. */
   activeLayerKinds?: string[]
+  layers?: MapLayer[]
 }
 
-function fieldsSignature(fields: Field[]): string {
-  return fields.map((field) => `${field.id}:${field.geometry}`).join('|')
+const ESRI_IMAGERY = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+const ESRI_ATTRIBUTION =
+  'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+
+function tooltipElement(text: string): HTMLElement {
+  const el = document.createElement('span')
+  el.textContent = text
+  return el
 }
 
-export function FieldMap({ fields, className = 'h-[520px]', activeLayerKinds }: FieldMapProps) {
-  const apiKey = getGoogleMapsApiKey()
+export function FieldMap({
+  fields,
+  className = 'h-[520px]',
+  activeLayerKinds = [],
+  layers = [],
+}: FieldMapProps) {
   const { t } = useI18n()
-  const containerRef = useRef<HTMLDivElement | null>(null)
-  const mapRef = useRef<google.maps.Map | null>(null)
-  const mapsRef = useRef<typeof google.maps | null>(null)
-  const polygonsRef = useRef<google.maps.Polygon[]>([])
-  const fieldsRef = useRef(fields)
-  fieldsRef.current = fields
-  const [mapReady, setMapReady] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
-  const signature = fieldsSignature(fields)
-  void activeLayerKinds
+  const elRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<L.Map | null>(null)
+  const groupRef = useRef<L.FeatureGroup | null>(null)
+  const fittedKeyRef = useRef<string | null>(null)
+  const [loadError, setLoadError] = useState(false)
+  const setKey = fieldSetKey(fields)
 
   useEffect(() => {
-    if (!apiKey || !containerRef.current) return
-    const node = containerRef.current
-    let cancelled = false
+    const el = elRef.current
+    if (!el || mapRef.current) return
 
-    loadGoogleMaps(apiKey)
-      .then((maps) => {
-        if (cancelled || !node) return
-        mapsRef.current = maps
-        const map = new maps.Map(node, {
-          mapTypeId: maps.MapTypeId.SATELLITE,
-          tilt: 0,
-          streetViewControl: false,
-          fullscreenControl: true,
-        })
-        map.setCenter({ lat: -19.0, lng: -54.5 })
-        mapRef.current = map
-        setMapReady(true)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) setLoadError(err instanceof Error ? err.message : t('map.loadError'))
-      })
-
+    const map = L.map(el, { scrollWheelZoom: true, attributionControl: true })
+    const tiles = L.tileLayer(ESRI_IMAGERY, {
+      attribution: ESRI_ATTRIBUTION,
+      maxZoom: 19,
+    })
+    tiles.on('tileerror', () => setLoadError(true))
+    tiles.addTo(map)
+    const group = L.featureGroup().addTo(map)
+    mapRef.current = map
+    groupRef.current = group
+    const resize = window.setTimeout(() => map.invalidateSize(), 50)
     return () => {
-      cancelled = true
-      polygonsRef.current.forEach((polygon) => polygon.setMap(null))
-      polygonsRef.current = []
+      window.clearTimeout(resize)
+      map.remove()
       mapRef.current = null
-      mapsRef.current = null
-      setMapReady(false)
+      groupRef.current = null
+      fittedKeyRef.current = null
     }
-  }, [apiKey])
+  }, [])
 
   useEffect(() => {
     const map = mapRef.current
-    const maps = mapsRef.current
-    if (!mapReady || !map || !maps) return
+    const group = groupRef.current
+    if (!map || !group) return
 
-    polygonsRef.current.forEach((polygon) => polygon.setMap(null))
-    polygonsRef.current = []
-
-    const bounds = new maps.LatLngBounds()
-    let hasPath = false
-    for (const field of fieldsRef.current) {
-      for (const path of geometryToPaths(field.geometry)) {
-        if (path.length === 0) continue
-        hasPath = true
-        polygonsRef.current.push(
-          new maps.Polygon({
-            map,
-            paths: path,
-            strokeColor: '#0D9488',
-            strokeOpacity: 1,
-            strokeWeight: 2,
-            fillColor: '#1B5E3B',
-            fillOpacity: 0.35,
-          }),
-        )
-        path.forEach((point) => bounds.extend(point))
+    group.clearLayers()
+    const polygons = fieldPolygons(fields, activeLayerKinds, layers)
+    for (const poly of polygons) {
+      for (const ring of poly.rings) {
+        const latlngs = ring.map((p) => [p.lat, p.lng] as [number, number])
+        L.polygon(latlngs, {
+          color: poly.color,
+          fillColor: poly.fillColor,
+          fillOpacity: poly.fillOpacity,
+          weight: poly.weight,
+          dashArray: poly.dashArray,
+        })
+          .bindTooltip(tooltipElement(poly.name))
+          .addTo(group)
       }
     }
-    if (hasPath) map.fitBounds(bounds, 48)
-    else map.setCenter({ lat: -19.0, lng: -54.5 })
 
-    return () => {
-      polygonsRef.current.forEach((polygon) => polygon.setMap(null))
-      polygonsRef.current = []
+    if (fittedKeyRef.current !== setKey) {
+      fittedKeyRef.current = setKey
+      const bounds = fitBoundsOf(polygons)
+      if (bounds) {
+        map.fitBounds(bounds, { padding: [28, 28], maxZoom: 15 })
+      } else {
+        map.setView([-16.5, -54.5], 5)
+      }
     }
-  }, [mapReady, signature])
+    map.invalidateSize()
+  }, [fields, activeLayerKinds, layers, setKey])
 
-  if (!apiKey) {
-    return (
-      <Card className="flex h-full min-h-64 flex-col items-start gap-2 border-dashed">
-        <div className="flex items-center gap-2 text-pf-green">
-          <MapPinOff className="h-5 w-5" aria-hidden />
-          <strong>{t('map.missingKeyTitle')}</strong>
-        </div>
-        <p className="text-sm text-pf-muted">{t('map.missingKeyBody')}</p>
-      </Card>
-    )
-  }
-
-  if (loadError) {
-    return (
-      <Card>
-        <p className="text-sm text-red-800">{loadError}</p>
-      </Card>
-    )
-  }
-
-  return <div ref={containerRef} className={`w-full overflow-hidden rounded-[12px] ${className}`} />
+  return (
+    <div className={`w-full overflow-hidden rounded-[12px] ${className}`}>
+      {loadError ? (
+        <p className="mb-2 text-sm text-red-800" role="alert">
+          {t('map.loadError')}
+        </p>
+      ) : null}
+      <div ref={elRef} className="h-full min-h-[560px] w-full" role="application" aria-label={t('map.title')} />
+    </div>
+  )
 }

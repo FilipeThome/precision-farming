@@ -2,7 +2,6 @@ package com.precisionfarming.weather.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.weather.infrastructure.WeatherEntity
 import com.precisionfarming.weather.infrastructure.WeatherJpaRepository
 import com.precisionfarming.weather.infrastructure.WeatherWindowEntity
@@ -16,7 +15,6 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
-import java.util.concurrent.Callable
 
 interface WeatherProvider {
     fun demoForecast(farmId: UUID): List<WeatherDto>
@@ -42,7 +40,7 @@ class DemoWeatherProvider : WeatherProvider {
         return (-14..7).map { day ->
             val rain = if (day % 3 == 0) BigDecimal("4.8") else BigDecimal("0.2")
             WeatherDto(
-                id = UUID.randomUUID(),
+                id = DemoIds.uuid("wx-${farmId}-$day"),
                 farmId = farmId,
                 forecastAt = now.plus(day.toLong(), ChronoUnit.DAYS),
                 temperatureMin = BigDecimal("18"),
@@ -106,10 +104,11 @@ class WeatherService(
     @Transactional
     fun seed() {
         val keys = (1..8).map { "farm-%03d".format(it) }
-        val missing = keys.map { DemoIds.uuid(it) }.filter { !repo.existsByFarmId(it) }
-        if (missing.isNotEmpty()) {
-            val rows = VirtualJobs.all(missing.map { farmId -> Callable { provider.demoForecast(farmId).map { it.toEntity() } } })
-            repo.saveAll(rows.flatten())
+        val farmIds = keys.map { DemoIds.uuid(it) }
+        farmIds.forEach { farmId ->
+            if (!repo.existsByFarmId(farmId)) {
+                repo.saveAll(provider.demoForecast(farmId).map { it.toEntity() })
+            }
         }
         val now = Instant.now()
         val types = listOf("SPRAYING", "PLANTING", "HARVEST")
@@ -124,10 +123,10 @@ class WeatherService(
                 now.plus((i - 1).toLong(), ChronoUnit.DAYS),
                 now.plus(i.toLong(), ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS),
                 ratings[i % ratings.size],
-                "Janela demo $type #$i",
+                "DEMO_WINDOW $type #$i",
             )
         }
-        val existingWindows = windows.findAllById(windowRows.map { it.id }).map { it.id }.toHashSet()
+        val existingWindows = windows.findAllById(windowRows.map { it.id }).map { it.id }.toSet()
         windows.saveAll(windowRows.filter { it.id !in existingWindows })
     }
 

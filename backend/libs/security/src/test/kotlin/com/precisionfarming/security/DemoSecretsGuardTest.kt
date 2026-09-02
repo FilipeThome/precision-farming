@@ -10,6 +10,7 @@ class DemoSecretsGuardTest {
     @Test
     fun allowsDemoWhenFlagTrue() {
         val env = MockEnvironment()
+        env.setProperty("spring.application.name", "weather-service")
         val props = JwtProperties(allowDemoSecrets = true)
         assertDoesNotThrow { DemoSecretsGuard(env, props).run(DefaultApplicationArguments()) }
     }
@@ -18,15 +19,27 @@ class DemoSecretsGuardTest {
     fun allowsDemoOnLocalProfile() {
         val env = MockEnvironment().withProperty("spring.profiles.active", "local")
         env.setActiveProfiles("local")
+        env.setProperty("spring.application.name", "weather-service")
         val props = JwtProperties(allowDemoSecrets = false)
         assertDoesNotThrow { DemoSecretsGuard(env, props).run(DefaultApplicationArguments()) }
     }
 
     @Test
-    fun refusesDemoSecretWhenNotAllowed() {
+    fun refusesDemoDbWhenNotAllowed() {
         val env = MockEnvironment()
+        env.setProperty("spring.application.name", "weather-service")
         env.setProperty("spring.datasource.password", "precision")
-        val props = JwtProperties(allowDemoSecrets = false)
+        val props = JwtProperties(allowDemoSecrets = false, jwtPublicKey = "not-a-demo-key-but-blank-check")
+        assertThrows(IllegalStateException::class.java) {
+            DemoSecretsGuard(env, props).run(DefaultApplicationArguments())
+        }
+    }
+
+    @Test
+    fun refusesPrivateKeyOnNonAuth() {
+        val env = MockEnvironment()
+        env.setProperty("spring.application.name", "weather-service")
+        val props = JwtProperties(allowDemoSecrets = true, jwtPrivateKey = "-----BEGIN PRIVATE KEY-----")
         assertThrows(IllegalStateException::class.java) {
             DemoSecretsGuard(env, props).run(DefaultApplicationArguments())
         }

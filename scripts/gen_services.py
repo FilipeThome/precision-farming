@@ -127,7 +127,8 @@ management:
       enabled: false
 app:
   security:
-    jwt-secret: ${{JWT_SECRET:precision-farming-demo-jwt-secret-key-32}}
+    jwt-public-key: ${{JWT_PUBLIC_KEY:}}
+    allow-demo-secrets: ${{ALLOW_DEMO_SECRETS:false}}
     issuer: precision-farming
   seed: ${{APP_SEED:true}}
   clients:

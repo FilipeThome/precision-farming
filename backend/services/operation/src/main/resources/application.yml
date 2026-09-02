@@ -49,11 +49,13 @@ springdoc:
     enabled: ${SPRINGDOC_ENABLED:false}
 app:
   security:
-    jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
+    jwt-public-key: ${JWT_PUBLIC_KEY:}
+    service-mint-secret: ${SERVICE_MINT_SECRET:}
     allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
   seed: ${APP_SEED:true}
   clients:
+    auth: ${AUTH_URL:http://localhost:8081}
     farm: ${FARM_URL:http://localhost:8082}
     asset: ${ASSET_URL:http://localhost:8083}
     inventory: ${INVENTORY_URL:http://localhost:8087}
