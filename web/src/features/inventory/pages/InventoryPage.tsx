@@ -50,7 +50,7 @@ export function InventoryPage() {
               title={label(item.name)}
               subtitle={label(item.category)}
               meta={`${number(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${number(Number(item.reserved), 1)}`}
-              imageSrc={inventoryPhoto()}
+              imageSrc={inventoryPhoto(item.name, item.category)}
               imageAlt={label(item.name)}
             />
           ))}

@@ -10,7 +10,7 @@ import {
   useYieldQuery,
 } from '@/features/harvest/queries'
 import { storageOccupancy, yieldByField } from '@/shared/charts/adapters'
-import { cropPhoto, logisticsPhoto, storagePhoto } from '@/shared/demo/media'
+import { cropPhoto, fieldPhoto, logisticsPhoto, storagePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -179,7 +179,7 @@ export function HarvestPage() {
                         ? `${number(Number(row.moisturePct), 1)}% · ${dateTime(row.recordedAt)}`
                         : dateTime(row.recordedAt)
                     }
-                    imageSrc={cropPhoto()}
+                    imageSrc={fieldPhoto(row.fieldId, undefined, row.farmId)}
                     imageAlt={label(row.fieldId)}
                   />
                 ))

@@ -65,7 +65,7 @@ export function IrrigationPage() {
                   key={row.id}
                   title={label(row.name, row.id)}
                   subtitle={label(row.type)}
-                  imageSrc={irrigationPhoto()}
+                  imageSrc={irrigationPhoto(row.type)}
                   imageAlt={label(row.name, row.type)}
                 >
                   {row.status ? <StatusBadge value={row.status} /> : null}

@@ -7,7 +7,7 @@ import {
   useScoutingQuery,
   useSoilSamplesQuery,
 } from '@/features/agronomy/queries'
-import { cropPhoto, scoutingPhoto, soilPhoto } from '@/shared/demo/media'
+import { farmPhoto, scoutingPhoto, soilPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -121,7 +121,7 @@ export function AgronomyPage() {
                     title={label(row.title ?? row.kind, row.id)}
                     subtitle={row.summary ? label(row.summary) : undefined}
                     meta={`${label(row.priority)} · ${dateTime(row.createdAt)}`}
-                    imageSrc={cropPhoto()}
+                    imageSrc={farmPhoto(row.farmId) ?? farmPhoto(farmId)}
                     imageAlt={label(row.title)}
                   />
                 ))
