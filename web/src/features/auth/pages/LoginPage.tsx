@@ -10,12 +10,15 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 
+const DEMO_HINT = import.meta.env.VITE_DEMO_LOGIN_HINT === 'true'
+const DEMO_EMAIL = 'manager@precisionfarming.demo'
+
 export function LoginPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
   const login = useLoginMutation()
   const { t } = useI18n()
-  const [email, setEmail] = useState('manager@precisionfarming.demo')
+  const [email, setEmail] = useState(DEMO_HINT ? DEMO_EMAIL : '')
   const [password, setPassword] = useState('')
 
   async function onSubmit(event: FormEvent) {
@@ -87,9 +90,11 @@ export function LoginPage() {
             {login.isPending ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
-        <p className="mt-4 text-xs text-pf-muted">
-          {t('login.demoHint')} <code>manager@precisionfarming.demo</code> / <code>Precision@123</code>
-        </p>
+        {DEMO_HINT ? (
+          <p className="mt-4 text-xs text-pf-muted">
+            {t('login.demoHint')} <code>{DEMO_EMAIL}</code> / <code>Precision@123</code>
+          </p>
+        ) : null}
       </Card>
     </div>
   )

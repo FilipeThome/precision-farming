@@ -1,27 +1,31 @@
 package com.precisionfarming.security
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.PemKeys
 import com.precisionfarming.common.UnauthorizedException
+import com.precisionfarming.security.issuer.JwtIssuer
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.JwtException
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
+import java.security.KeyPairGenerator
+import java.security.interfaces.RSAPrivateKey
+import java.security.interfaces.RSAPublicKey
 import java.time.Instant
+import java.util.Base64
 import java.util.UUID
-import javax.crypto.spec.SecretKeySpec
 
 class JwtAndFarmAccessTest {
     private val farmAccess = FarmAccess()
-    private val props = JwtProperties(allowDemoSecrets = true)
-    private val jwtService = JwtService(props)
+    private val props = rsaProps()
+    private val jwtIssuer = JwtIssuer(props)
     private val accessDecoder: JwtDecoder = run {
-        val key = SecretKeySpec(props.jwtSecret.toByteArray(), "HmacSHA256")
-        val nimbus = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusJwtDecoder.withPublicKey(PemKeys.parsePublic(props.jwtPublicKey)).build()
         JwtDecoder { token ->
             val jwt = nimbus.decode(token)
             JwtAccessType.requireAccess(jwt.getClaimAsString(JwtAccessType.CLAIM))
@@ -29,8 +33,7 @@ class JwtAndFarmAccessTest {
         }
     }
     private val resourceDecoder: JwtDecoder = run {
-        val key = SecretKeySpec(props.jwtSecret.toByteArray(), "HmacSHA256")
-        val nimbus = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusJwtDecoder.withPublicKey(PemKeys.parsePublic(props.jwtPublicKey)).build()
         JwtDecoder { token ->
             val jwt = nimbus.decode(token)
             JwtAccessType.requireResourceToken(jwt.getClaimAsString(JwtAccessType.CLAIM))
@@ -54,17 +57,19 @@ class JwtAndFarmAccessTest {
 
     @Test
     fun decoderRejectsRefreshToken() {
-        val refresh = jwtService.createRefreshToken(UUID.randomUUID())
+        val refresh = jwtIssuer.createRefreshToken(UUID.randomUUID()).token
         assertThrows(JwtException::class.java) { accessDecoder.decode(refresh) }
         assertThrows(JwtException::class.java) { resourceDecoder.decode(refresh) }
     }
 
     @Test
     fun decoderAcceptsAccessToken() {
-        val token = jwtService.createAccessToken(
+        val farm = DemoIds.uuid("farm-001")
+        val token = jwtIssuer.createAccessToken(
             UUID.randomUUID(),
             "manager@precisionfarming.demo",
             "FARM_MANAGER",
+            listOf(farm),
         )
         val jwt = accessDecoder.decode(token)
         assertEquals(JwtAccessType.ACCESS, jwt.getClaimAsString(JwtAccessType.CLAIM))
@@ -73,7 +78,7 @@ class JwtAndFarmAccessTest {
     @Test
     fun resourceDecoderAcceptsServiceToken() {
         val farm = DemoIds.uuid("farm-001")
-        val token = jwtService.createServiceToken(DemoIds.uuid("svc-operation"), listOf(farm))
+        val token = jwtIssuer.createServiceToken(DemoIds.uuid("svc-operation"), listOf(farm))
         val jwt = resourceDecoder.decode(token)
         assertEquals(JwtAccessType.SERVICE, jwt.getClaimAsString(JwtAccessType.CLAIM))
         assertEquals("SERVICE", jwt.getClaimAsString("role"))
@@ -84,8 +89,8 @@ class JwtAndFarmAccessTest {
     fun accessTokenIncludesTypeAccessAndFarmIds() {
         val userId = UUID.randomUUID()
         val farms = DemoFarmDirectory.forRole("FARM_MANAGER")
-        val token = jwtService.createAccessToken(userId, "manager@precisionfarming.demo", "FARM_MANAGER", farmIds = farms)
-        val claims = jwtService.parse(token)
+        val token = jwtIssuer.createAccessToken(userId, "manager@precisionfarming.demo", "FARM_MANAGER", farmIds = farms)
+        val claims = jwtIssuer.parse(token)
         assertEquals("access", claims["type"])
         assertEquals(userId.toString(), claims.subject)
     }
@@ -119,12 +124,11 @@ class JwtAndFarmAccessTest {
         DemoFieldFarms.requireBelongsToFarm(field, farm)
         DemoMachineFarms.requireBelongsToFarm(machine, farm)
         DemoItemFarms.requireBelongsToFarm(item, farm)
-        // Seed entries remain
         assertEquals(DemoIds.uuid("farm-001"), DemoFieldFarms.farmId(DemoIds.uuid("field-001")))
     }
 
     @Test
-    fun runtimeFarmsMergeIntoAdminScope() {
+    fun jwtFarmIdsAreNotExpandedByRuntimeDirectory() {
         val created = UUID.randomUUID()
         DemoFarmDirectory.register(created)
         try {
@@ -135,8 +139,8 @@ class JwtAndFarmAccessTest {
                     role = "ADMIN",
                 ),
             )
-            assertTrue(scope.farmIds.contains(created))
-            assertTrue(scope.farmIds.contains(DemoIds.uuid("farm-001")))
+            assertFalse(scope.farmIds.contains(created))
+            assertEquals(setOf(DemoIds.uuid("farm-001")), scope.farmIds)
         } finally {
             DemoFarmDirectory.unregister(created)
         }
@@ -146,6 +150,8 @@ class JwtAndFarmAccessTest {
     fun demoScopeMapsCoverDensifiedIds() {
         assertEquals(DemoIds.uuid("farm-008"), DemoFieldFarms.farmId(DemoIds.uuid("field-022")))
         assertEquals(DemoIds.uuid("farm-008"), DemoMachineFarms.farmId(DemoIds.uuid("machine-012")))
+        assertEquals(DemoIds.uuid("farm-003"), DemoMachineFarms.farmId(DemoIds.uuid("machine-013")))
+        assertEquals(DemoIds.uuid("farm-006"), DemoMachineFarms.farmId(DemoIds.uuid("machine-014")))
         assertEquals(DemoIds.uuid("farm-008"), DemoItemFarms.farmId(DemoIds.uuid("item-016")))
         DemoFieldFarms.requireBelongsToFarm(DemoIds.uuid("field-014"), DemoIds.uuid("farm-001"))
         DemoItemFarms.requireBelongsToFarm(DemoIds.uuid("item-001"), DemoIds.uuid("farm-001"))
@@ -184,7 +190,7 @@ class JwtAndFarmAccessTest {
     @Test
     fun serviceTokenRequiresFarmIds() {
         assertThrows(IllegalArgumentException::class.java) {
-            jwtService.createServiceToken(UUID.randomUUID(), emptyList())
+            jwtIssuer.createServiceToken(UUID.randomUUID(), emptyList())
         }
     }
 
@@ -201,4 +207,23 @@ class JwtAndFarmAccessTest {
         .issuedAt(Instant.now())
         .expiresAt(Instant.now().plusSeconds(60))
         .build()
+
+    companion object {
+        fun rsaProps(): JwtProperties {
+            val gen = KeyPairGenerator.getInstance("RSA")
+            gen.initialize(2048)
+            val pair = gen.generateKeyPair()
+            val pub = pair.public as RSAPublicKey
+            val priv = pair.private as RSAPrivateKey
+            fun pem(type: String, der: ByteArray): String {
+                val b64 = Base64.getMimeEncoder(64, "\n".toByteArray()).encodeToString(der)
+                return "-----BEGIN $type-----\n$b64\n-----END $type-----\n"
+            }
+            return JwtProperties(
+                jwtPublicKey = pem("PUBLIC KEY", pub.encoded),
+                jwtPrivateKey = pem("PRIVATE KEY", priv.encoded),
+                allowDemoSecrets = true,
+            )
+        }
+    }
 }

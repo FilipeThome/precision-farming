@@ -10,9 +10,9 @@ import java.util.UUID
 class NotificationEntity(
     @Id val id: UUID,
     @Column(name = "user_id") val userId: UUID,
-    val type: String,
-    val title: String,
-    val body: String,
+    var type: String,
+    var title: String,
+    var body: String,
     @Column(name = "read_at") var readAt: Instant?,
     @Column(name = "created_at") val createdAt: Instant,
 )

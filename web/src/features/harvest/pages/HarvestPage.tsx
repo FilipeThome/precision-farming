@@ -12,7 +12,7 @@ import {
 import { storageOccupancy, yieldByField } from '@/shared/charts/adapters'
 import { cropPhoto, logisticsPhoto, storagePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
@@ -32,6 +32,7 @@ export function HarvestPage() {
   const [tab, setTab] = useState<Tab>('plans')
   const [storageView, setStorageView] = useState<StorageView>('units')
   const { t } = useI18n()
+  const { number, dateTime, label } = useFormat()
   const plans = useHarvestPlansQuery(farmId, { enabled: tab === 'plans' })
   const yieldQ = useYieldQuery(farmId, { enabled: tab === 'yield' })
   const logistics = useLogisticsLoadsQuery(farmId, { enabled: tab === 'logistics' })
@@ -119,7 +120,7 @@ export function HarvestPage() {
         {tab === 'yield' && (yieldQ.data?.length ?? 0) > 0 ? (
           <ChartCard title={t('charts.yieldByField')} className="mb-4">
             <BarChartBlock
-              data={yieldByField(yieldQ.data ?? [])}
+              data={yieldByField(yieldQ.data ?? [], label)}
               xKey="name"
               bars={[{ dataKey: 'yield', name: t('charts.yield'), color: CHART_COLORS.green }]}
             />
@@ -128,7 +129,7 @@ export function HarvestPage() {
         {tab === 'storage' && storageView === 'units' && (storage.data?.length ?? 0) > 0 ? (
           <ChartCard title={t('charts.storageOccupancy')} className="mb-4">
             <BarChartBlock
-              data={storageOccupancy(storage.data ?? [])}
+              data={storageOccupancy(storage.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'used', name: t('charts.used'), color: CHART_COLORS.teal },
@@ -145,17 +146,17 @@ export function HarvestPage() {
               ? (plans.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.crop ?? row.id}
+                    title={label(row.crop, row.fieldId ?? row.id)}
                     subtitle={
                       row.expectedTHa != null
                         ? t('harvest.plans.expected', {
-                            value: formatNumber(Number(row.expectedTHa), 1),
+                            value: number(Number(row.expectedTHa), 1),
                           })
                         : undefined
                     }
-                    meta={formatDateTime(row.plannedStart)}
+                    meta={dateTime(row.plannedStart)}
                     imageSrc={cropPhoto(row.crop)}
-                    imageAlt={row.crop ?? 'harvest'}
+                    imageAlt={label(row.crop)}
                   >
                     {row.status ? <StatusBadge value={row.status} /> : null}
                   </EntityCard>
@@ -165,21 +166,21 @@ export function HarvestPage() {
               ? (yieldQ.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={
+                    title={label(row.fieldId, row.id)}
+                    subtitle={
                       row.yieldTHa != null
                         ? t('harvest.yield.value', {
-                            value: formatNumber(Number(row.yieldTHa), 1),
+                            value: number(Number(row.yieldTHa), 1),
                           })
-                        : row.id
-                    }
-                    subtitle={
-                      row.moisturePct != null
-                        ? `${formatNumber(Number(row.moisturePct), 1)}%`
                         : undefined
                     }
-                    meta={formatDateTime(row.recordedAt)}
+                    meta={
+                      row.moisturePct != null
+                        ? `${number(Number(row.moisturePct), 1)}% · ${dateTime(row.recordedAt)}`
+                        : dateTime(row.recordedAt)
+                    }
                     imageSrc={cropPhoto()}
-                    imageAlt="yield"
+                    imageAlt={label(row.fieldId)}
                   />
                 ))
               : null}
@@ -187,15 +188,15 @@ export function HarvestPage() {
               ? (logistics.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.destination ?? row.id}
+                    title={label(row.destination, row.id)}
                     subtitle={
                       row.truckPlate
                         ? t('harvest.logistics.truck', { plate: row.truckPlate })
                         : undefined
                     }
-                    meta={formatDateTime(row.dispatchedAt)}
+                    meta={dateTime(row.dispatchedAt)}
                     imageSrc={logisticsPhoto()}
-                    imageAlt={row.destination ?? 'logistics'}
+                    imageAlt={label(row.destination)}
                   >
                     {row.status ? <StatusBadge value={row.status} /> : null}
                     {row.status === 'QUEUED' ? <DispatchLoadButton loadId={row.id} /> : null}
@@ -206,17 +207,17 @@ export function HarvestPage() {
               ? (storage.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.name ?? row.id}
+                    title={label(row.name, row.id)}
                     subtitle={
                       row.capacityT != null
                         ? t('harvest.storage.occupancy', {
-                            used: formatNumber(Number(row.usedT ?? 0), 1),
-                            capacity: formatNumber(Number(row.capacityT), 1),
+                            used: number(Number(row.usedT ?? 0), 1),
+                            capacity: number(Number(row.capacityT), 1),
                           })
-                        : row.type
+                        : label(row.type)
                     }
                     imageSrc={storagePhoto(row.type)}
-                    imageAlt={row.name ?? 'storage'}
+                    imageAlt={label(row.name, row.type)}
                   />
                 ))
               : null}

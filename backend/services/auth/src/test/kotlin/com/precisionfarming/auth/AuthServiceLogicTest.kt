@@ -1,6 +1,7 @@
 package com.precisionfarming.auth
 
-import com.precisionfarming.security.JwtService
+import com.precisionfarming.common.DemoIds
+import com.precisionfarming.security.issuer.JwtIssuer
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
@@ -14,29 +15,15 @@ class AuthServiceLogicTest {
     }
 
     @Test
-    fun jwtServiceIssuesSignedToken() {
-        val jwt = JwtService(com.precisionfarming.security.JwtProperties())
-        val token = jwt.createAccessToken(java.util.UUID.randomUUID(), "a@b.c", "ADMIN")
+    fun jwtIssuerSignsAccessAndService() {
+        val jwt = JwtIssuer(RsaTestKeys.props())
+        val farm = DemoIds.uuid("farm-001")
+        val token = jwt.createAccessToken(java.util.UUID.randomUUID(), "a@b.c", "ADMIN", listOf(farm))
         assertTrue(token.split(".").size == 3)
         val claims = jwt.parse(token)
         assertTrue(claims["role"] == "ADMIN")
-        @Suppress("UNCHECKED_CAST")
-        val farmIds = claims["farmIds"] as List<String>
-        assertTrue(farmIds.isNotEmpty())
-        assertTrue(claims["tenantId"] is String)
         assertTrue(claims["type"] == "access")
-    }
-
-    @Test
-    fun serviceJwtIsCachedUntilExpiryWindow() {
-        val jwt = JwtService(com.precisionfarming.security.JwtProperties())
-        val subject = java.util.UUID.randomUUID()
-        val farm = com.precisionfarming.common.DemoIds.uuid("farm-001")
-        val first = jwt.cachedServiceToken(subject, listOf(farm))
-        val second = jwt.cachedServiceToken(subject, listOf(farm))
-        assertTrue(first === second)
-        val claims = jwt.parse(first)
-        assertTrue(claims["type"] == "service")
-        assertTrue(claims["role"] == "SERVICE")
+        val service = jwt.createServiceToken(java.util.UUID.randomUUID(), listOf(farm))
+        assertTrue(jwt.parse(service)["type"] == "service")
     }
 }

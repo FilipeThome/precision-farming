@@ -1,5 +1,6 @@
 import type { MapLayer } from '@/shared/api/types'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { useFormat } from '@/shared/lib/useFormat'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 
@@ -11,6 +12,7 @@ type Props = {
 
 export function MapLayerToggles({ layers, enabledKinds, onToggle }: Props) {
   const { t } = useI18n()
+  const { label } = useFormat()
   const kinds = [...new Set(layers.map((layer) => layer.kind))].sort()
 
   if (kinds.length === 0) {
@@ -34,7 +36,7 @@ export function MapLayerToggles({ layers, enabledKinds, onToggle }: Props) {
             aria-pressed={enabledKinds.has(kind)}
             onClick={() => onToggle(kind)}
           >
-            {kind}
+            {label(kind)}
           </Button>
         ))}
       </div>
@@ -44,7 +46,7 @@ export function MapLayerToggles({ layers, enabledKinds, onToggle }: Props) {
           <ul className="space-y-1 text-sm text-pf-muted">
             {active.map((layer) => (
               <li key={layer.id}>
-                {layer.kind} · {layer.name} · {layer.status}
+                {label(layer.kind)} · {label(layer.name)} · {label(layer.status)}
               </li>
             ))}
           </ul>

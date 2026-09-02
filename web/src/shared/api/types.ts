@@ -253,6 +253,7 @@ export type YieldRecord = {
   id: string
   farmId?: string
   fieldId?: string
+  fieldName?: string
   planId?: string | null
   recordedAt?: string
   yieldTHa?: number
@@ -294,6 +295,7 @@ export type FinanceCost = {
 export type FinancePnl = {
   id: string
   farmId?: string
+  farmName?: string
   fieldId?: string
   revenue?: number
   cost?: number

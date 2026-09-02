@@ -39,6 +39,7 @@ class WeatherWindowEntity(
 
 interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
     fun existsByFarmId(farmId: UUID): Boolean
+    fun deleteByFarmId(farmId: UUID): Long
     fun findByFarmIdOrderByForecastAtAsc(farmId: UUID): List<WeatherEntity>
     fun findFirstByFarmIdAndForecastAtGreaterThanEqualOrderByForecastAtAsc(
         farmId: UUID,

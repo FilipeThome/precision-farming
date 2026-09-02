@@ -73,27 +73,37 @@ class InventoryService(
     fun seed() {
         data class Row(val key: String, val farm: String, val name: String, val cat: String, val unit: String, val qty: String)
         val rows = listOf(
-            Row("item-001", "farm-001", "Glifosato", "DEFENSIVO", "L", "420"),
-            Row("item-002", "farm-001", "Ureia", "FERTILIZANTE", "KG", "1800"),
-            Row("item-003", "farm-002", "Semente soja", "SEMENTE", "KG", "900"),
-            Row("item-004", "farm-001", "Diesel S10", "COMBUSTIVEL", "L", "5200"),
-            Row("item-005", "farm-002", "2,4-D", "DEFENSIVO", "L", "310"),
-            Row("item-006", "farm-002", "Filtro de óleo", "PECA", "UN", "24"),
-            Row("item-007", "farm-003", "Semente milho", "SEMENTE", "KG", "1100"),
-            Row("item-008", "farm-003", "MAP", "FERTILIZANTE", "KG", "2400"),
-            Row("item-009", "farm-004", "Inseticida", "DEFENSIVO", "L", "180"),
-            Row("item-010", "farm-004", "Diesel S10", "COMBUSTIVEL", "L", "3800"),
-            Row("item-011", "farm-005", "KCl", "FERTILIZANTE", "KG", "1600"),
-            Row("item-012", "farm-005", "Correia transm.", "PECA", "UN", "12"),
-            Row("item-013", "farm-006", "Semente algodão", "SEMENTE", "KG", "640"),
-            Row("item-014", "farm-006", "Herbicida pré", "DEFENSIVO", "L", "220"),
-            Row("item-015", "farm-007", "Ureia", "FERTILIZANTE", "KG", "980"),
-            Row("item-016", "farm-008", "Óleo hidráulico", "COMBUSTIVEL", "L", "450"),
+            Row("item-001", "farm-001", "GLYPHOSATE", "PESTICIDE", "L", "420"),
+            Row("item-002", "farm-001", "UREA", "FERTILIZER", "KG", "1800"),
+            Row("item-003", "farm-002", "SOY_SEED", "SEED", "KG", "900"),
+            Row("item-004", "farm-001", "DIESEL_S10", "FUEL", "L", "5200"),
+            Row("item-005", "farm-002", "TWO_FOUR_D", "PESTICIDE", "L", "310"),
+            Row("item-006", "farm-002", "OIL_FILTER", "PART", "UN", "24"),
+            Row("item-007", "farm-003", "CORN_SEED", "SEED", "KG", "1100"),
+            Row("item-008", "farm-003", "MAP", "FERTILIZER", "KG", "2400"),
+            Row("item-009", "farm-004", "INSECTICIDE", "PESTICIDE", "L", "180"),
+            Row("item-010", "farm-004", "DIESEL_S10", "FUEL", "L", "3800"),
+            Row("item-011", "farm-005", "KCL", "FERTILIZER", "KG", "1600"),
+            Row("item-012", "farm-005", "DRIVE_BELT", "PART", "UN", "12"),
+            Row("item-013", "farm-006", "COTTON_SEED", "SEED", "KG", "640"),
+            Row("item-014", "farm-006", "PRE_EMERGENT", "PESTICIDE", "L", "220"),
+            Row("item-015", "farm-007", "UREA", "FERTILIZER", "KG", "980"),
+            Row("item-016", "farm-008", "HYDRAULIC_OIL", "FUEL", "L", "450"),
         )
-        val existing = items.findAllById(rows.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
+        val existing = items.findAllById(rows.map { DemoIds.uuid(it.key) }).associateBy { it.id }
         items.saveAll(
-            rows.filter { DemoIds.uuid(it.key) !in existing }.map { r ->
-                ItemEntity(DemoIds.uuid(r.key), DemoIds.uuid(r.farm), r.name, r.cat, r.unit, BigDecimal(r.qty))
+            rows.map { r ->
+                val id = DemoIds.uuid(r.key)
+                val found = existing[id]
+                if (found != null) {
+                    found.farmId = DemoIds.uuid(r.farm)
+                    found.name = r.name
+                    found.category = r.cat
+                    found.unit = r.unit
+                    found
+                } else {
+                    ItemEntity(id, DemoIds.uuid(r.farm), r.name, r.cat, r.unit, BigDecimal(r.qty))
+                }
             },
         )
     }

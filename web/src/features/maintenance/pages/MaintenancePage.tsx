@@ -3,7 +3,7 @@ import { useMachinesQuery } from '@/features/machines/queries'
 import type { Machine } from '@/shared/api/types'
 import { machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatPercent } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
@@ -16,13 +16,14 @@ function MaintenanceCard({ machine }: { machine: Machine }) {
   const risk = useMachineRiskQuery(machine.id, true)
   const first = risk.data?.[0]
   const { t } = useI18n()
+  const { label, percent, dateTime } = useFormat()
 
   return (
-    <Card className="overflow-hidden p-0">
-      <EntityPhoto src={machinePhoto(machine.id, machine.type)} alt={machine.name} />
-      <div className="flex flex-col gap-2 p-4">
+    <Card className="flex gap-3 p-3">
+      <EntityPhoto src={machinePhoto(machine.id, machine.type)} alt={label(machine.id, machine.name)} />
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
-          <h2 className="font-semibold text-pf-green">{machine.name}</h2>
+          <h2 className="font-semibold text-pf-green">{label(machine.id, machine.name)}</h2>
           <StatusBadge value={machine.status} />
         </div>
         <p className="text-sm text-pf-muted">
@@ -34,8 +35,8 @@ function MaintenanceCard({ machine }: { machine: Machine }) {
             {t('maintenance.risk', {
               model: first.model,
               version: first.modelVersion,
-              score: formatPercent(first.score),
-              at: formatDateTime(first.generatedAt),
+              score: percent(first.score),
+              at: dateTime(first.generatedAt),
             })}
           </p>
         ) : null}

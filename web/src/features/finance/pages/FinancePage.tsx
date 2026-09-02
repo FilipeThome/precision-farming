@@ -13,7 +13,7 @@ import {
   pnlChartRows,
 } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
@@ -25,15 +25,11 @@ import { useUiStore } from '@/shared/ui/uiStore'
 
 type Tab = 'costs' | 'pnl' | 'budget' | 'cashflow'
 
-function money(amount?: number, currency?: string) {
-  if (amount == null) return '—'
-  return `${formatNumber(Number(amount), 2)} ${currency ?? 'BRL'}`.trim()
-}
-
 export function FinancePage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('costs')
   const { t } = useI18n()
+  const { number, dateTime, label } = useFormat()
   const costs = useFinanceCostsQuery(farmId, { enabled: tab === 'costs' })
   const pnl = useFinancePnlQuery(farmId, { enabled: tab === 'pnl' })
   const budget = useFinanceBudgetQuery(farmId, { enabled: tab === 'budget' })
@@ -42,6 +38,11 @@ export function FinancePage() {
   const active =
     tab === 'costs' ? costs : tab === 'pnl' ? pnl : tab === 'budget' ? budget : cashflow
   const err = queryError(active.error)
+
+  function money(amount?: number, currency?: string) {
+    if (amount == null) return '—'
+    return `${number(Number(amount), 2)} ${currency ?? 'BRL'}`.trim()
+  }
 
   const emptyTitle =
     tab === 'costs'
@@ -86,7 +87,7 @@ export function FinancePage() {
         {tab === 'costs' ? (
           <ChartCard title={t('charts.costsByCategory')} className="mb-4">
             <BarChartBlock
-              data={groupCostsByCategory(costs.data ?? [])}
+              data={groupCostsByCategory(costs.data ?? [], label)}
               xKey="name"
               bars={[{ dataKey: 'value', name: t('charts.amount'), color: CHART_COLORS.amber }]}
             />
@@ -95,7 +96,7 @@ export function FinancePage() {
         {tab === 'pnl' ? (
           <ChartCard title={t('charts.pnlSummary')} description={t('charts.pnlHint')} className="mb-4">
             <BarChartBlock
-              data={pnlChartRows(pnl.data ?? [])}
+              data={pnlChartRows(pnl.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'revenue', name: t('charts.revenue'), color: CHART_COLORS.green },
@@ -108,7 +109,7 @@ export function FinancePage() {
         {tab === 'budget' ? (
           <ChartCard title={t('charts.budgetPlanVsActual')} className="mb-4">
             <BarChartBlock
-              data={budgetChartRows(budget.data ?? [])}
+              data={budgetChartRows(budget.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'planned', name: t('charts.planned'), color: CHART_COLORS.blue },
@@ -135,9 +136,9 @@ export function FinancePage() {
             ? (costs.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.category ?? row.id}
+                  title={label(row.category, row.id)}
                   subtitle={money(row.amount, row.currency)}
-                  meta={`${row.description ?? ''} · ${formatDateTime(row.occurredAt)}`.replace(/^ · /, '')}
+                  meta={`${label(row.description)} · ${dateTime(row.occurredAt)}`.replace(/^— · /, '')}
                 />
               ))
             : null}
@@ -145,9 +146,15 @@ export function FinancePage() {
             ? (pnl.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.farmId ?? row.id}
-                  subtitle={`Rev ${money(row.revenue, row.currency)} · Cost ${money(row.cost, row.currency)}`}
-                  meta={`Margin ${money(row.margin, row.currency)} · ${row.period ?? 'YTD'}`}
+                  title={label(row.farmId, row.id)}
+                  subtitle={t('finance.revCost', {
+                    revenue: money(row.revenue, row.currency),
+                    cost: money(row.cost, row.currency),
+                  })}
+                  meta={t('finance.marginPeriod', {
+                    margin: money(row.margin, row.currency),
+                    period: label(row.period ?? 'YTD'),
+                  })}
                 />
               ))
             : null}
@@ -155,9 +162,12 @@ export function FinancePage() {
             ? (budget.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.category ?? row.id}
-                  subtitle={`Plan ${money(row.planned)} · Actual ${money(row.actual)}`}
-                  meta={row.seasonLabel}
+                  title={label(row.category, row.id)}
+                  subtitle={t('finance.planActual', {
+                    planned: money(row.planned),
+                    actual: money(row.actual),
+                  })}
+                  meta={label(row.seasonLabel)}
                 />
               ))
             : null}
@@ -165,9 +175,9 @@ export function FinancePage() {
             ? (cashflow.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.label ?? row.id}
-                  subtitle={`${row.direction ?? ''} ${money(row.amount)}`.trim()}
-                  meta={formatDateTime(row.dueAt)}
+                  title={label(row.label, row.id)}
+                  subtitle={`${label(row.direction)} ${money(row.amount)}`.trim()}
+                  meta={dateTime(row.dueAt)}
                 />
               ))
             : null}

@@ -44,6 +44,7 @@ describe('LoginPage', () => {
     renderLogin()
     expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
     expect(screen.getByLabelText('Senha')).toBeInTheDocument()
+    expect(screen.getByLabelText('Senha')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
     expect(screen.getByText(/manager@precisionfarming.demo/)).toBeInTheDocument()
     expect(screen.getByText(/Precision@123/)).toBeInTheDocument()

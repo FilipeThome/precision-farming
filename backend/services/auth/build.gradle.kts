@@ -13,6 +13,7 @@ java {
 dependencies {
     implementation(project(":backend:libs:common"))
     implementation(project(":backend:libs:security"))
+    implementation(project(":backend:libs:security-issuer"))
     implementation(libs.spring.boot.web)
     implementation(libs.spring.boot.jpa)
     implementation(libs.spring.boot.validation)
@@ -30,6 +31,7 @@ dependencies {
     testImplementation(libs.spring.boot.test)
     testImplementation(libs.kotlin.test)
     testImplementation(libs.mockk)
+    testImplementation(project(":backend:libs:security-issuer"))
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {

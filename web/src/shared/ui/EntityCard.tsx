@@ -14,9 +14,9 @@ type Props = {
 
 export function EntityCard({ title, subtitle, meta, imageSrc, imageAlt, children }: Props) {
   return (
-    <Card className={imageSrc ? 'overflow-hidden p-0' : 'flex flex-col gap-1'}>
+    <Card className={imageSrc ? 'flex gap-3 p-3' : 'flex flex-col gap-1'}>
       {imageSrc ? <EntityPhoto src={imageSrc} alt={imageAlt ?? title} /> : null}
-      <div className={imageSrc ? 'flex flex-col gap-1 p-4' : 'contents'}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
         <h2 className="font-semibold text-pf-green">{title}</h2>
         {subtitle ? <p className="text-sm text-pf-muted">{subtitle}</p> : null}
         {meta ? <p className="text-xs text-pf-muted">{meta}</p> : null}

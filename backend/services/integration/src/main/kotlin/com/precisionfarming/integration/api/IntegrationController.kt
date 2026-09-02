@@ -1,29 +1,26 @@
 package com.precisionfarming.integration.api
 
+import com.precisionfarming.integration.application.IntegrationService
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
-import org.springframework.security.access.prepost.PreAuthorize
-
-data class Connector(val name: String, val type: String, val mode: String, val capabilities: List<String>)
 
 @RestController
 @RequestMapping("/api/v1/integrations")
-class IntegrationController {
+class IntegrationController(private val svc: IntegrationService) {
     @GetMapping
-    fun list() = listOf(
-        Connector("DemoJohnDeere", "MACHINE", "DEMO", listOf("listMachines", "getTelemetry")),
-        Connector("DemoWeather", "WEATHER", "DEMO", listOf("forecast")),
-        Connector("DemoSatellite", "SATELLITE", "DEMO", listOf("ndviOverlay")),
-        Connector("DemoDrone", "DRONE", "DEMO", listOf("missions")),
-    )
+    fun list() = svc.list()
 }
 
 @RestController
 @RequestMapping("/api/v1/dev/seed")
-class IntegrationSeedController {
+class IntegrationSeedController(private val svc: IntegrationService) {
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
-    fun reset() = mapOf("status" to "seeded", "service" to "integration")
+    fun reset(): Map<String, String> {
+        svc.seed()
+        return mapOf("status" to "seeded", "service" to "integration")
+    }
 }
