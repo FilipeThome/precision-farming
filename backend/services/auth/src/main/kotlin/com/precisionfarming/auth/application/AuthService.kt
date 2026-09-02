@@ -7,6 +7,8 @@ import com.precisionfarming.auth.infrastructure.UserEntity
 import com.precisionfarming.auth.infrastructure.UserJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.UnauthorizedException
+import com.precisionfarming.security.DemoFarmDirectory
+import com.precisionfarming.security.DemoTenant
 import com.precisionfarming.security.JwtService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
@@ -64,7 +66,13 @@ class AuthService(
     }
 
     private fun tokens(user: UserEntity) = TokenResponse(
-        accessToken = jwtService.createAccessToken(user.id, user.email, user.role.name),
+        accessToken = jwtService.createAccessToken(
+            userId = user.id,
+            email = user.email,
+            role = user.role.name,
+            tenantId = DemoTenant.ID,
+            farmIds = DemoFarmDirectory.forRole(user.role.name),
+        ),
         refreshToken = jwtService.createRefreshToken(user.id),
         role = user.role.name,
         userId = user.id,

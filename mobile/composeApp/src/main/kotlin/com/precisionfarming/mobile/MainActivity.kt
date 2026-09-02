@@ -6,11 +6,15 @@ import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.graphics.Color
+import com.precisionfarming.mobile.i18n.LocaleStore
+import com.precisionfarming.mobile.data.TokenStore
 import com.precisionfarming.mobile.ui.AppRoot
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        LocaleStore.init(this)
+        TokenStore.init(this)
         setContent {
             MaterialTheme(
                 colorScheme = darkColorScheme(

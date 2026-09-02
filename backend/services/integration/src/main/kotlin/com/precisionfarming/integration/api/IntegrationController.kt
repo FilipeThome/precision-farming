@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.security.access.prepost.PreAuthorize
 
 data class Connector(val name: String, val type: String, val mode: String, val capabilities: List<String>)
 
@@ -22,6 +23,7 @@ class IntegrationController {
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class IntegrationSeedController {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset() = mapOf("status" to "seeded", "service" to "integration")
 }

@@ -1,6 +1,10 @@
 package com.precisionfarming.telemetry.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
+import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoMachineFarms
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.telemetry.infrastructure.TelemetryEntity
 import com.precisionfarming.telemetry.infrastructure.TelemetryJpaRepository
@@ -9,6 +13,7 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 import java.util.UUID
@@ -25,21 +30,38 @@ data class TrackPoint(val lat: Double, val lon: Double, val observedAt: Instant)
 
 @Service
 class TelemetryService(private val repo: TelemetryJpaRepository) {
-    fun history(machineId: UUID, from: Instant, to: Instant) =
-        repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
+    fun history(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TelemetryPoint> {
+        DemoMachineFarms.requireMachine(scope, machineId)
+        requireRange(from, to)
+        return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
+    }
 
-    fun track(machineId: UUID, from: Instant, to: Instant) =
-        repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
+    fun track(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TrackPoint> {
+        DemoMachineFarms.requireMachine(scope, machineId)
+        requireRange(from, to)
+        return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
             .map { TrackPoint(it.lat, it.lon, it.observedAt) }
+    }
+
+    private fun requireRange(from: Instant, to: Instant) {
+        if (!to.isAfter(from) || Duration.between(from, to).toDays() > QueryLimits.MAX_TELEMETRY_DAYS) {
+            throw DomainException("TELEMETRY_RANGE_EXCEEDED", "Range exceeds ${QueryLimits.MAX_TELEMETRY_DAYS} days")
+        }
+    }
 
     @Transactional
     fun seed() {
-        val machines = listOf("machine-001" to Pair(-19.39, -54.57), "machine-002" to Pair(-19.41, -54.55))
-        if (repo.existsByMachineId(DemoIds.uuid(machines.first().first))) return
+        val machines = listOf(
+            "machine-001" to Pair(-19.39, -54.57),
+            "machine-002" to Pair(-19.41, -54.55),
+            "machine-003" to Pair(-19.37, -54.59),
+        )
+        val missing = machines.filter { !repo.existsByMachineId(DemoIds.uuid(it.first)) }
+        if (missing.isEmpty()) return
         val end = Instant.now().truncatedTo(ChronoUnit.HOURS)
         val start = end.minus(7, ChronoUnit.DAYS)
         val series = VirtualJobs.all(
-            machines.mapIndexed { idx, (key, pos) ->
+            missing.mapIndexed { idx, (key, pos) ->
                 Callable { generateSeries(DemoIds.uuid(key), pos, idx, start, end) }
             },
         )

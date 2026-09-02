@@ -1,32 +1,63 @@
 import { useState } from 'react'
 
+import { OpsBoard, OpsList } from '@/features/operations/components/OpsBoard'
+import {
+  OpsStatusFilters,
+  type OpsStatusFilter,
+} from '@/features/operations/components/OpsStatusFilters'
 import { useOperationCommands, useOperationsQuery } from '@/features/operations/queries'
-import { formatDateTime } from '@/shared/lib/format'
+import { opsStatusBars } from '@/shared/charts/adapters'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
-import { Card } from '@/shared/ui/Card'
+import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
+import { BarChartBlock } from '@/shared/ui/charts'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
-import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { useUiStore } from '@/shared/ui/uiStore'
+
+type ViewMode = 'list' | 'board'
 
 export function OperationsPage() {
   const farmId = useUiStore((s) => s.farmId)
   const operations = useOperationsQuery(farmId)
   const commands = useOperationCommands()
-  const [pauseReason, setPauseReason] = useState('Pausa solicitada pelo operador')
+  const { t } = useI18n()
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [statusFilter, setStatusFilter] = useState<OpsStatusFilter>('ALL')
+  const [pauseReason, setPauseReason] = useState(() => t('operations.pauseReasonDefault'))
   const err = queryError(operations.error)
   const commandError =
     commands.start.error || commands.pause.error || commands.complete.error
       ? queryError(commands.start.error || commands.pause.error || commands.complete.error)
       : null
-  const busy = commands.start.isPending || commands.pause.isPending || commands.complete.isPending
+
+  const filtered = (operations.data ?? []).filter(
+    (op) => statusFilter === 'ALL' || op.status === statusFilter,
+  )
 
   return (
     <section>
-      <PageHeader title="Operações" description="Inicie, pause ou conclua operações no servidor." />
+      <PageHeader title={t('operations.title')} description={t('operations.description')} />
+      <div className="mb-4 flex flex-wrap gap-2">
+        <Button
+          variant={viewMode === 'list' ? 'primary' : 'secondary'}
+          aria-pressed={viewMode === 'list'}
+          onClick={() => setViewMode('list')}
+        >
+          {t('operations.view.list')}
+        </Button>
+        <Button
+          variant={viewMode === 'board' ? 'primary' : 'secondary'}
+          aria-pressed={viewMode === 'board'}
+          onClick={() => setViewMode('board')}
+        >
+          {t('operations.view.board')}
+        </Button>
+      </div>
+      <OpsStatusFilters value={statusFilter} onChange={setStatusFilter} />
       <label className="mb-4 flex max-w-md flex-col gap-1 text-sm">
-        Motivo da pausa
+        {t('operations.pauseReason')}
         <input
           value={pauseReason}
           onChange={(e) => setPauseReason(e.target.value)}
@@ -36,55 +67,35 @@ export function OperationsPage() {
       {commandError ? (
         <p className="mb-3 text-sm text-red-800" role="alert">
           {commandError.message}
+          {commandError.correlationId
+            ? ` · ${t('common.correlationId')} ${commandError.correlationId}`
+            : ''}
         </p>
+      ) : null}
+      {(operations.data?.length ?? 0) > 0 ? (
+        <ChartCard title={t('charts.opsByStatus')} className="mb-4">
+          <BarChartBlock
+            data={opsStatusBars(operations.data ?? [])}
+            xKey="name"
+            bars={[{ dataKey: 'value', name: t('charts.count'), color: CHART_COLORS.green }]}
+          />
+        </ChartCard>
       ) : null}
       <QueryPageState
         isLoading={operations.isLoading}
         isError={operations.isError}
         errorMessage={err.message}
         correlationId={err.correlationId}
-        isEmpty={!operations.isLoading && (operations.data?.length ?? 0) === 0}
-        emptyTitle="Nenhuma operação encontrada"
-        emptyDescription="Ainda não há operações no serviço."
+        isEmpty={!operations.isLoading && filtered.length === 0}
+        emptyTitle={t('operations.emptyTitle')}
+        emptyDescription={t('operations.emptyDescription')}
         onRetry={() => void operations.refetch()}
       >
-        <div className="flex flex-col gap-3">
-          {(operations.data ?? []).map((op) => (
-            <Card key={op.id} className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-semibold text-pf-green">{op.type}</h2>
-                  <StatusBadge value={op.status} />
-                </div>
-                <p className="mt-1 text-xs text-pf-muted">
-                  Início planejado: {formatDateTime(op.plannedStart)}
-                  {op.pauseReason ? ` · Pausa: ${op.pauseReason}` : ''}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {(op.status === 'PLANNED' || op.status === 'PAUSED') && (
-                  <Button disabled={busy} onClick={() => commands.start.mutate(op.id)}>
-                    Iniciar
-                  </Button>
-                )}
-                {op.status === 'IN_PROGRESS' && (
-                  <Button
-                    variant="secondary"
-                    disabled={busy || !pauseReason.trim()}
-                    onClick={() => commands.pause.mutate({ id: op.id, reason: pauseReason })}
-                  >
-                    Pausar
-                  </Button>
-                )}
-                {(op.status === 'IN_PROGRESS' || op.status === 'PAUSED') && (
-                  <Button variant="secondary" disabled={busy} onClick={() => commands.complete.mutate(op.id)}>
-                    Concluir
-                  </Button>
-                )}
-              </div>
-            </Card>
-          ))}
-        </div>
+        {viewMode === 'board' ? (
+          <OpsBoard operations={filtered} pauseReason={pauseReason} commands={commands} />
+        ) : (
+          <OpsList operations={filtered} pauseReason={pauseReason} commands={commands} />
+        )}
       </QueryPageState>
     </section>
   )

@@ -1,3 +1,4 @@
+import { queryClient } from '@/app/queryClient'
 import { useAuthStore } from '@/shared/auth/store'
 import { CORRELATION_HEADER, newCorrelationId, newIdempotencyKey } from '@/shared/lib/correlation'
 
@@ -74,6 +75,7 @@ async function refreshSession(): Promise<boolean> {
       return true
     } catch {
       useAuthStore.getState().clearSession()
+      queryClient.clear()
       return false
     }
   })()
@@ -84,10 +86,12 @@ async function refreshSession(): Promise<boolean> {
   }
 }
 
-async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+async function fetchAuthorized(
+  path: string,
+  options: RequestOptions = {},
+): Promise<{ res: Response; correlationId: string }> {
   const correlationId = newCorrelationId()
   const headers: Record<string, string> = {
-    Accept: 'application/json',
     [CORRELATION_HEADER]: correlationId,
     ...options.headers,
   }
@@ -111,9 +115,18 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
   if (res.status === 401 && !options.skipRefresh && !options.skipAuth) {
     const refreshed = await refreshSession()
     if (refreshed) {
-      return apiRequest<T>(path, { ...options, skipRefresh: true })
+      return fetchAuthorized(path, { ...options, skipRefresh: true })
     }
   }
+
+  return { res, correlationId }
+}
+
+async function apiRequest<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { res, correlationId } = await fetchAuthorized(path, {
+    ...options,
+    headers: { Accept: 'application/json', ...options.headers },
+  })
 
   if (!res.ok) {
     throw await parseError(res, correlationId)
@@ -137,12 +150,7 @@ export async function apiPost<T>(path: string, body?: unknown, idempotent = true
 }
 
 export async function apiDownload(path: string, filename: string): Promise<void> {
-  const correlationId = newCorrelationId()
-  const token = useAuthStore.getState().accessToken
-  const headers: Record<string, string> = { [CORRELATION_HEADER]: correlationId }
-  if (token) headers.Authorization = `Bearer ${token}`
-
-  const res = await fetch(`${API_BASE}${path}`, { headers })
+  const { res, correlationId } = await fetchAuthorized(path)
   if (!res.ok) {
     throw await parseError(res, correlationId)
   }

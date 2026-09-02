@@ -18,4 +18,25 @@ class FileMetaEntity(
     @Column(name = "processing_version") val processingVersion: String?,
     val quality: String?,
 )
-interface FileJpaRepository : JpaRepository<FileMetaEntity, UUID>
+
+@Entity
+@Table(name = "map_layers")
+class MapLayerEntity(
+    @Id val id: UUID,
+    @Column(name = "farm_id") val farmId: UUID,
+    @Column(name = "field_id") val fieldId: UUID?,
+    val name: String,
+    val kind: String,
+    val source: String,
+    @Column(name = "tile_url") val tileUrl: String?,
+    @Column(name = "acquired_at") val acquiredAt: Instant?,
+    val status: String,
+)
+
+interface FileJpaRepository : JpaRepository<FileMetaEntity, UUID> {
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<FileMetaEntity>
+}
+interface MapLayerJpaRepository : JpaRepository<MapLayerEntity, UUID> {
+    fun findByFarmId(farmId: UUID): List<MapLayerEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<MapLayerEntity>
+}

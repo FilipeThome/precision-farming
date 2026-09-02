@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Download } from 'lucide-react'
 
 import { downloadInventoryReport, downloadOperationsReport } from '@/features/reports/api'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
@@ -10,6 +11,7 @@ import { PageHeader } from '@/shared/ui/PageHeader'
 export function ReportsPage() {
   const [pending, setPending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useI18n()
 
   async function download(kind: 'operations' | 'inventory') {
     setError(null)
@@ -26,10 +28,7 @@ export function ReportsPage() {
 
   return (
     <section>
-      <PageHeader
-        title="Relatórios"
-        description="Download autenticado dos CSV gerados pelo gateway."
-      />
+      <PageHeader title={t('reports.title')} description={t('reports.description')} />
       {error ? (
         <p className="mb-3 text-sm text-red-800" role="alert">
           {error}

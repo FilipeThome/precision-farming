@@ -1,5 +1,6 @@
 package com.precisionfarming.security
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -26,6 +27,7 @@ import javax.crypto.spec.SecretKeySpec
 class SecurityConfig(
     private val jwtProperties: JwtProperties,
     private val correlationFilter: CorrelationFilter,
+    @Value("\${springdoc.api-docs.enabled:false}") private val springdocEnabled: Boolean,
 ) {
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
@@ -33,7 +35,12 @@ class SecurityConfig(
     @Bean
     fun jwtDecoder(): JwtDecoder {
         val key = SecretKeySpec(jwtProperties.jwtSecret.toByteArray(), "HmacSHA256")
-        return NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        return JwtDecoder { token ->
+            val jwt = nimbus.decode(token)
+            JwtAccessType.requireResourceToken(jwt.getClaimAsString(JwtAccessType.CLAIM))
+            jwt
+        }
     }
 
     @Bean
@@ -56,13 +63,13 @@ class SecurityConfig(
                 it.requestMatchers(
                     "/actuator/health",
                     "/actuator/info",
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
-                    "/api/v1/dev/seed/reset",
                 ).permitAll()
+                // OpenAPI/Swagger only when explicitly enabled (local demo via SPRINGDOC_ENABLED).
+                if (springdocEnabled) {
+                    it.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                }
                 it.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 it.anyRequest().authenticated()
             }
@@ -76,7 +83,7 @@ class SecurityConfig(
     @Bean
     fun corsSource(): UrlBasedCorsConfigurationSource {
         val config = CorsConfiguration().apply {
-            allowedOriginPatterns = listOf("*")
+            allowedOriginPatterns = LocalCors.ORIGINS
             allowedMethods = listOf("*")
             allowedHeaders = listOf("*")
             allowCredentials = true

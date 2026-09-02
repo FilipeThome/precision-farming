@@ -1,12 +1,15 @@
 package com.precisionfarming.auth.api
 
+import com.precisionfarming.auth.application.AuthRateLimiter
 import com.precisionfarming.auth.application.AuthService
 import com.precisionfarming.auth.application.LoginCommand
 import com.precisionfarming.auth.application.RefreshCommand
 import com.precisionfarming.auth.application.TokenResponse
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.security.oauth2.jwt.Jwt
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,25 +25,40 @@ data class MeResponse(val id: UUID, val name: String, val email: String, val rol
 
 @RestController
 @RequestMapping("/api/v1/auth")
-class AuthController(private val authService: AuthService) {
+class AuthController(
+    private val authService: AuthService,
+    private val rateLimiter: AuthRateLimiter,
+) {
     @PostMapping("/login")
-    fun login(@Valid @RequestBody body: LoginRequest): TokenResponse =
-        authService.login(LoginCommand(body.email.lowercase(), body.password))
+    fun login(@Valid @RequestBody body: LoginRequest, request: HttpServletRequest): TokenResponse {
+        val email = body.email.lowercase()
+        rateLimiter.check("login:${clientKey(request)}:$email")
+        return authService.login(LoginCommand(email, body.password))
+    }
 
     @PostMapping("/refresh")
-    fun refresh(@Valid @RequestBody body: RefreshRequest): TokenResponse =
-        authService.refresh(RefreshCommand(body.refreshToken))
+    fun refresh(@Valid @RequestBody body: RefreshRequest, request: HttpServletRequest): TokenResponse {
+        rateLimiter.check("refresh:${clientKey(request)}")
+        return authService.refresh(RefreshCommand(body.refreshToken))
+    }
 
     @GetMapping("/me")
     fun me(@AuthenticationPrincipal jwt: Jwt): MeResponse {
         val user = authService.me(UUID.fromString(jwt.subject))
         return MeResponse(user.id, user.name, user.email, user.role.name)
     }
+
+    private fun clientKey(request: HttpServletRequest): String {
+        // Do not trust client-supplied X-Forwarded-For (spoofable through the gateway).
+        // Login keys also include email; refresh is keyed by the immediate peer address.
+        return request.remoteAddr ?: "unknown"
+    }
 }
 
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class SeedController(private val authService: AuthService) {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset(): Map<String, String> {
         authService.seed()

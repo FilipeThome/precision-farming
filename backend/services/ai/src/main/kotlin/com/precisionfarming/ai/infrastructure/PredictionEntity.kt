@@ -20,8 +20,10 @@ class PredictionEntity(
     @Column(name = "generated_at") val generatedAt: Instant,
     val explanation: String,
     @Column(name = "horizon_hours") val horizonHours: Int?,
+    @Column(name = "farm_id") var farmId: UUID? = null,
 )
 
 interface PredictionJpaRepository : JpaRepository<PredictionEntity, UUID> {
     fun findByEntityId(entityId: UUID): List<PredictionEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<PredictionEntity>
 }

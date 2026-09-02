@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Outlet, Route, Routes } from 'react-router'
 
 import { AppShell } from '@/app/layout/AppShell'
+import { useI18n } from '@/shared/i18n/useI18n'
 import { useAuthStore } from '@/shared/auth/store'
 
 const LoginPage = lazy(() =>
@@ -17,6 +18,9 @@ const FarmsPage = lazy(() =>
 const FieldsPage = lazy(() =>
   import('@/features/fields/pages/FieldsPage').then((m) => ({ default: m.FieldsPage })),
 )
+const SeasonsPage = lazy(() =>
+  import('@/features/seasons/pages/SeasonsPage').then((m) => ({ default: m.SeasonsPage })),
+)
 const MachinesPage = lazy(() =>
   import('@/features/machines/pages/MachinesPage').then((m) => ({ default: m.MachinesPage })),
 )
@@ -26,11 +30,39 @@ const OperationsPage = lazy(() =>
 const MaintenancePage = lazy(() =>
   import('@/features/maintenance/pages/MaintenancePage').then((m) => ({ default: m.MaintenancePage })),
 )
+const AgronomyPage = lazy(() =>
+  import('@/features/agronomy/pages/AgronomyPage').then((m) => ({ default: m.AgronomyPage })),
+)
 const InventoryPage = lazy(() =>
   import('@/features/inventory/pages/InventoryPage').then((m) => ({ default: m.InventoryPage })),
 )
 const WeatherPage = lazy(() =>
   import('@/features/weather/pages/WeatherPage').then((m) => ({ default: m.WeatherPage })),
+)
+const IrrigationPage = lazy(() =>
+  import('@/features/irrigation/pages/IrrigationPage').then((m) => ({ default: m.IrrigationPage })),
+)
+const HarvestPage = lazy(() =>
+  import('@/features/harvest/pages/HarvestPage').then((m) => ({ default: m.HarvestPage })),
+)
+const FinancePage = lazy(() =>
+  import('@/features/finance/pages/FinancePage').then((m) => ({ default: m.FinancePage })),
+)
+const MarketPage = lazy(() =>
+  import('@/features/market/pages/MarketPage').then((m) => ({ default: m.MarketPage })),
+)
+const CompliancePage = lazy(() =>
+  import('@/features/compliance/pages/CompliancePage').then((m) => ({ default: m.CompliancePage })),
+)
+const TraceabilityLotPage = lazy(() =>
+  import('@/features/compliance/pages/TraceabilityLotPage').then((m) => ({
+    default: m.TraceabilityLotPage,
+  })),
+)
+const IntegrationsPage = lazy(() =>
+  import('@/features/integrations/pages/IntegrationsPage').then((m) => ({
+    default: m.IntegrationsPage,
+  })),
 )
 const AiInsightsPage = lazy(() =>
   import('@/features/ai/pages/AiInsightsPage').then((m) => ({ default: m.AiInsightsPage })),
@@ -46,8 +78,9 @@ const SettingsPage = lazy(() =>
 )
 
 function Fallback() {
+  const { t } = useI18n()
   return (
-    <div className="flex min-h-64 items-center justify-center text-sm text-pf-muted">Carregando…</div>
+    <div className="flex min-h-64 items-center justify-center text-sm text-pf-muted">{t('chrome.loading')}</div>
   )
 }
 
@@ -76,14 +109,23 @@ export function AppRouter() {
           <Route path="/map" element={<MapPage />} />
           <Route path="/farms" element={<FarmsPage />} />
           <Route path="/fields" element={<FieldsPage />} />
+          <Route path="/seasons" element={<SeasonsPage />} />
           <Route path="/machines" element={<MachinesPage />} />
           <Route path="/operations" element={<OperationsPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/agronomy" element={<AgronomyPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/weather" element={<WeatherPage />} />
+          <Route path="/irrigation" element={<IrrigationPage />} />
+          <Route path="/harvest" element={<HarvestPage />} />
+          <Route path="/finance" element={<FinancePage />} />
+          <Route path="/market" element={<MarketPage />} />
+          <Route path="/compliance" element={<CompliancePage />} />
+          <Route path="/compliance/lots/:lotCode" element={<TraceabilityLotPage />} />
           <Route path="/ai" element={<AiInsightsPage />} />
           <Route path="/alerts" element={<AlertsPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
