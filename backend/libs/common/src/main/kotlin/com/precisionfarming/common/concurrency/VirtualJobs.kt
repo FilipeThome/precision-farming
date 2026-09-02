@@ -1,5 +1,6 @@
 package com.precisionfarming.common.concurrency
 
+import com.precisionfarming.common.QueryLimits
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 
@@ -14,7 +15,9 @@ object VirtualJobs {
         when {
             tasks.isEmpty() -> emptyList()
             tasks.size == 1 -> listOf(tasks[0].call())
-            else -> executor.invokeAll(tasks).map { it.get() }
+            else -> tasks.chunked(QueryLimits.VT_PARALLELISM).flatMap { chunk ->
+                executor.invokeAll(chunk).map { it.get() }
+            }
         }
 
     fun <A, B> zip(left: Callable<A>, right: Callable<B>): Pair<A, B> {

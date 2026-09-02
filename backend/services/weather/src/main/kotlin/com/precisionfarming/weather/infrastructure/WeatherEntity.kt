@@ -25,6 +25,18 @@ class WeatherEntity(
     val vintage: String,
 )
 
+@Entity
+@Table(name = "weather_windows")
+class WeatherWindowEntity(
+    @Id val id: UUID,
+    @Column(name = "farm_id") val farmId: UUID,
+    @Column(name = "window_type") val windowType: String,
+    @Column(name = "start_at") val startAt: Instant,
+    @Column(name = "end_at") val endAt: Instant,
+    val rating: String,
+    val notes: String?,
+)
+
 interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
     fun existsByFarmId(farmId: UUID): Boolean
     fun findByFarmIdOrderByForecastAtAsc(farmId: UUID): List<WeatherEntity>
@@ -36,4 +48,10 @@ interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
         farmId: UUID,
         forecastAt: Instant,
     ): WeatherEntity?
+}
+
+interface WeatherWindowJpaRepository : JpaRepository<WeatherWindowEntity, UUID> {
+    fun findByFarmId(farmId: UUID): List<WeatherWindowEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<WeatherWindowEntity>
+    fun findByFarmIdInAndWindowTypeIgnoreCase(farmIds: Collection<UUID>, windowType: String): List<WeatherWindowEntity>
 }

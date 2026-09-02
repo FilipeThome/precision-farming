@@ -22,4 +22,5 @@ class AlertEntity(
 
 interface AlertJpaRepository : JpaRepository<AlertEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<AlertEntity>
+    fun findByFarmIdIn(farmIds: Collection<UUID>): List<AlertEntity>
 }

@@ -42,10 +42,17 @@ management:
   health:
     rabbit:
       enabled: false
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
 app:
   security:
     jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
+    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
+    auth-rate-limit-per-minute: ${AUTH_RATE_LIMIT:20}
   seed: ${APP_SEED:true}
   clients:
     farm: ${FARM_URL:http://localhost:8082}

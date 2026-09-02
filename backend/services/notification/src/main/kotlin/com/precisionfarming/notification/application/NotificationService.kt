@@ -11,9 +11,21 @@ import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
 import java.util.UUID
 
+data class NotificationDto(
+    val id: UUID,
+    val userId: UUID,
+    val type: String,
+    val title: String,
+    val body: String,
+    val readAt: Instant?,
+    val createdAt: Instant,
+)
+
 @Service
 class NotificationService(private val repo: NotificationJpaRepository) {
-    fun list() = repo.findAll()
+    fun list(userId: UUID): List<NotificationDto> =
+        repo.findByUserId(userId).map { it.toDto() }
+
     @Transactional
     fun seed() {
         if (repo.existsById(DemoIds.uuid("notif-001"))) return
@@ -24,6 +36,8 @@ class NotificationService(private val repo: NotificationJpaRepository) {
             ),
         )
     }
+
+    private fun NotificationEntity.toDto() = NotificationDto(id, userId, type, title, body, readAt, createdAt)
 }
 
 @Service

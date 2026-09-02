@@ -12,6 +12,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+      - name: Ensure Gradle wrapper is executable
+        run: chmod +x gradlew
       - name: Test
         run: ./gradlew test --no-daemon
   web:

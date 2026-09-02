@@ -3,6 +3,8 @@ package com.precisionfarming.inventory.application
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoItemFarms
 import com.precisionfarming.inventory.infrastructure.ItemEntity
 import com.precisionfarming.inventory.infrastructure.ItemJpaRepository
 import com.precisionfarming.inventory.infrastructure.MovementEntity
@@ -28,15 +30,23 @@ class InventoryService(
     private val items: ItemJpaRepository,
     private val movements: MovementJpaRepository,
 ) {
-    fun list(farmId: UUID?) = (farmId?.let { items.findByFarmId(it) } ?: items.findAll()).map { it.toDto() }
+    fun list(scope: AccessScope, farmId: UUID?) =
+        items.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
-    fun create(cmd: UpsertItem) =
-        items.save(ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity)).toDto()
+    fun create(scope: AccessScope, cmd: UpsertItem): ItemDto {
+        scope.requireFarm(cmd.farmId)
+        val saved = items.save(
+            ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity),
+        ).toDto()
+        DemoItemFarms.register(saved.id, saved.farmId)
+        return saved
+    }
 
     @Transactional
-    fun move(cmd: MovementCmd): ItemDto {
+    fun move(scope: AccessScope, cmd: MovementCmd): ItemDto {
         val item = items.findById(cmd.itemId).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
+        scope.requireEntityFarm(item.farmId)
         when (cmd.type) {
             "RESERVE" -> {
                 if (item.quantity - item.reserved < cmd.quantity) {
@@ -66,6 +76,19 @@ class InventoryService(
             Row("item-001", "farm-001", "Glifosato", "DEFENSIVO", "L", "420"),
             Row("item-002", "farm-001", "Ureia", "FERTILIZANTE", "KG", "1800"),
             Row("item-003", "farm-002", "Semente soja", "SEMENTE", "KG", "900"),
+            Row("item-004", "farm-001", "Diesel S10", "COMBUSTIVEL", "L", "5200"),
+            Row("item-005", "farm-002", "2,4-D", "DEFENSIVO", "L", "310"),
+            Row("item-006", "farm-002", "Filtro de óleo", "PECA", "UN", "24"),
+            Row("item-007", "farm-003", "Semente milho", "SEMENTE", "KG", "1100"),
+            Row("item-008", "farm-003", "MAP", "FERTILIZANTE", "KG", "2400"),
+            Row("item-009", "farm-004", "Inseticida", "DEFENSIVO", "L", "180"),
+            Row("item-010", "farm-004", "Diesel S10", "COMBUSTIVEL", "L", "3800"),
+            Row("item-011", "farm-005", "KCl", "FERTILIZANTE", "KG", "1600"),
+            Row("item-012", "farm-005", "Correia transm.", "PECA", "UN", "12"),
+            Row("item-013", "farm-006", "Semente algodão", "SEMENTE", "KG", "640"),
+            Row("item-014", "farm-006", "Herbicida pré", "DEFENSIVO", "L", "220"),
+            Row("item-015", "farm-007", "Ureia", "FERTILIZANTE", "KG", "980"),
+            Row("item-016", "farm-008", "Óleo hidráulico", "COMBUSTIVEL", "L", "450"),
         )
         val existing = items.findAllById(rows.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
         items.saveAll(

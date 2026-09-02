@@ -43,9 +43,15 @@ management:
   health:
     rabbit:
       enabled: false
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
 app:
   security:
     jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
+    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
   seed: ${APP_SEED:true}
   clients:

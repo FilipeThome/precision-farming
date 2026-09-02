@@ -3,6 +3,8 @@ param(
 )
 $root = Resolve-Path "$PSScriptRoot\.."
 Set-Location $root
+# Local demo: allow in-repo JWT/DB defaults (fail-closed without this outside profile `local`).
+if (-not $env:ALLOW_DEMO_SECRETS) { $env:ALLOW_DEMO_SECRETS = "true" }
 $modules = @(
   "backend:services:auth",
   "backend:services:farm",

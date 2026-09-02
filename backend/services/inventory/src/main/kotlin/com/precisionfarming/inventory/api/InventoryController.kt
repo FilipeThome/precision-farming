@@ -3,25 +3,31 @@ package com.precisionfarming.inventory.api
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
 import com.precisionfarming.inventory.application.UpsertItem
+import com.precisionfarming.security.FarmAccess
+import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
 import java.util.UUID
 
 @RestController
 @RequestMapping("/api/v1/inventory")
-class InventoryController(private val svc: InventoryService) {
+class InventoryController(
+    private val svc: InventoryService,
+    private val farmAccess: FarmAccess,
+) {
     @GetMapping
-    fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmId)
+    fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
     @PostMapping
-    fun create(@RequestBody body: UpsertItem) = svc.create(body)
+    fun create(@RequestBody body: UpsertItem) = svc.create(farmAccess.current(), body)
 
     @PostMapping("/movements")
-    fun move(@RequestBody body: MovementCmd) = svc.move(body)
+    fun move(@RequestBody body: MovementCmd) = svc.move(farmAccess.current(), body)
 }
 
 @RestController
 @RequestMapping("/api/v1/dev/seed")
 class InventorySeedController(private val svc: InventoryService) {
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/reset")
     fun reset() = mapOf("status" to "seeded", "service" to "inventory").also { svc.seed() }
 }

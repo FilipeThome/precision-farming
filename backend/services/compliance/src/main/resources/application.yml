@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: compliance-service
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/compliance_db
+    username: ${DB_USER:precision}
+    password: ${DB_PASSWORD:precision}
+
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.time_zone: UTC
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+  flyway:
+    enabled: true
+
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
+    username: ${RABBIT_USER:precision}
+    password: ${RABBIT_PASSWORD:precision}
+    listener:
+      simple:
+        auto-startup: false
+
+  threads:
+    virtual:
+      enabled: true
+server:
+  port: 8099
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  health:
+    rabbit:
+      enabled: false
+springdoc:
+  api-docs:
+    enabled: ${SPRINGDOC_ENABLED:false}
+  swagger-ui:
+    enabled: ${SPRINGDOC_ENABLED:false}
+app:
+  security:
+    jwt-secret: ${JWT_SECRET:precision-farming-demo-jwt-secret-key-32}
+    allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
+    issuer: precision-farming
+  seed: ${APP_SEED:true}
+  clients:
+    farm: ${FARM_URL:http://localhost:8082}
+    asset: ${ASSET_URL:http://localhost:8083}
+    inventory: ${INVENTORY_URL:http://localhost:8087}
+    operation: ${OPERATION_URL:http://localhost:8086}
+    weather: ${WEATHER_URL:http://localhost:8085}

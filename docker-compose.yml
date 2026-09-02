@@ -2,6 +2,9 @@ name: precision-farming
 
 # Full local stack, ready even when a service is unused.
 # Alpine variants where the vendor publishes them.
+#
+# Infra ports are bound to 127.0.0.1 only (local demo). Production must NOT publish
+# Postgres/Timescale/RabbitMQ/Redis/MinIO to any host interface — use private networks.
 
 services:
   postgres:
@@ -12,7 +15,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
       POSTGRES_DB: postgres
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./scripts/init-postgis.sql:/docker-entrypoint-initdb.d/01-init.sql
@@ -32,7 +35,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
       POSTGRES_DB: telemetry_db
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - timescaledb_data:/var/lib/postgresql/data
     healthcheck:
@@ -47,8 +50,8 @@ services:
     image: rabbitmq:3.13-management-alpine
     restart: unless-stopped
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBIT_USER:-precision}
       RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD:-precision}
@@ -66,7 +69,7 @@ services:
     image: redis:7.4-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -85,8 +88,8 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-precision}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-precisionminio}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
     networks:

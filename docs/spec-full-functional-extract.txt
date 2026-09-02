@@ -1,0 +1,2077 @@
+
+PRECISION FARMINGFULL-SCOPE MVP — FUNCTIONAL & TECHNICAL SPECIFICATIONAgricultural Operating System | Fake Data / Simulator First
+Documento derivado do blueprint V4. O objetivo é especificar um MVP executável que contenha, em versão simulada, o conjunto completo de funcionalidades do produto alvo. Integrações externas, telemetria real, satélite real, drones reais e modelos treinados podem ser substituídos por adapters e dados fake determinísticos.
+Princípio: nenhuma funcionalidade deve ficar apenas como conceito. Cada capability possui UI, domínio, dados, eventos, fake provider, fluxo e critérios de aceite.
+Status: MASTER MVP SPECIFICATION
+Data: 01/09/2026
+1. Decisão central do MVP
+Este MVP é deliberadamente mais amplo que um MVP comercial mínimo. Ele é um MVP de produto/ecossistema: deve demonstrar a experiência ponta a ponta do Agricultural Operating System usando dados sintéticos. O objetivo é validar a arquitetura, UX e integração dos domínios antes de depender de APIs de OEM, fornecedores de clima, imagery, drones ou ERPs.
+Todos os módulos devem funcionar com seed data.
+Todo provider externo deve ter um Fake Adapter com o mesmo contrato do futuro adapter real.
+Todo fluxo deve ser demonstrável sem internet externa.
+Dados fake devem parecer operacionalmente plausíveis e ter relações consistentes.
+O usuário deve conseguir navegar do alerta até a decisão, ordem, execução, custo e resultado.
+2. Princípios de escopo
+Completo em breadth, simplificado em profundidade onde não houver necessidade de integração real.
+Canonical model antes de qualquer schema de fornecedor.
+Offline-first como requisito de produto, não como feature futura.
+Map-first para operações geográficas.
+Event-first para mudanças relevantes.
+Fake data determinístico para demo, testes e desenvolvimento.
+AI inicialmente híbrida: regras + estatística + modelos simulados + explicação textual.
+Physical commands são sempre simulados no MVP e passam por safety gates.
+Todos os dados importantes têm timestamp, source, version e lineage.
+Todos os resultados operacionais são reconciliáveis.
+
+3. Personas e permissões
+Persona
+Permissões principais
+Owner / Admin
+tenant, usuários, configuração, integrações, todos os módulos
+Farm Manager
+fazendas, safras, planejamento, operações, frota, finanças, decisões
+Agronomist
+mapa, scouting, solo, crop health, recomendações, prescriptions
+Field Supervisor
+ordens, despacho, acompanhamento, inspeções, execução
+Machine Operator
+tarefas atribuídas, checklist, apontamento, offline, telemetria própria
+Maintenance Manager
+ativos, inspeções, work orders, peças, manutenção
+Mechanic
+ordens, diagnóstico, peças, execução offline
+Warehouse Manager
+inventário, lotes, requisições, recebimento, transferências
+Logistics Coordinator
+harvest loads, trucks, dispatch, storage, queues
+Finance Analyst
+custos, P&L, orçamento, commodities, cenários
+ESG / Compliance
+traceability, evidence, ESG, compliance
+Executive
+dashboards, KPIs, alerts, scenarios, AI insights
+Read Only
+consultas e relatórios
+4. Tenancy e RBAC
+Tenant → Business Group → Farm → Field.
+Usuário pode pertencer a múltiplos tenants/organizações conforme role.
+Row-level authorization por tenant_id.
+Permissões por capability e ação: READ/CREATE/UPDATE/DELETE/APPROVE/EXECUTE.
+Audit log para ações administrativas e operacionais.
+Fake login deve permitir troca rápida entre personas.
+5. Navigation tree
+Dashboard├── Farms│   ├── Farm Overview│   ├── Fields│   ├── Seasons│   └── Digital Twin├── Map│   ├── Layers│   ├── Prescriptions│   ├── Satellite│   ├── Drone│   └── Scouting├── Agronomy│   ├── Crop Health│   ├── Scouting│   ├── Soil│   ├── Recommendations│   ├── Crop Protection│   └── Experiments├── Operations│   ├── Planning│   ├── Work Orders│   ├── Dispatch Board│   ├── Offline Queue│   └── Execution History├── Fleet│   ├── Machines│   ├── Live Map│   ├── Telemetry│   └── Maintenance├── Water│   ├── Irrigation│   ├── Sensors│   └── Water Balance├── Remote Sensing│   ├── Satellite│   └── Drone Missions├── Harvest│   ├── Harvest Plan│   ├── Yield│   ├── Logistics│   └── Storage├── Inventory│   ├── Stock│   ├── Lots│   ├── Procurement│   └── Applications├── Finance│   ├── Costs│   ├── P&L│   ├── Budget│   └── Cash Flow├── Market│   ├── Commodities│   ├── Contracts│   └── Exposure├── Traceability├── ESG & Risk├── AI│   ├── Insights│   ├── Predictions│   ├── Scenarios│   ├── Copilot│   └── Agents├── Integrations├── Data Quality├── Reports└── Administration
+
+6. Módulo: Farm & Land Management
+Feature
+MVP behavior
+Farm CRUD
+criar, editar, arquivar, visualizar fazenda; área, localização, owner, status
+Field CRUD
+talhões, geometria, área, cultura, solo, zoneamento
+Season
+safra, datas, cultura, variedade, status
+Crop rotation
+histórico e planejamento futuro
+Infrastructure
+silos, oficinas, abastecimento, pivôs, estradas, pontos de interesse
+Documents
+contratos, licenças, laudos, fotos
+Digital Twin
+timeline e estado consolidado do ativo agrícola
+Acceptance criteria
+Usuário cria fazenda e talhão no mapa.
+Área é calculada automaticamente pela geometria fake.
+Talhão pode receber safra/cultura.
+Histórico de safras fica consultável.
+Alterações ficam no audit trail.
+Dashboard do talhão mostra operações, clima, imagens, custos, saúde e produtividade.
+7. Módulo: GIS / Map
+Google Satellite/Hybrid como base configurável; fake map mode para ambiente sem chave.
+Field boundaries.
+Machine tracks.
+Operation routes.
+Scouting pins.
+Weather stations.
+Soil sampling points.
+NDVI/NDRE/EVI/GNDVI/NDMI/MSAVI/RECI fake raster layers.
+Yield maps.
+Prescription maps.
+As-applied maps.
+Drone orthomosaic overlays.
+Layer opacity, visibility, legend, date selector.
+Click feature → contextual drawer.
+Time slider para evolução temporal.
+Fake GIS dataset
+field_id=F-043polygon=synthetic valid polygonarea_ha=82.4layers=[NDVI_2026_08_28, SOIL_P_2026, YIELD_2025, PRESCRIPTION_N_2026]centroid=(-22.9,-49.9)
+8. Módulo: Crop Lifecycle
+Planting plan.
+Crop variety.
+Target population.
+Phenological stage.
+Growth monitoring.
+Crop calendar.
+Expected yield.
+Actual yield.
+Stress events.
+Crop lifecycle timeline.
+9. Módulo: Scouting
+Create scouting task.
+Offline observation.
+GPS position.
+Photo fake attachment.
+Video metadata fake.
+Pest/disease/weed/nutrition/water stress categories.
+Severity 1–5.
+Area affected.
+Recommendation.
+Supervisor approval.
+Convert observation into work order.
+History and comparison.
+10. Módulo: Soil Intelligence
+Sampling campaign.
+Grid sampling.
+Zone sampling.
+Laboratory result import via fake adapter.
+pH, P, K, Ca, Mg, CTC, organic matter, micronutrients.
+Moisture and EC.
+Compaction.
+Heatmap.
+Historical comparison.
+Correction recommendation.
+Fertilizer recommendation.
+Prescription generation.
+11. Módulo: Crop Protection
+Product catalog fake.
+Active ingredient.
+Target pest/disease.
+Dosage.
+Tank mix.
+Application window.
+Safety restrictions.
+Buffer zone.
+Digital prescription.
+Approval workflow.
+Application work order.
+As-applied reconciliation.
+Input lot traceability.
+
+12. Módulo: Planting & Fertilization
+Planting plan by field.
+Target population.
+Seed variety.
+Seed lot.
+Fertilizer plan.
+Variable-rate prescription.
+Work order.
+Machine/implement assignment.
+Expected consumption.
+As-applied consumption.
+Deviation.
+Cost per hectare.
+Yield response.
+13. Módulo: Irrigation & Water OS
+Weather station fake.
+Soil moisture sensor fake.
+ET0/ETc fake.
+Water balance.
+Deficit.
+Pivot/gotejamento assets.
+Flow and pressure.
+Pump state.
+Irrigation schedule.
+Recommended irrigation event.
+Simulated command.
+Water consumption.
+Energy consumption.
+Water risk alert.
+14. Módulo: Weather Intelligence
+Current weather.
+Hourly forecast.
+Daily forecast.
+Historical observations.
+Rain probability.
+Wind.
+Temperature.
+Humidity.
+Solar radiation.
+VPD.
+Frost.
+Hail.
+ET0.
+Forecast vintage.
+Spraying window.
+Planting window.
+Harvest window.
+Weather risk event.
+15. Módulo: Fleet
+Tractors.
+Harvesters.
+Sprayers.
+Planters.
+Combines.
+Trucks.
+Implements.
+Drones.
+Robots.
+Machine status.
+Location.
+Hours.
+Fuel.
+Speed.
+RPM.
+Temperature.
+Pressure.
+Idle time.
+Utilization.
+Field time.
+Diagnostic codes.
+Connectivity.
+16. Módulo: Telemetry
+TelemetrySample- assetId- timestamp- latitude- longitude- speed- engineHours- fuelPercent- rpm- coolantTemperature- hydraulicPressure- status- source- sequenceNumber
+Generate one sample every simulated 30 seconds.
+Replay historical telemetry.
+Start/stop simulation.
+Inject fault.
+Inject connectivity loss.
+Map trail.
+Chart metrics.
+Detect outlier.
+Aggregate hourly/daily.
+17. Módulo: Maintenance
+Maintenance plans by hour/calendar/event.
+Preventive schedule.
+Corrective work order.
+Inspection checklist.
+Failure component.
+Severity.
+Parts required.
+Parts reservation.
+Mechanic assignment.
+Downtime.
+MTBF.
+MTTR.
+Predictive risk.
+Maintenance completion.
+Feedback to model.
+18. Módulo: Inventory & Procurement
+Seed inventory.
+Fertilizer inventory.
+Crop protection inventory.
+Fuel.
+Spare parts.
+Lot/batch.
+Expiry.
+Supplier.
+Purchase request.
+Purchase order.
+Receipt.
+Transfer.
+Reservation.
+Issue.
+Cycle count.
+Min/max stock.
+Demand forecast.
+Application reconciliation.
+
+19. Módulo: Operations
+Entity
+States
+Field Operation
+PLANNED → DISPATCHED → STARTED → PAUSED → COMPLETED → RECONCILED → CANCELLED
+Work Order
+OPEN → ASSIGNED → IN_PROGRESS → BLOCKED → COMPLETED → VERIFIED
+Inspection
+OPEN → IN_PROGRESS → SUBMITTED → REVIEWED
+Recommendation
+GENERATED → REVIEWED → APPROVED/REJECTED → EXECUTED
+Sync Batch
+QUEUED → UPLOADING → APPLIED → CONFLICT/FAILED
+20. Operations Planning
+Calendar.
+Field map.
+Operation type.
+Priority.
+Window start/end.
+Machine capacity.
+Operator availability.
+Input availability.
+Weather suitability.
+Distance/travel.
+Expected duration.
+Dependency graph.
+Plan conflict detection.
+AI priority ranking.
+21. Dispatch Board
+Kanban by state.
+Drag operation between states.
+Map synchronized with selected operation.
+Machine assignment.
+Operator assignment.
+ETA.
+Weather risk.
+Input availability.
+Block reason.
+Supervisor approval.
+Bulk reschedule.
+22. Offline Mobile
+Login cache.
+Assigned tasks cache.
+Field geometry cache.
+Checklists offline.
+Scouting offline.
+Operation start/stop offline.
+Input consumption offline.
+Photos stored locally as fake blobs.
+GPS points buffered.
+Outbox queue.
+Retry with exponential backoff.
+Idempotency key.
+Conflict resolution UI.
+Sync status.
+23. Offline conflict rules
+Conflict
+Resolution
+Same entity edited
+last-write blocked; user chooses version
+Operation started twice
+idempotent command
+Input issued twice
+deduplicate by command id
+Different status transitions
+server state wins unless explicit supervisor override
+Geometry conflict
+keep both versions and require merge
+Deleted offline
+tombstone + review
+24. Harvest
+Harvest plan.
+Expected yield.
+Harvest window.
+Machine capacity.
+Moisture.
+Quality.
+Loss estimate.
+Yield map.
+Harvest operation.
+Loads.
+Scale tickets.
+Truck dispatch.
+Storage destination.
+Contract allocation.
+25. Logistics
+Truck registry.
+Driver.
+Capacity.
+Route.
+ETA.
+Dispatch.
+Queue.
+Field loading.
+Scale ticket.
+Bin destination.
+Delay reason.
+Optimization score.
+26. Storage
+Bins/silos.
+Capacity.
+Current quantity.
+Moisture.
+Temperature.
+Quality.
+Ownership.
+Lot.
+Drying.
+Aeration.
+Transfers.
+Loss/spoilage.
+
+27. Finance & Economic Twin
+Chart of accounts.
+Cost centers.
+Field cost.
+Crop cost.
+Input cost.
+Labor cost.
+Machine cost.
+Fuel cost.
+Maintenance cost.
+Logistics cost.
+Overhead allocation.
+Budget.
+Actual.
+Forecast.
+Cash flow.
+Field P&L.
+Crop P&L.
+Cost/ha.
+Cost/ton.
+Breakeven.
+Machine TCO.
+28. Commodity Market
+Soybean.
+Corn.
+Cotton.
+Wheat.
+Sugar.
+Coffee.
+Spot.
+Futures.
+Basis.
+USD/BRL.
+Freight.
+Cash contract.
+Forward.
+Basis contract.
+Hedge-to-arrive.
+Available-to-sell.
+Exposure.
+Marketing plan.
+Price alert.
+29. Scenario Engine
+Scenario inputsyield_delta_pctprice_delta_pctcost_delta_pctfx_delta_pctrainfall_delta_mmfuel_delta_pctmachine_downtime_hoursharvest_delay_daysOutputsrevenuecostgross_marginmargin_per_habreakevencash_impactrisk_score
+Base case.
+Optimistic case.
+Stress case.
+Custom scenario.
+Monte Carlo simulation with deterministic seed.
+Scenario comparison chart.
+Save scenario.
+Convert recommended scenario into plan.
+30. Traceability
+INPUT LOT → FIELD → OPERATION → APPLICATION → HARVEST LOT → STORAGE → SHIPMENT → CUSTOMER
+Lot genealogy.
+QR code.
+Input application record.
+Operator.
+Machine.
+Date/time.
+Field.
+Application dose.
+Harvest batch.
+Storage batch.
+Shipment.
+Recall simulation.
+Audit evidence package.
+31. ESG & Risk
+Fuel emissions.
+Electricity emissions.
+CO2e/ha.
+CO2e/ton.
+Water intensity.
+Input intensity.
+Soil health score.
+Conservation practice.
+Territorial risk.
+Socioenvironmental risk.
+Credit signal.
+ESG score.
+Evidence document.
+32. Workforce & Safety
+Employees.
+Contractors.
+Skills.
+Certifications.
+Shifts.
+Tasks.
+PPE checklist.
+Pre-operation checklist.
+Incident report.
+Emergency contact.
+Training status.
+
+33. Remote Sensing — Satellite
+Fake satellite scene catalog.
+Acquisition timestamp.
+Cloud cover.
+Resolution.
+Spectral bands.
+Derived indices.
+Change detection.
+Anomaly detection.
+Field clipping.
+Time-series chart.
+Create scouting task from anomaly.
+Compare before/after.
+34. Drones
+Drone registry.
+Battery.
+Payload.
+Pilot/operator.
+Mission.
+Survey area.
+Flight status.
+Geofence.
+Safety gates.
+Telemetry replay.
+Mapping mission.
+Spraying mission simulation.
+Orthomosaic fake.
+Multispectral fake.
+Thermal fake.
+Computer vision result.
+35. Computer Vision
+Model
+Fake output
+Plant stand count
+plants/ha + confidence
+Weed detection
+weed clusters + polygons
+Disease detection
+class + severity + confidence
+Nutrient stress
+risk map
+Water stress
+risk score
+Damage detection
+affected area
+Harvest loss
+loss estimate
+Every result has model_version, confidence, timestamp and source image.
+Low confidence creates human-review task.
+Human correction is stored as feedback.
+Fake inference provider must emulate latency and failure.
+36. Experiments / Trials
+Experiment.
+Treatment/control.
+Plots.
+Replication.
+Treatment inputs.
+Yield.
+Quality.
+Cost.
+Statistical comparison.
+Effect estimate.
+Confidence interval.
+Recommendation.
+37. AI Platform
+Capability
+MVP implementation
+Rules
+deterministic Kotlin rules
+Statistics
+rolling mean, z-score, percentile
+ML prediction
+Python fake/model adapter with deterministic outputs
+CV
+fake inference adapter
+Optimization
+constraint-based heuristic
+Simulation
+Monte Carlo seeded
+LLM
+optional adapter; fallback template engine
+Agents
+state machine + tools/capabilities
+Explainability
+reason codes + feature contributions
+38. Prediction catalog
+Yield Forecast
+Machine Failure Risk
+Operational Delay
+Input Consumption Anomaly
+Spraying Window
+Planting Window
+Harvest Window
+Disease Risk
+Pest Risk
+Weed Risk
+Nutrient Stress
+Irrigation Need
+Fuel Consumption
+Harvest Loss
+Logistics ETA
+Margin Forecast
+Risk Score
+39. AI Copilot
+Ask about farm.
+Ask about field.
+Ask about machine.
+Ask about operation.
+Ask about costs.
+Ask about weather.
+Ask about risk.
+Ask about recommendations.
+Explain alert.
+Summarize day.
+Generate suggested plan.
+Never execute without explicit permission.
+40. AI Agents
+Farm Manager Agent
+Agronomy Agent
+Fleet Agent
+Weather Agent
+Irrigation Agent
+Inventory Agent
+Harvest Agent
+Logistics Agent
+Finance Agent
+Market Agent
+ESG Agent
+Data Quality Agent
+Integration Agent
+Executive Agent
+No MVP agent may directly command a physical device. It may create a recommendation or simulated command awaiting approval.
+
+41. Workflow Engine
+Trigger on event.
+Evaluate conditions.
+Create alert.
+Create recommendation.
+Request approval.
+Create work order.
+Assign resource.
+Wait for completion.
+Reconcile result.
+Update cost.
+Emit learning event.
+42. Alert Center
+Severity
+Examples
+CRITICAL
+machine overheating, unsafe command, severe weather
+HIGH
+maintenance failure risk, operation window closing
+MEDIUM
+input deviation, low inventory, forecast risk
+LOW
+informational anomaly, upcoming maintenance
+Alert deduplication.
+Alert acknowledgement.
+Snooze.
+Assign owner.
+Convert to task.
+Convert to work order.
+Related entity timeline.
+43. Data Fabric
+Raw data store.
+Canonical operational model.
+Time-series telemetry.
+Geospatial layers.
+Raster/object storage.
+Analytics tables.
+Feature store.
+Model registry.
+Lineage.
+Data quality rules.
+44. Data Lineage
+source_system.
+source_record_id.
+received_at.
+observed_at.
+adapter_version.
+transformation_version.
+canonical_version.
+actor.
+correlation_id.
+event_id.
+45. Data Quality Dashboard
+Freshness.
+Completeness.
+Duplicates.
+Invalid coordinates.
+Invalid geometry.
+Missing timestamps.
+Outlier telemetry.
+Stale forecast.
+Model drift simulation.
+Connector error rate.
+46. Integration Platform
+Fake adapter
+Simulated capabilities
+JohnDeereFakeAdapter
+fields, equipment, telemetry, work plans, prescriptions, work results
+CNHFakeAdapter
+equipment, operations, files
+AGCOFakeAdapter
+equipment, operations, telemetry
+TrimbleFakeAdapter
+guidance, application, water
+FieldViewFakeAdapter
+field layers, planting, harvest, imagery
+AegroFakeAdapter
+farm, operations, finance
+WeatherFakeAdapter
+forecast, observations
+SatelliteFakeAdapter
+scenes, indices
+DroneFakeAdapter
+missions, imagery, telemetry
+ERPBankFakeAdapter
+financial transactions
+CommodityFakeAdapter
+spot, futures, basis, FX
+Todos os adapters devem expor o mesmo contrato lógico e registrar capability discovery.
+47. Integration Console
+List connections.
+Fake/real mode indicator.
+Connection status.
+Capabilities.
+Last sync.
+Records imported/exported.
+Errors.
+Retry.
+Replay.
+Mapping to canonical model.
+Credential placeholder.
+Permission/scope placeholder.
+
+48. Canonical Domain Model
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Tenant
+Organization
+Farm
+Field
+Season
+Crop
+Variety
+CropStage
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+FieldLayer
+RasterLayer
+ScoutingObservation
+SoilSample
+AgronomyRecommendation
+Prescription
+CropProtectionProduct
+InputLot
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+InventoryItem
+InventoryTransaction
+FieldOperation
+WorkOrder
+Inspection
+Asset
+Implement
+TelemetrySample
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+MaintenancePlan
+MaintenanceWorkOrder
+Part
+WeatherObservation
+WeatherForecast
+IrrigationAsset
+IrrigationEvent
+Sensor
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+SensorReading
+Drone
+DroneMission
+SatelliteScene
+CVInference
+HarvestPlan
+YieldObservation
+HarvestLoad
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Truck
+ScaleTicket
+StorageUnit
+StorageLot
+PurchaseOrder
+Supplier
+CostTransaction
+Budget
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+CashFlowEntry
+Commodity
+MarketQuote
+Contract
+Exposure
+Scenario
+TraceabilityLot
+Shipment
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Customer
+ESGMetric
+RiskAssessment
+Employee
+Certification
+Experiment
+ExperimentPlot
+Prediction
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Entity
+Alert
+Workflow
+AgentRun
+IntegrationConnection
+RawRecord
+LineageRecord
+AuditRecord
+49. Core relationships
+Tenant 1-N FarmFarm 1-N FieldField 1-N SeasonSeason 1-N FieldOperationFieldOperation N-1 AssetFieldOperation N-N InputLotAsset 1-N TelemetrySampleAsset 1-N MaintenanceWorkOrderField 1-N ScoutingObservationField 1-N SoilSampleField 1-N PrescriptionPrescription 1-N WorkOrderWorkOrder 1-N ExecutionEventHarvestPlan 1-N HarvestLoadHarvestLoad N-1 StorageLotStorageLot N-1 ContractCostTransaction N-1 Field / Operation / Asset / InputLotPrediction N-1 Field / Asset / Operation / SeasonAlert 0..N -> Workflow / WorkOrder / InspectionRawRecord 1-N LineageRecord
+50. Event catalog
+FarmCreated
+FieldCreated
+SeasonCreated
+FieldLayerImported
+SatelliteLayerImported
+DroneSurveyProcessed
+TelemetryReceived
+AssetStatusChanged
+AssetFailureReported
+MaintenanceScheduled
+MaintenanceCompleted
+ScoutingSubmitted
+SoilSampleSubmitted
+RecommendationGenerated
+RecommendationApproved
+PrescriptionCreated
+FieldOperationPlanned
+FieldOperationStarted
+FieldOperationPaused
+FieldOperationCompleted
+InputReserved
+InventoryIssued
+InputApplied
+InputReconciled
+WeatherRiskRaised
+IrrigationRecommended
+IrrigationExecuted
+HarvestPlanned
+HarvestStarted
+YieldObserved
+HarvestLoadCreated
+TruckDispatched
+ScaleTicketRecorded
+StorageUpdated
+PurchaseOrderCreated
+CostRecorded
+MarketQuoteUpdated
+ContractCreated
+ScenarioCalculated
+PredictionGenerated
+AnomalyDetected
+AlertRaised
+AlertAcknowledged
+WorkflowStarted
+WorkflowCompleted
+SyncBatchUploaded
+ConflictDetected
+AgentRunStarted
+AgentRunCompleted
+FeedbackRecorded
+51. Event envelope
+{  eventId,  eventType,  version,  occurredAt,  tenantId,  correlationId,  causationId,  actor,  aggregateType,  aggregateId,  source,  payload}
+
+52. REST API — functional surface
+Identity
+POST /auth/login
+GET /me
+GET /users
+POST /users
+PATCH /users/{id}
+Farms
+GET /farms
+POST /farms
+GET /farms/{id}
+GET /farms/{id}/timeline
+Fields
+GET /fields
+POST /fields
+GET /fields/{id}
+PATCH /fields/{id}
+GET /fields/{id}/layers
+Seasons
+GET /seasons
+POST /seasons
+PATCH /seasons/{id}
+Map
+GET /map/layers
+POST /map/layers/import
+GET /map/tiles/{layerId}
+Agronomy
+GET /scouting
+POST /scouting
+GET /soil/samples
+POST /soil/samples
+GET /recommendations
+Prescriptions
+GET /prescriptions
+POST /prescriptions
+POST /prescriptions/{id}/approve
+Operations
+GET /operations
+POST /operations
+POST /operations/{id}/start
+POST /operations/{id}/pause
+POST /operations/{id}/complete
+Fleet
+GET /assets
+GET /assets/{id}
+GET /assets/{id}/telemetry
+GET /assets/{id}/health
+Maintenance
+GET /maintenance/work-orders
+POST /maintenance/work-orders
+POST /maintenance/work-orders/{id}/complete
+Inventory
+GET /inventory
+POST /inventory/issue
+POST /inventory/receive
+GET /inventory/lots
+Weather
+GET /weather/current
+GET /weather/forecast
+GET /weather/windows
+Irrigation
+GET /irrigation/assets
+GET /irrigation/recommendations
+POST /irrigation/simulate
+Harvest
+GET /harvest/plans
+POST /harvest/plans
+GET /harvest/yield
+Logistics
+GET /logistics/loads
+POST /logistics/dispatch
+GET /logistics/queues
+Storage
+GET /storage/units
+GET /storage/lots
+Finance
+GET /finance/costs
+GET /finance/pnl
+GET /finance/budget
+GET /finance/cashflow
+Market
+GET /market/quotes
+GET /market/contracts
+GET /market/exposure
+AI
+GET /ai/predictions
+POST /ai/predictions/run
+GET /ai/insights
+POST /ai/scenarios
+Agents
+GET /agents
+POST /agents/{id}/run
+GET /agents/runs/{runId}
+Integrations
+GET /integrations
+POST /integrations/{id}/sync
+POST /integrations/{id}/replay
+Reports
+GET /reports/executive
+GET /reports/field/{id}
+GET /reports/traceability/{id}
+53. Command APIs
+POST /commands/operations/{id}/start
+POST /commands/operations/{id}/complete
+POST /commands/irrigation/{id}/execute-simulated
+POST /commands/drone-missions/{id}/start-simulated
+POST /commands/machines/{id}/fault-inject
+POST /commands/sync
+Todos os commands precisam de idempotency-key, authorization, capability check, safety policy e audit record.
+54. Fake Data Engine
+O fake-data engine é parte obrigatória do produto. Ele deve permitir reset, seed, scenario selection e time acceleration.
+Dataset
+Quantidade sugerida
+Tenants
+3
+Farms
+8
+Fields
+180
+Seasons
+12
+Crops
+8
+Assets
+120
+Implements
+90
+Telemetry samples
+2–10 milhões geráveis por replay
+Weather stations
+35
+Weather observations
+12 meses
+Scouting observations
+2.000
+Soil samples
+5.000
+Prescriptions
+1.000
+Operations
+8.000
+Maintenance work orders
+2.000
+Inventory items
+1.500
+Input lots
+3.000
+Harvest loads
+5.000
+Trucks
+100
+Storage units
+40
+Costs
+50.000
+Market quotes
+12 meses
+Predictions
+20.000
+Alerts
+8.000
+55. Fake data scenarios
+Scenario
+Behavior
+NORMAL_SEASON
+operação saudável, pequenos desvios
+WEATHER_STRESS
+chuvas intensas e janelas reduzidas
+FLEET_FAILURE
+2 máquinas críticas indisponíveis
+INPUT_SHORTAGE
+estoque de fertilizante abaixo do necessário
+DISEASE_OUTBREAK
+risco de doença elevado em 4 talhões
+HARVEST_BOTTLENECK
+produção pronta, capacidade logística insuficiente
+MARGIN_STRESS
+preço menor + custo maior + FX desfavorável
+CONNECTIVITY_FAILURE
+50% dos dispositivos offline por algumas horas
+
+56. Fake generator rules
+Use deterministic seed.
+Geometries must be valid and non-overlapping inside each farm.
+Telemetry follows machine operation state.
+Fuel decreases when engine runs.
+Engine hours increase with simulated runtime.
+Maintenance due date follows hours/calendar.
+Yield correlates weakly with soil, weather and crop health to feel realistic.
+Weather affects operation windows.
+Inventory decreases when inputs are applied.
+Harvest loads cannot exceed machine/logistics capacity without generating delay.
+Financial costs derive from actual operations.
+Predictions must be reproducible.
+Fake failures should be injectable.
+Fake external APIs should support latency, timeout, rate-limit and malformed-data simulation.
+57. Demo farm
+Item
+Fake value
+Group
+AgroVision Holdings
+Farm
+Fazenda Horizonte
+Region
+Ourinhos / SP
+Area
+8,450 ha
+Main crops
+Soybean, Corn, Cotton
+Fields
+96
+Machines
+62
+Harvesters
+14
+Sprayers
+10
+Trucks
+38
+Silos
+8
+Weather stations
+7
+Current season
+2026/27
+58. Key demo fields
+Field
+Crop
+Area ha
+Status
+Risk
+F-043
+Soybean
+82.4
+In operation
+High weather
+F-051
+Soybean
+76.8
+Planned
+Low
+F-067
+Corn
+91.2
+Growing
+Disease
+F-072
+Cotton
+64.5
+Scouting
+Weed
+F-081
+Soybean
+105.7
+Harvest ready
+Logistics
+59. End-to-end demo scenario A — Weather-aware spraying
+Weather fake provider forecasts 78% rain probability in 30–36h.
+F-043 has a crop protection operation planned.
+Sprayer S-07 has 11h availability.
+AI calculates current window risk.
+Recommendation ranks F-043 first.
+Supervisor approves.
+System creates prescription and work order.
+Inventory reserves product lot.
+Operator receives task.
+Operator executes offline.
+Fake telemetry confirms route and application.
+As-applied is generated.
+Inventory is decremented.
+Cost is allocated to field.
+Weather result is compared with forecast.
+Outcome is stored for learning.
+60. End-to-end demo scenario B — Predictive maintenance
+Tractor T-21 receives abnormal coolant temperature telemetry.
+Feature engine calculates anomaly score.
+Prediction produces 83% failure risk.
+Alert HIGH is raised.
+Maintenance recommendation is generated.
+Supervisor approves inspection.
+Work order is assigned.
+Part P-443 is reserved.
+Mechanic performs inspection offline.
+Fault is confirmed.
+Maintenance completed.
+Downtime and cost recorded.
+Model feedback stored.
+61. End-to-end demo scenario C — Satellite anomaly to operation
+Fake satellite scene is ingested.
+NDVI anomaly detected in F-067.
+CV/analytics classify possible disease.
+Confidence is 0.81.
+Scouting task is created.
+Agronomist confirms disease severity 4/5.
+Recommendation generated.
+Prescription created.
+Supervisor approves.
+Work order created.
+Application executed.
+As-applied reconciled.
+Yield/crop health result later updates learning.
+
+62. End-to-end demo scenario D — Harvest control tower
+Yield forecast indicates 5,800 tons ready.
+Harvest window is 72h.
+Available harvester capacity is 4,900 tons.
+Truck capacity is 4,000 tons/day.
+Storage has 3,200 tons free.
+AI identifies bottleneck.
+Scenario engine tests additional trucks.
+Recommended plan adds 6 trucks.
+Dispatcher approves.
+Loads are created.
+Scale tickets arrive from fake provider.
+Storage balances update.
+Commodity exposure updates.
+Profitability dashboard reflects actual result.
+63. End-to-end demo scenario E — Margin scenario
+Finance opens soybean field P&L.
+Current expected yield = 3,500 kg/ha.
+User changes price -12%.
+User changes fertilizer +8%.
+FX +5%.
+Monte Carlo calculates margin distribution.
+Fields below breakeven are ranked.
+AI proposes cost reduction scenarios.
+User saves scenario.
+Scenario can generate planning action.
+64. Executive Dashboard KPIs
+Domain
+KPI
+Production
+expected yield, actual yield, yield variance
+Operations
+planned, in progress, completed, overdue
+Fleet
+availability, utilization, idle, downtime
+Maintenance
+due, overdue, MTBF, MTTR
+Inputs
+stock, consumption/ha, deviation
+Weather
+at-risk operations, safe windows
+Water
+deficit, consumption, efficiency
+Harvest
+ready area, capacity gap, loads/day
+Logistics
+ETA, queue, utilization
+Finance
+revenue, cost, gross margin, breakeven
+Market
+exposure, available-to-sell, basis
+ESG
+CO2e/ha, water/ton, soil health
+AI
+active predictions, high-risk predictions, recommendation acceptance
+Data
+freshness, sync backlog, quality score
+65. Field Detail screen
+Header: field name, crop, area, status, risk.
+Map.
+Crop health.
+Weather.
+Operations.
+Scouting.
+Soil.
+Prescription.
+Inputs.
+Machine activity.
+Costs.
+Yield.
+AI insights.
+Timeline.
+Documents.
+66. Machine Detail screen
+Status.
+Map.
+Telemetry charts.
+Engine hours.
+Fuel.
+Health score.
+DTC.
+Maintenance.
+Assigned operations.
+Operator.
+Cost.
+Timeline.
+Predictive risk.
+67. AI Insight card
+Title: Spraying window closingScope: Field F-043Risk: HIGHConfidence: 0.81Why:- rain_probability=0.78- wind_window=short- operation_duration=4.2h- fleet_availability=limitedRecommended action:Prioritize F-043 before F-051.Expected impact:+23 percentage points probability of on-time completion.Actions:[Approve plan] [Inspect] [Dismiss]
+
+68. Non-functional requirements
+Requirement
+MVP target
+Availability
+99.5% for core API
+API latency
+p95 < 500ms for standard CRUD
+Command latency
+p95 < 1s excluding async work
+Event processing
+retry + DLQ
+Idempotency
+all commands and ingestion
+Offline
+critical workflows usable without connectivity
+Sync
+retry with exponential backoff
+Security
+TLS, hashed passwords, RBAC
+Tenant isolation
+mandatory tenant_id enforcement
+Audit
+all critical mutations
+Observability
+logs, metrics, traces
+Data lineage
+external/fake source to canonical
+Backups
+automated DB backup in deployed environment
+Disaster recovery
+documented restore procedure
+Accessibility
+keyboard navigation and readable contrast
+Mobile
+small number of taps for field tasks
+69. Architecture for MVP
+Web: React + TypeScriptMobile: Kotlin/Jetpack Compose + Swift/SwiftUIBackend: Kotlin + Spring BootDB: PostgreSQL + PostGISCache: RedisEvents: Kafka or RedpandaObject storage: S3-compatibleTelemetry: time-series tables / Timescale-compatible designML: Python service / fake model adaptersMaps: Google Maps adapters + fake fallbackObservability: OpenTelemetry + Prometheus/GrafanaAuth: OIDC-compatible designDeployment: Docker Compose locally; AWS-ready manifests
+70. Deployment profiles
+Profile
+Purpose
+LOCAL
+all services + fake providers + seed
+DEMO
+single environment with large fake dataset
+TEST
+ephemeral DB + deterministic seed
+STAGING
+AWS-like deployment + fake external providers
+PROD-SKELETON
+real infra contracts, but integrations disabled until credentials
+71. Service/module boundaries
+Identity
+Farm Structure
+GIS
+Crop/Agronomy
+Operations
+Fleet/Telemetry
+Maintenance
+Inventory
+Weather
+Irrigation
+Remote Sensing
+Drones
+Harvest
+Logistics
+Storage
+Finance
+Market
+Traceability
+ESG/Risk
+Workforce
+AI/Prediction
+Workflow
+Integration
+Reporting
+Sync
+Audit/Lineage
+Data Quality
+Para acelerar o MVP, esses bounded contexts podem ser implementados inicialmente em um modular monolith bem isolado. O contrato externo deve preservar a possibilidade de extração futura para microserviços.
+72. Observability
+Correlation ID.
+Event ID.
+Tenant ID.
+User ID.
+Operation ID.
+Structured JSON logs.
+Metrics per domain.
+Tracing API → event → consumer.
+Fake provider latency/error metrics.
+Sync queue depth.
+ML inference latency.
+Data freshness.
+
+73. Security
+OIDC/OAuth2-compatible auth.
+RBAC.
+Tenant isolation.
+Object-level authorization.
+Audit trail.
+Secrets never stored in source.
+Fake credentials clearly marked.
+Command authorization.
+Safety policy.
+Rate limiting.
+Input validation.
+File upload validation.
+PII minimization.
+LGPD-oriented data controls.
+Data retention policy.
+74. Safety policy for simulated commands
+COMMAND  -> capability check  -> authorization  -> safety policy  -> preconditions  -> confirmation  -> simulated execution  -> result  -> audit  -> event
+Drone spray cannot start without geofence validation.
+Irrigation cannot execute if asset is unavailable.
+Machine operation cannot execute if maintenance lock is active.
+Prescription cannot execute before approval.
+Operator without certification cannot be assigned to restricted task.
+Every rejected command returns reason codes.
+75. Testing strategy
+Level
+Coverage
+Unit
+domain rules, calculations, policies
+Integration
+repositories, PostGIS, event broker
+Contract
+fake adapters and canonical mapping
+E2E
+critical workflows
+Mobile
+offline queue, conflicts, task completion
+Load
+telemetry ingestion, dashboard queries
+Chaos
+provider timeout, broker outage, sync conflicts
+ML
+golden deterministic outputs
+Security
+authorization matrix, tenant isolation
+Data
+seed consistency and lineage
+76. Acceptance test matrix
+ID
+Test
+Expected
+AT-01
+Create farm + field
+field appears on map
+AT-02
+Create season
+season linked to field
+AT-03
+Import satellite
+layer visible + lineage
+AT-04
+Create scouting
+observation stored offline/online
+AT-05
+Generate prescription
+map + rate table created
+AT-06
+Approve operation
+work order generated
+AT-07
+Execute offline
+outbox item created
+AT-08
+Sync
+server reconciles without duplicate
+AT-09
+Telemetry anomaly
+alert generated
+AT-10
+Maintenance
+work order + parts + cost
+AT-11
+Inventory issue
+stock and lot decrease
+AT-12
+Harvest load
+storage updated
+AT-13
+Finance
+field P&L updates
+AT-14
+Scenario
+margin distribution generated
+AT-15
+AI recommendation
+confidence + rationale
+AT-16
+Agent
+run + tool calls + audit
+AT-17
+Traceability
+input→shipment lineage
+AT-18
+ESG
+CO2e metric updated
+AT-19
+Data quality
+invalid fake record flagged
+AT-20
+Integration replay
+same result idempotently
+77. Definition of Done
+UI implemented.
+API implemented.
+Domain validation implemented.
+Database migration implemented.
+Fake provider implemented.
+Seed data implemented.
+Event emitted/consumed where applicable.
+Audit record implemented.
+Tests implemented.
+Error states implemented.
+Loading states implemented.
+Empty states implemented.
+Offline state implemented where applicable.
+Documentation updated.
+Feature demonstrable end-to-end.
+
+78. Epics and implementation backlog
+Epic
+Name
+Scope
+EPIC-01
+Identity & Tenant
+login, roles, permissions, tenant isolation
+EPIC-02
+Farm & Land
+farms, fields, seasons, infrastructure
+EPIC-03
+GIS
+map, layers, geometries, prescriptions
+EPIC-04
+Crop Lifecycle
+crops, stages, calendars, yield
+EPIC-05
+Agronomy
+scouting, soil, recommendations
+EPIC-06
+Crop Protection
+products, tank mix, prescriptions
+EPIC-07
+Planting/Fertilization
+plans, VRA, as-applied
+EPIC-08
+Operations
+planning, dispatch, execution
+EPIC-09
+Offline Sync
+local DB, outbox, conflict resolution
+EPIC-10
+Fleet
+assets, status, location
+EPIC-11
+Telemetry
+ingestion, replay, anomalies
+EPIC-12
+Maintenance
+PM, CM, inspections, parts
+EPIC-13
+Inventory
+lots, stock, procurement, issue
+EPIC-14
+Weather
+forecast, windows, risks
+EPIC-15
+Irrigation
+sensors, balance, schedule
+EPIC-16
+Satellite
+scenes, indices, anomalies
+EPIC-17
+Drones
+registry, missions, telemetry
+EPIC-18
+Computer Vision
+inference, review, feedback
+EPIC-19
+Harvest
+yield, planning, loads
+EPIC-20
+Logistics
+trucks, dispatch, ETA
+EPIC-21
+Storage
+bins, quality, lots
+EPIC-22
+Finance
+costs, P&L, budget, cash
+EPIC-23
+Market
+quotes, futures, basis, contracts
+EPIC-24
+Scenario Engine
+what-if, Monte Carlo
+EPIC-25
+Traceability
+lot genealogy, QR, recall
+EPIC-26
+ESG/Risk
+metrics, risk, evidence
+EPIC-27
+Workforce
+people, skills, safety
+EPIC-28
+Experiments
+trials, stats, results
+EPIC-29
+AI/ML
+features, predictions, model registry
+EPIC-30
+AI Copilot
+natural-language insights
+EPIC-31
+AI Agents
+agents, tools, approvals
+EPIC-32
+Workflow
+triggers, approvals, automations
+EPIC-33
+Integrations
+fake adapters, capability model
+EPIC-34
+Data Fabric
+raw, canonical, lineage
+EPIC-35
+Data Quality
+DQ dashboard and rules
+EPIC-36
+Reporting
+executive and operational reports
+EPIC-37
+Observability
+logs, metrics, traces
+EPIC-38
+Security
+RBAC, audit, safety
+EPIC-39
+Simulator Lab
+scenario engine, replay, fault injection
+EPIC-40
+Demo Experience
+seed, personas, guided flows
+79. User stories — core
+US-001 As an admin, I can create a tenant.
+US-002 As a manager, I can create a farm.
+US-003 As a manager, I can draw/import a field.
+US-004 As an agronomist, I can inspect field health on a map.
+US-005 As a supervisor, I can plan an operation.
+US-006 As an operator, I can execute a task offline.
+US-007 As a supervisor, I can reconcile planned vs actual input.
+US-008 As a maintenance manager, I can see assets at risk.
+US-009 As a mechanic, I can complete a work order offline.
+US-010 As a warehouse manager, I can reserve and issue input lots.
+US-011 As an agronomist, I can create a prescription.
+US-012 As a manager, I can approve a recommendation.
+US-013 As a logistics coordinator, I can dispatch a truck.
+US-014 As a finance analyst, I can see field P&L.
+US-015 As an executive, I can compare scenarios.
+US-016 As a compliance user, I can trace a harvested lot back to inputs.
+US-017 As an AI user, I can ask why a field is at risk.
+US-018 As an admin, I can inspect integration health.
+US-019 As a data steward, I can find bad data.
+US-020 As an operator, I can recover from a sync conflict.
+
+80. Extended user stories by domain
+Farm
+create farm
+edit field
+archive field
+manage season
+view timeline
+attach document
+Agronomy
+create scouting
+classify pest
+record severity
+create recommendation
+approve recommendation
+generate prescription
+Operations
+create plan
+assign machine
+assign operator
+dispatch
+start
+pause
+complete
+reconcile
+Fleet
+register asset
+view live position
+inspect telemetry
+inject fault
+view health
+Maintenance
+create PM plan
+open corrective WO
+reserve part
+assign mechanic
+complete inspection
+calculate MTBF/MTTR
+Inventory
+receive lot
+transfer lot
+reserve input
+issue input
+adjust stock
+procure item
+Weather
+view forecast
+find spraying window
+find harvest window
+raise weather alert
+Water
+view sensor
+calculate deficit
+recommend irrigation
+simulate irrigation
+record execution
+Satellite
+import scene
+calculate index
+detect anomaly
+create scouting task
+Drones
+create mission
+simulate flight
+process imagery
+review result
+create operation
+Harvest
+create harvest plan
+track yield
+create load
+record scale ticket
+allocate storage
+Finance
+record cost
+view P&L
+create budget
+forecast cash
+calculate breakeven
+Market
+view quote
+create contract
+calculate exposure
+create marketing scenario
+Traceability
+create genealogy
+scan QR
+generate evidence
+simulate recall
+ESG
+calculate emissions
+view water intensity
+score soil health
+assess risk
+AI
+run prediction
+explain prediction
+accept/reject recommendation
+run scenario
+run agent
+Integration
+connect fake provider
+sync
+replay
+view error
+map capability
+Data
+inspect raw record
+view lineage
+resolve DQ issue
+Reports
+executive report
+field report
+machine report
+traceability report
+81. Seeded alerts
+ID
+Severity
+Scope
+Message
+A-001
+HIGH
+F-043
+Weather window closes in 9h
+A-002
+HIGH
+T-021
+Coolant temperature anomaly
+A-003
+MEDIUM
+F-067
+Disease risk increased
+A-004
+MEDIUM
+INV-44
+Fertilizer stock below projected demand
+A-005
+HIGH
+HARV-2026-081
+Harvest logistics capacity gap
+A-006
+LOW
+M-033
+Preventive maintenance due in 18 engine hours
+A-007
+MEDIUM
+SYNC
+12 mobile records awaiting conflict resolution
+A-008
+LOW
+DATA
+Telemetry freshness below threshold
+82. Seeded AI recommendations
+ID
+Recommendation
+Confidence
+Reasons
+R-001
+Prioritize spraying F-043 before F-051
+0.91
+weather + fleet
+R-002
+Inspect T-021 within 4 hours
+0.83
+temperature + history
+R-003
+Scout F-067
+0.81
+satellite anomaly + stage
+R-004
+Move 6 trucks to harvest block
+0.87
+capacity + ETA
+R-005
+Irrigate F-043 for 21mm
+0.76
+soil moisture + ET
+R-006
+Reorder fertilizer
+0.94
+forecast demand + lead time
+
+83. Simulator Lab UI
+Scenario selector.
+Simulation clock.
+Play/pause.
+Speed 1x/10x/100x.
+Telemetry generator.
+Weather generator.
+Machine failure injector.
+Network outage injector.
+Inventory shock.
+Market shock.
+Harvest bottleneck.
+Run scenario.
+Reset environment.
+Replay events.
+Export run.
+84. Fake external provider behavior
+Failure mode
+Expected platform behavior
+Timeout
+retry with backoff
+429
+respect retry-after / backoff
+500
+retry + DLQ
+Malformed payload
+quarantine + DQ alert
+Duplicate event
+idempotent
+Out-of-order event
+event-time handling
+Stale data
+freshness warning
+Missing permission
+integration capability error
+Network offline
+queue locally
+Partial sync
+resume from checkpoint
+85. Reporting catalog
+Executive weekly report.
+Farm operational report.
+Field profitability report.
+Crop health report.
+Fleet utilization report.
+Maintenance report.
+Input consumption report.
+Weather risk report.
+Irrigation report.
+Harvest report.
+Logistics report.
+Storage report.
+Commodity exposure report.
+Traceability report.
+ESG report.
+AI prediction performance report.
+Data quality report.
+86. Export formats
+CSV
+JSON
+GeoJSON
+GeoTIFF placeholder/export contract
+ISOXML placeholder/export contract
+PDF report
+Excel/XLSX report
+87. Demo scripts
+Demo
+Duration
+Path
+Executive overview
+5 min
+Dashboard → AI → Farm → P&L
+Operations
+7 min
+Weather → priority → dispatch → execution
+Maintenance
+5 min
+Telemetry → prediction → work order
+Precision agronomy
+7 min
+Satellite → anomaly → scouting → prescription
+Harvest
+7 min
+Yield → logistics → storage → market
+Offline
+5 min
+Mobile → offline → sync → conflict
+AI
+5 min
+Insight → scenario → agent approval
+Traceability
+4 min
+Input lot → field → harvest → shipment
+88. MVP release gates
+All 40 epics have at least one executable flow.
+All major V4 capabilities have a screen or explicit simulated workflow.
+Fake seed can populate a clean environment.
+Demo scenarios run deterministically.
+No duplicate state transition on retries.
+Offline critical workflows work.
+Map remains usable with fake map fallback.
+Every AI result includes confidence and explanation.
+Every simulated physical command is auditable.
+Tenant isolation passes automated tests.
+Critical E2E tests green.
+
+89. Implementation sequence
+Phase
+Name
+Main deliverables
+P0
+Foundation
+repo, auth, tenant, design system, DB, migrations, seed framework, event envelope
+P1
+Farm + GIS
+farm, field, season, map, layers, Digital Twin
+P2
+Operations + Mobile
+work orders, dispatch, offline, sync
+P3
+Fleet + Maintenance
+assets, telemetry, health, maintenance
+P4
+Agronomy + Inputs
+scouting, soil, prescriptions, inventory, crop protection
+P5
+Weather + Water
+forecast, windows, irrigation
+P6
+Remote Sensing
+satellite, drone, CV
+P7
+Harvest + Logistics
+yield, loads, trucks, storage
+P8
+Finance + Market
+cost, P&L, commodity, scenarios
+P9
+Trace + ESG
+genealogy, compliance, ESG/risk
+P10
+AI
+predictions, explainability, copilot, agents
+P11
+Platform
+integrations, DQ, reporting, observability, simulator
+P12
+Hardening
+security, load, chaos, mobile polish, demo
+90. Recommended coding-agent execution protocol
+For each story:1. Read domain contract.2. Inspect existing implementation.3. Implement domain + persistence.4. Implement API.5. Implement event if required.6. Implement fake adapter/seed data.7. Implement Web UI.8. Implement mobile UI if workflow is field-critical.9. Add tests.10. Run formatter/build/test.11. Verify tenant isolation.12. Verify idempotency.13. Update docs.14. Do not mark done until the full vertical slice works.Never:- create placeholder buttons without behavior- hardcode UI-only fake results- bypass domain rules in frontend- couple canonical entities to OEM schemas- call real external APIs without an adapter- allow AI agents to execute physical commands directly
+91. Final product acceptance
+O MVP será considerado pronto quando um usuário puder iniciar em uma fazenda fictícia e completar, em um único sistema, o ciclo Plan → Observe → Analyze → Predict → Decide → Prescribe → Execute → Verify → Reconcile → Measure Profit → Learn, incluindo mapa, operações, máquinas, insumos, clima, água, imagery, colheita, logística, armazenamento, finanças, mercado, rastreabilidade e IA — tudo usando dados fake determinísticos.
+A ausência de integrações reais não deve reduzir a experiência do produto. O usuário deve enxergar exatamente onde um conector real entrará e o Fake Adapter deve reproduzir o mesmo contrato, estados de erro, latência, eventos e lineage.
+92. Relação com o documento-base
+A especificação preserva os requisitos do MVP anterior: modelo por talhão/safra/operação, ingestão e lineage, previsões contextualizadas, ordens derivadas de alertas, offline-first, sincronização resiliente, multi-tenant, event-driven e idempotência. fileciteturn3file4L237-L269
+Também preserva os fluxos centrais já definidos para manutenção preditiva, desvio de insumos e priorização por janela climática. fileciteturn3file5L283-L306
+A arquitetura mantém a separação dos contextos e serviços anteriormente propostos, incluindo Identity, Farm Structure, Asset/Telemetry, Field Operations, Maintenance, Inventory, Integrations, Geospatial, AI/Prediction, Alert/Rules, Reporting, Sync e Audit/Lineage. fileciteturn3file6L351-L390
+93. Observação importante sobre 'MVP completo'
+Este documento define um MVP completo em funcionalidade, não um produto de produção completo em integrações externas. Isso é intencional. O fake-data/simulator layer permite desenvolver e demonstrar o produto inteiro antes de obter credenciais, contratos e certificações de OEMs, fornecedores de imagery, clima, drones, ERPs e dados de mercado.
+A arquitetura deve tratar cada integração real como substituição do Fake Adapter, e não como reescrita do domínio.
+94. Checklist final de implementação
+□ Repository structure
+□ CI/CD
+□ Local environment
+□ Database migrations
+□ Seed generator
+□ Authentication
+□ RBAC
+□ Tenant isolation
+□ Farm
+□ Field
+□ Season
+□ GIS
+□ Layers
+□ Digital Twin
+□ Crop
+□ Scouting
+□ Soil
+□ Crop Protection
+□ Planting
+□ Fertilization
+□ Operations
+□ Offline Sync
+□ Fleet
+□ Telemetry
+□ Maintenance
+□ Inventory
+□ Procurement
+□ Weather
+□ Irrigation
+□ Satellite
+□ Drones
+□ Computer Vision
+□ Harvest
+□ Logistics
+□ Storage
+□ Finance
+□ Commodity
+□ Scenarios
+□ Traceability
+□ ESG
+□ Workforce
+□ Experiments
+□ AI/ML
+□ Copilot
+□ Agents
+□ Workflow
+□ Integrations
+□ Data Fabric
+□ Lineage
+□ Data Quality
+□ Reporting
+□ Observability
+□ Security
+□ Simulator
+□ E2E demos
+
+PRECISION FARMING — MVP MASTER SPEC
+Target: um Agricultural Operating System demonstrável de ponta a ponta, construído inicialmente com dados fake, simuladores e adapters substituíveis.

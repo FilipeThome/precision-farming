@@ -17,6 +17,12 @@ import kotlinx.serialization.json.Json
 
 object Session {
     var accessToken: String? = null
+    var userId: String? = null
+
+    fun clear() {
+        accessToken = null
+        userId = null
+    }
 }
 
 val api = HttpClient(OkHttp) {
@@ -57,12 +63,125 @@ data class AlertDto(val id: String, val title: String, val severity: String, val
 @Serializable
 data class InsightDto(val id: String, val type: String, val score: Double, val model: String, val demo: Boolean = true)
 
+@Serializable
+data class ScoutingDto(
+    val id: String,
+    val farmId: String? = null,
+    val fieldId: String? = null,
+    val observedAt: String? = null,
+    val pest: String? = null,
+    val severity: String? = null,
+    val notes: String? = null,
+    val status: String? = null,
+)
+
+@Serializable
+data class SoilSampleDto(
+    val id: String,
+    val farmId: String? = null,
+    val fieldId: String? = null,
+    val sampledAt: String? = null,
+    val ph: Double? = null,
+    val organicMatterPct: Double? = null,
+    val pPpm: Double? = null,
+    val kPpm: Double? = null,
+    val labRef: String? = null,
+    val status: String? = null,
+)
+
+@Serializable
+data class RecommendationDto(
+    val id: String,
+    val farmId: String? = null,
+    val fieldId: String? = null,
+    val kind: String? = null,
+    val title: String? = null,
+    val summary: String? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class WeatherWindowDto(
+    val id: String,
+    val farmId: String? = null,
+    val windowType: String? = null,
+    val startAt: String? = null,
+    val endAt: String? = null,
+    val rating: String? = null,
+    val notes: String? = null,
+)
+
+@Serializable
+data class IrrigationAssetDto(
+    val id: String,
+    val farmId: String? = null,
+    val fieldId: String? = null,
+    val name: String? = null,
+    val type: String? = null,
+    val status: String? = null,
+    val capacityMmH: Double? = null,
+)
+
+@Serializable
+data class IrrigationRecommendationDto(
+    val id: String,
+    val farmId: String? = null,
+    val fieldId: String? = null,
+    val assetId: String? = null,
+    val recommendedMm: Double? = null,
+    val reason: String? = null,
+    val status: String? = null,
+    val windowStart: String? = null,
+    val windowEnd: String? = null,
+)
+
+@Serializable
+data class MaintenanceWorkOrderDto(
+    val id: String,
+    val farmId: String? = null,
+    val machineId: String? = null,
+    val title: String? = null,
+    val priority: String? = null,
+    val status: String? = null,
+    val createdAt: String? = null,
+    val completedAt: String? = null,
+)
+
+@Serializable
+data class PrescriptionDto(
+    val id: String,
+    val farmId: String,
+    val fieldId: String,
+    val product: String,
+    val rate: Double,
+    val unit: String,
+    val status: String,
+    val createdAt: String? = null,
+    val approvedAt: String? = null,
+)
+
+@Serializable
+data class SyncPullRequest(val deviceId: String, val cursor: String? = null)
+
+@Serializable
+data class SyncPullResponse(
+    val cursor: String? = null,
+    val deviceId: String? = null,
+)
+
 suspend fun login(email: String, password: String): TokenResponse {
+    Session.accessToken = null
+    Session.userId = null
+    TokenStore.clear()
     val res: TokenResponse = api.post("/api/v1/auth/login") {
         contentType(ContentType.Application.Json)
         setBody(LoginRequest(email, password))
     }.body()
     Session.accessToken = res.accessToken
+    Session.userId = res.userId
+    TokenStore.save(res.accessToken, res.userId)
     return res
 }
 
@@ -73,3 +192,30 @@ suspend fun alerts() = api.get("/api/v1/alerts").body<List<AlertDto>>()
 suspend fun insights() = api.get("/api/v1/ai/insights").body<List<InsightDto>>()
 suspend fun startOp(id: String) = api.post("/api/v1/operations/$id/start")
 suspend fun completeOp(id: String) = api.post("/api/v1/operations/$id/complete")
+
+suspend fun scouting() = api.get("/api/v1/scouting").body<List<ScoutingDto>>()
+suspend fun soilSamples() = api.get("/api/v1/soil/samples").body<List<SoilSampleDto>>()
+suspend fun recommendations() = api.get("/api/v1/recommendations").body<List<RecommendationDto>>()
+suspend fun weatherWindows() = api.get("/api/v1/weather/windows").body<List<WeatherWindowDto>>()
+suspend fun irrigationAssets() = api.get("/api/v1/irrigation/assets").body<List<IrrigationAssetDto>>()
+suspend fun irrigationRecommendations() =
+    api.get("/api/v1/irrigation/recommendations").body<List<IrrigationRecommendationDto>>()
+suspend fun maintenanceWorkOrders() =
+    api.get("/api/v1/maintenance/work-orders").body<List<MaintenanceWorkOrderDto>>()
+suspend fun completeWorkOrder(id: String) =
+    api.post("/api/v1/maintenance/work-orders/$id/complete")
+
+suspend fun prescriptions() = api.get("/api/v1/prescriptions").body<List<PrescriptionDto>>()
+
+/** Soft-callable sync pull stub. Prefer [Session.userId]:demo when bound. */
+suspend fun syncPull(deviceId: String, cursor: String? = null): SyncPullResponse =
+    api.post("/api/v1/sync/pull") {
+        contentType(ContentType.Application.Json)
+        setBody(SyncPullRequest(deviceId = deviceId, cursor = cursor))
+    }.body()
+
+fun syncDeviceId(): String {
+    val userId = Session.userId
+    if (userId.isNullOrBlank()) error("Missing userId for sync device binding — sign in again")
+    return "$userId:demo"
+}
