@@ -1,7 +1,7 @@
 import { useApprovePrescription } from '@/features/agronomy/queries'
 import type { Prescription } from '@/shared/api/types'
 import { useCanManageFarmOps } from '@/shared/auth/roles'
-import { cropPhoto } from '@/shared/demo/media'
+import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -38,7 +38,7 @@ export function PrescriptionList({ items }: Props) {
               unit: row.unit,
             })}
             meta={dateTime(row.approvedAt ?? row.createdAt)}
-            imageSrc={cropPhoto()}
+            imageSrc={inventoryPhoto(row.product)}
             imageAlt={label(row.product)}
           >
             <div className="mt-2 flex flex-wrap items-center gap-2">
