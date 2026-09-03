@@ -116,8 +116,7 @@ fun AgronomyScreen(onBack: () -> Unit) {
                         .ifBlank { p.id }
                 },
                 itemContent = { p ->
-                    val notApproved = !p.status.equals("APPROVED", ignoreCase = true)
-                    if (p.status.equals("DRAFT", ignoreCase = true) || notApproved) {
+                    if (p.status.equals("DRAFT", ignoreCase = true)) {
                         TextButton(onClick = {
                             scope.launch {
                                 runCatching { approvePrescription(p.id) }.onFailure { msg = it.message }

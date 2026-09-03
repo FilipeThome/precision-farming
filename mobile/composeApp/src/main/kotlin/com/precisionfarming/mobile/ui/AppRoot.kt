@@ -1,10 +1,14 @@
 package com.precisionfarming.mobile.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.Session
 import com.precisionfarming.mobile.data.TokenStore
 import com.precisionfarming.mobile.i18n.LocaleStore
@@ -12,19 +16,20 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 @Composable
 fun AppRoot() {
     LocaleStore.locale
-    val restored = remember {
-        TokenStore.read()?.also { token ->
-            Session.accessToken = token
-            Session.userId = TokenStore.readUserId()
+    remember {
+        val token = TokenStore.read()
+        val userId = TokenStore.readUserId()
+        if (!token.isNullOrBlank() && !userId.isNullOrBlank()) {
+            Session.set(token, userId)
+        } else {
+            TokenStore.clear()
+            Session.clear()
         }
+        true
     }
-    val canRestore = restored != null && !Session.userId.isNullOrBlank()
-    if (restored != null && !canRestore) {
-        TokenStore.clear()
-        Session.clear()
-    }
+    val signedIn by Session.signedIn.collectAsState()
     val nav = rememberNavController()
-    NavHost(nav, startDestination = if (canRestore) "home" else "login") {
+    NavHost(nav, startDestination = if (signedIn) "home" else "login") {
         composable("login") {
             LoginScreen {
                 nav.navigate("home") { popUpTo("login") { inclusive = true } }
@@ -36,6 +41,16 @@ fun AppRoot() {
                     nav.navigate("login") { popUpTo("home") { inclusive = true } }
                 },
             )
+        }
+    }
+    LaunchedEffect(signedIn) {
+        val route = nav.currentBackStackEntry?.destination?.route
+        if (!signedIn && route != null && route != "login") {
+            FarmFilter.farmId = null
+            nav.navigate("login") {
+                popUpTo(nav.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
         }
     }
 }
