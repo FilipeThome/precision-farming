@@ -52,6 +52,7 @@ fun AlertsScreen() {
                 items(s.items, key = { it.id }) { alert ->
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("${alert.title} · ${alert.severity} · ${alert.status}")
+                        alert.message?.takeIf { it.isNotBlank() }?.let { Text(it) }
                         if (!alert.status.equals("ACKED", ignoreCase = true)) {
                             TextButton(onClick = {
                                 scope.launch {

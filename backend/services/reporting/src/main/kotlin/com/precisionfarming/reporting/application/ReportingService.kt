@@ -1,5 +1,6 @@
 package com.precisionfarming.reporting.application
 
+import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.reporting.infrastructure.ReportInventoryEntity
 import com.precisionfarming.reporting.infrastructure.ReportInventoryJpaRepository
@@ -12,6 +13,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
+import java.time.Instant
 import java.util.UUID
 
 /**
@@ -22,8 +24,10 @@ class ReportingService(
     private val operations: ReportOperationJpaRepository,
     private val inventory: ReportInventoryJpaRepository,
 ) {
+    private val pdf = ReportPdfRenderer()
+
     fun operationsCsv(scope: AccessScope, farmId: UUID?): String {
-        val rows = operations.findByFarmIdIn(scope.resolveFarms(farmId)).sortedBy { it.code }
+        val rows = operationRows(scope, farmId)
         return buildString {
             appendLine("id,type,status")
             rows.forEach { appendLine("${csvCell(it.code)},${csvCell(it.type)},${csvCell(it.status)}") }
@@ -31,13 +35,40 @@ class ReportingService(
     }
 
     fun inventoryCsv(scope: AccessScope, farmId: UUID?): String {
-        val rows = inventory.findByFarmIdIn(scope.resolveFarms(farmId)).sortedBy { it.code }
+        val rows = inventoryRows(scope, farmId)
         return buildString {
             appendLine("id,name,quantity")
             rows.forEach {
                 appendLine("${csvCell(it.code)},${csvCell(it.name)},${csvCell(it.quantity.stripTrailingZeros().toPlainString())}")
             }
         }
+    }
+
+    fun reportCatalog(): List<ReportCatalogItemDto> = listOf(
+        ReportCatalogItemDto("operations", "Operacoes", "PDF", "operations.pdf", "/api/v1/reports/operations.pdf"),
+        ReportCatalogItemDto("inventory", "Estoque", "PDF", "inventory.pdf", "/api/v1/reports/inventory.pdf"),
+    )
+
+    fun operationsPdf(scope: AccessScope, farmId: UUID?): ByteArray {
+        val rows = operationRows(scope, farmId)
+        return pdf.render(
+            title = "Relatorio de Operacoes",
+            subtitle = subtitle(scope, farmId),
+            generatedAt = DEMO_REPORT_NOW,
+            headers = listOf("Codigo", "Tipo", "Status"),
+            rows = rows.map { listOf(it.code, it.type, it.status) },
+        )
+    }
+
+    fun inventoryPdf(scope: AccessScope, farmId: UUID?): ByteArray {
+        val rows = inventoryRows(scope, farmId)
+        return pdf.render(
+            title = "Relatorio de Estoque",
+            subtitle = subtitle(scope, farmId),
+            generatedAt = DEMO_REPORT_NOW,
+            headers = listOf("Codigo", "Item", "Quantidade"),
+            rows = rows.map { listOf(it.code, it.name, it.quantity.stripTrailingZeros().toPlainString()) },
+        )
     }
 
     @Transactional
@@ -47,6 +78,8 @@ class ReportingService(
     }
 
     companion object {
+        private val DEMO_REPORT_NOW: Instant = Instant.parse("2026-09-03T12:00:00Z")
+
         fun csvCell(value: String): String {
             val formulaIdx = value.indexOfFirst { it != ' ' && it != '\t' }
             val formula = formulaIdx >= 0 && value[formulaIdx] in "=+-@\t\r"
@@ -97,6 +130,19 @@ class ReportingService(
             ReportInventoryEntity(DemoIds.uuid("rpt-item-015"), DemoIds.uuid("farm-007"), "item-015", "UREA", BigDecimal("980")),
             ReportInventoryEntity(DemoIds.uuid("rpt-item-016"), DemoIds.uuid("farm-008"), "item-016", "HYDRAULIC_OIL", BigDecimal("450")),
         )
+    }
+
+    private fun operationRows(scope: AccessScope, farmId: UUID?): List<ReportOperationEntity> =
+        operations.findByFarmIdIn(scope.resolveFarms(farmId)).sortedBy { it.code }
+
+    private fun inventoryRows(scope: AccessScope, farmId: UUID?): List<ReportInventoryEntity> =
+        inventory.findByFarmIdIn(scope.resolveFarms(farmId)).sortedBy { it.code }
+
+    private fun subtitle(scope: AccessScope, farmId: UUID?): String {
+        val names = scope.resolveFarms(farmId)
+            .mapNotNull(DemoCatalog::farmName)
+            .ifEmpty { listOf("Fazendas selecionadas") }
+        return names.joinToString(" | ")
     }
 }
 
