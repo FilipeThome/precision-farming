@@ -36,5 +36,6 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("androidx.core:core-ktx:1.15.0")
     testImplementation("junit:junit:4.13.2")
 }
