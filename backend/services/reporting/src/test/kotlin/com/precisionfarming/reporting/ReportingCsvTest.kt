@@ -46,6 +46,49 @@ class ReportingCsvTest {
     }
 
     @Test
+    fun reportCatalogListsAvailablePdfReports() {
+        val catalog = svc.reportCatalog()
+
+        assertEquals(listOf("operations", "inventory"), catalog.map { it.kind })
+        assertTrue(catalog.all { it.format == "PDF" })
+        assertEquals("/api/v1/reports/operations.pdf", catalog.first().path)
+    }
+
+    @Test
+    fun operationsPdfContainsHeaderAndRows() {
+        every { operations.findByFarmIdIn(setOf(farm1)) } returns listOf(
+            ReportOperationEntity(DemoIds.uuid("rpt-op-001"), farm1, "op-001", "PLANTING", "COMPLETED"),
+        )
+
+        val pdf = svc.operationsPdf(AccessScope(tenant, setOf(farm1), "OPERATOR"), farm1)
+        val text = pdf.toString(Charsets.ISO_8859_1)
+
+        assertTrue(text.startsWith("%PDF"))
+        assertTrue(text.contains("Relatorio de Operacoes"))
+        assertTrue(text.contains("op-001"))
+        assertTrue(text.contains("Precision Farming"))
+        assertTrue(text.contains("xref"))
+        assertTrue(text.contains("trailer << /Size "))
+    }
+
+    @Test
+    fun inventoryPdfContainsHeaderAndRows() {
+        every { inventory.findByFarmIdIn(setOf(farm1)) } returns listOf(
+            ReportInventoryEntity(DemoIds.uuid("rpt-item-001"), farm1, "item-001", "GLYPHOSATE", BigDecimal("420")),
+        )
+
+        val pdf = svc.inventoryPdf(AccessScope(tenant, setOf(farm1), "OPERATOR"), farm1)
+        val text = pdf.toString(Charsets.ISO_8859_1)
+
+        assertTrue(text.startsWith("%PDF"))
+        assertTrue(text.contains("Relatorio de Estoque"))
+        assertTrue(text.contains("item-001"))
+        assertTrue(text.contains("GLYPHOSATE"))
+        assertTrue(text.contains("startxref"))
+        assertTrue(text.contains("%%EOF"))
+    }
+
+    @Test
     fun seedMatchesOperationAndInventoryCatalog() {
         val savedOps = mutableListOf<ReportOperationEntity>()
         val savedItems = mutableListOf<ReportInventoryEntity>()
@@ -88,6 +131,13 @@ class ReportingCsvTest {
     fun outOfScopeFarmIdIsForbidden() {
         assertThrows(ForbiddenException::class.java) {
             svc.operationsCsv(AccessScope(tenant, setOf(farm1), "OPERATOR"), farm2)
+        }
+    }
+
+    @Test
+    fun outOfScopeFarmIdIsForbiddenForPdf() {
+        assertThrows(ForbiddenException::class.java) {
+            svc.operationsPdf(AccessScope(tenant, setOf(farm1), "OPERATOR"), farm2)
         }
     }
 

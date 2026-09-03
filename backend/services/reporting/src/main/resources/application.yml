@@ -52,7 +52,7 @@ app:
     jwt-public-key: ${JWT_PUBLIC_KEY:}
     allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
-  seed: ${APP_SEED:true}
+  seed: ${APP_SEED:false}
   clients:
     farm: ${FARM_URL:http://localhost:8082}
     asset: ${ASSET_URL:http://localhost:8083}

@@ -119,7 +119,13 @@ data class OperationDto(val id: String, val type: String, val status: String)
 data class PauseRequest(val reason: String)
 
 @Serializable
-data class AlertDto(val id: String, val title: String, val severity: String, val status: String)
+data class AlertDto(
+    val id: String,
+    val title: String,
+    val message: String? = null,
+    val severity: String,
+    val status: String,
+)
 
 @Serializable
 data class InsightDto(val id: String, val type: String, val score: Double, val model: String, val demo: Boolean = true)
@@ -581,9 +587,11 @@ suspend fun esg(farmId: String? = null) =
 
 suspend fun integrations() = api.get("/api/v1/integrations").body<List<IntegrationDto>>()
 
-suspend fun reportOperationsCsv(): ByteArray = api.get("/api/v1/reports/operations.csv").bodyAsBytes()
+suspend fun reportOperationsPdf(farmId: String? = null): ByteArray =
+    api.get("/api/v1/reports/operations.pdf") { farmQuery(farmId) }.bodyAsBytes()
 
-suspend fun reportInventoryCsv(): ByteArray = api.get("/api/v1/reports/inventory.csv").bodyAsBytes()
+suspend fun reportInventoryPdf(farmId: String? = null): ByteArray =
+    api.get("/api/v1/reports/inventory.pdf") { farmQuery(farmId) }.bodyAsBytes()
 
 /** Soft-callable sync pull stub. Prefer [Session.userId]:demo when bound. */
 suspend fun syncPull(deviceId: String, cursor: String? = null): SyncPullResponse =
