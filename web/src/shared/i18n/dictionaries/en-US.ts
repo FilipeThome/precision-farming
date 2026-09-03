@@ -294,6 +294,8 @@ export const enUS: Record<MessageKey, string> = {
   'alerts.ack': 'Acknowledge',
   'reports.title': 'Reports',
   'reports.description': 'Authenticated PDF downloads from the gateway, with linked demo files for each report type.',
+  'reports.emptyTitle': 'No reports',
+  'reports.emptyDescription': 'There are no reports available right now.',
   'settings.title': 'Settings',
   'settings.description': 'Authenticated profile via GET /api/v1/auth/me.',
   'settings.emptyTitle': 'User not found',
