@@ -12,7 +12,7 @@ import {
   pnlChartRows,
 } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock, PieChartBlock } from '@/shared/ui/charts'
@@ -29,6 +29,7 @@ export function DashboardPage() {
   const alerts = useAlertsQuery(farmId)
   const pnl = useFinancePnlQuery(farmId)
   const { t } = useI18n()
+  const { number, label } = useFormat()
 
   const loading =
     farms.isLoading ||
@@ -111,7 +112,7 @@ export function DashboardPage() {
           />
           <KpiCard
             label={t('dashboard.kpi.marginRisk')}
-            value={formatNumber(negativeMargins, 0)}
+            value={number(negativeMargins, 0)}
             icon={TrendingDown}
             hint={t('dashboard.kpi.marginRiskHint')}
           />
@@ -120,17 +121,17 @@ export function DashboardPage() {
         <div className="mt-6 grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
           <ChartCard title={t('charts.opsByStatus')} description={t('charts.fromSeed')}>
             <BarChartBlock
-              data={opsStatusBars(operations.data ?? [])}
+              data={opsStatusBars(operations.data ?? [], label)}
               xKey="name"
               bars={[{ dataKey: 'value', name: t('charts.count'), color: CHART_COLORS.green }]}
             />
           </ChartCard>
           <ChartCard title={t('charts.alertsBySeverity')} description={t('charts.fromSeed')}>
-            <PieChartBlock data={alertSeverityPie(alerts.data ?? [])} />
+            <PieChartBlock data={alertSeverityPie(alerts.data ?? [], label)} />
           </ChartCard>
           <ChartCard title={t('charts.fleetByStatus')} description={t('charts.fromSeed')}>
             <BarChartBlock
-              data={fleetStatusBars(machines.data ?? [])}
+              data={fleetStatusBars(machines.data ?? [], label)}
               xKey="name"
               bars={[{ dataKey: 'value', name: t('charts.count'), color: CHART_COLORS.teal }]}
             />
@@ -141,7 +142,7 @@ export function DashboardPage() {
             className="xl:col-span-3"
           >
             <BarChartBlock
-              data={pnlChartRows(pnl.data ?? [])}
+              data={pnlChartRows(pnl.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'revenue', name: t('charts.revenue'), color: CHART_COLORS.green },

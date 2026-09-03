@@ -19,6 +19,7 @@ class OperationController(
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     fun create(@RequestBody body: CreateOperation) = svc.create(farmAccess.current(), body)
 
     @GetMapping("/{id}")

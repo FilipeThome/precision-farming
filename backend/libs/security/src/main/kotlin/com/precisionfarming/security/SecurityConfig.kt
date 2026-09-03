@@ -1,5 +1,6 @@
 package com.precisionfarming.security
 
+import com.precisionfarming.common.PemKeys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
@@ -10,7 +11,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.crypto.password.PasswordEncoder
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.JwtDecoder
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter
@@ -19,7 +19,6 @@ import org.springframework.security.web.SecurityFilterChain
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
-import javax.crypto.spec.SecretKeySpec
 
 @Configuration
 @EnableMethodSecurity
@@ -28,14 +27,15 @@ class SecurityConfig(
     private val jwtProperties: JwtProperties,
     private val correlationFilter: CorrelationFilter,
     @Value("\${springdoc.api-docs.enabled:false}") private val springdocEnabled: Boolean,
+    @Value("\${spring.application.name:}") private val applicationName: String,
 ) {
     @Bean
     fun passwordEncoder(): PasswordEncoder = BCryptPasswordEncoder()
 
     @Bean
     fun jwtDecoder(): JwtDecoder {
-        val key = SecretKeySpec(jwtProperties.jwtSecret.toByteArray(), "HmacSHA256")
-        val nimbus = NimbusJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        require(jwtProperties.jwtPublicKey.isNotBlank()) { "app.security.jwt-public-key is required" }
+        val nimbus = NimbusJwtDecoder.withPublicKey(PemKeys.parsePublic(jwtProperties.jwtPublicKey)).build()
         return JwtDecoder { token ->
             val jwt = nimbus.decode(token)
             JwtAccessType.requireResourceToken(jwt.getClaimAsString(JwtAccessType.CLAIM))
@@ -65,8 +65,15 @@ class SecurityConfig(
                     "/actuator/info",
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/logout",
                 ).permitAll()
-                // OpenAPI/Swagger only when explicitly enabled (local demo via SPRINGDOC_ENABLED).
+                if (applicationName == "auth-service") {
+                    it.requestMatchers(
+                        "/internal/service-tokens",
+                        "/internal/memberships",
+                        "/internal/memberships/revoke",
+                    ).permitAll()
+                }
                 if (springdocEnabled) {
                     it.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 }

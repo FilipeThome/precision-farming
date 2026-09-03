@@ -1,7 +1,6 @@
 package com.precisionfarming.operation.infrastructure
 
 import com.precisionfarming.common.DemoIds
-import com.precisionfarming.security.JwtService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.client.SimpleClientHttpRequestFactory
@@ -9,12 +8,15 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import java.math.BigDecimal
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 @Component
 class InventorySagaClient(
-    private val jwtService: JwtService,
     @Value("\${app.clients.inventory}") private val inventoryUrl: String,
+    @Value("\${app.clients.auth}") private val authUrl: String,
+    @Value("\${app.security.service-mint-secret}") private val mintSecret: String,
 ) {
     private val http = RestClient.builder()
         .requestFactory(
@@ -24,13 +26,7 @@ class InventorySagaClient(
             },
         )
         .build()
-
-    private fun serviceToken(farmId: UUID) =
-        jwtService.cachedServiceToken(
-            subject = DemoIds.uuid("svc-operation"),
-            farmIds = listOf(farmId),
-            email = "operation@internal",
-        )
+    private val cache = ConcurrentHashMap<String, CachedToken>()
 
     fun move(itemId: UUID, type: String, quantity: BigDecimal, reference: String, farmId: UUID) {
         http.post().uri("$inventoryUrl/api/v1/inventory/movements")
@@ -40,4 +36,27 @@ class InventorySagaClient(
             .retrieve()
             .toBodilessEntity()
     }
+
+    private fun serviceToken(farmId: UUID): String {
+        val key = farmId.toString()
+        val now = Instant.now()
+        cache[key]?.takeIf { now.isBefore(it.validUntil) }?.let { return it.token }
+        val body = mapOf(
+            "subject" to DemoIds.uuid("svc-operation"),
+            "farmIds" to listOf(farmId),
+            "email" to "operation@internal",
+        )
+        val minted = http.post().uri("$authUrl/internal/service-tokens")
+            .header("X-Service-Mint", mintSecret)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
+            .retrieve()
+            .body(MintedToken::class.java)
+            ?: error("auth mint returned empty body")
+        cache[key] = CachedToken(minted.accessToken, now.plusSeconds(105))
+        return minted.accessToken
+    }
+
+    private data class MintedToken(val accessToken: String, val tokenType: String? = null)
+    private data class CachedToken(val token: String, val validUntil: Instant)
 }

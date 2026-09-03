@@ -45,6 +45,9 @@ services:
         GRADLE_PROJECT: :backend:services:auth
         MODULE_DIR: backend/services/auth
     image: precision-farming-auth:local
+    env_file:
+      - deploy/compose/demo.env
+      - deploy/compose/demo-auth.env
     environment:
       <<: *jvm-env
       DB_HOST: postgres
@@ -64,6 +67,9 @@ services:
         GRADLE_PROJECT: :backend:services:farm
         MODULE_DIR: backend/services/farm
     image: precision-farming-farm:local
+    env_file:
+      - deploy/compose/demo.env
+      - deploy/compose/demo-farm.env
     environment:
       <<: *jvm-env
       DB_HOST: postgres
@@ -140,6 +146,9 @@ services:
         GRADLE_PROJECT: :backend:services:operation
         MODULE_DIR: backend/services/operation
     image: precision-farming-operation:local
+    env_file:
+      - deploy/compose/demo.env
+      - deploy/compose/demo-operation.env
     environment:
       <<: *jvm-env
       DB_HOST: postgres
@@ -432,6 +441,7 @@ services:
       dockerfile: deploy/docker/Dockerfile.web
       args:
         VITE_API_BASE_URL: http://localhost:8080
+        VITE_DEMO_LOGIN_HINT: "true"
     image: precision-farming-web:local
     restart: unless-stopped
     ports:

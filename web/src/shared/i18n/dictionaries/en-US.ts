@@ -227,13 +227,10 @@ export const enUS: Record<MessageKey, string> = {
   'fields.emptyTitle': 'No fields found',
   'fields.emptyDescription': 'Adjust the farm filter or register fields in the backend.',
   'map.title': 'Map',
-  'map.description': 'Field polygons on satellite when the Google Maps key is configured.',
+  'map.description': 'Satellite view of the selected farm fields. Toggle NDVI, soil, and yield overlays.',
   'map.layers.title': 'Layers',
   'map.layers.empty': 'No layers available',
-  'map.layers.legend': 'Active layers (legend only — no GeoTIFF tiles)',
-  'map.missingKeyTitle': 'Google Maps key missing',
-  'map.missingKeyBody':
-    'Set VITE_GOOGLE_MAPS_API_KEY in the .env file to load the real satellite map. No fictional mosaic is shown.',
+  'map.layers.legend': 'Active layers (polygon style — no GeoTIFF tiles)',
   'map.loadError': 'Failed to load the map',
   'machines.title': 'Machines',
   'machines.description': 'Fleet and operational status.',
@@ -301,4 +298,23 @@ export const enUS: Record<MessageKey, string> = {
   'settings.description': 'Authenticated profile via GET /api/v1/auth/me.',
   'settings.emptyTitle': 'User not found',
   'settings.emptyDescription': 'Could not load the profile.',
+  'settings.name': 'Name',
+  'settings.email': 'Email',
+  'settings.role': 'Role',
+  'settings.id': 'ID',
+
+  'finance.revCost': 'Revenue {revenue} · Cost {cost}',
+  'finance.marginPeriod': 'Margin {margin} · {period}',
+  'finance.planActual': 'Plan {planned} · Actual {actual}',
+
+  'market.openHedged': '{open} t open · {hedged} t hedged',
+  'market.netTons': '{net} t net',
+
+  'ai.demoModel': 'Demo model',
+  'ai.scoreConfidence': 'Score {score} · confidence {confidence}',
+
+  'reports.operations': 'Operations',
+  'reports.inventory': 'Inventory',
+  'reports.download': 'Download',
+  'reports.downloading': 'Downloading…',
 }

@@ -9,6 +9,20 @@ plugins {
 subprojects {
     group = "com.precisionfarming"
     version = "0.1.0"
+
+    // Load Byte Buddy at JVM start so MockK does not need runtime attach (JDK 21 / Docker).
+    plugins.withId("org.jetbrains.kotlin.jvm") {
+        val byteBuddyAgent = configurations.maybeCreate("byteBuddyAgent")
+        dependencies.add(byteBuddyAgent.name, "net.bytebuddy:byte-buddy-agent:1.17.7")
+        tasks.withType<Test>().configureEach {
+            val agentJar = byteBuddyAgent.elements.map { files -> files.single().asFile.absolutePath }
+            jvmArgumentProviders.add(
+                CommandLineArgumentProvider {
+                    listOf("-javaagent:${agentJar.get()}")
+                },
+            )
+        }
+    }
 }
 
 tasks.register("seedDemoData") {

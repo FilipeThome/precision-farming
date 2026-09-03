@@ -5,7 +5,7 @@ import { useForecastQuery, useWeatherWindowsQuery } from '@/features/weather/que
 import { weatherSeries } from '@/shared/charts/adapters'
 import { weatherPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDate, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
@@ -27,6 +27,7 @@ export function WeatherPage() {
   const active = tab === 'forecast' ? forecast : windows
   const err = queryError(active.error)
   const { t } = useI18n()
+  const { date, number } = useFormat()
 
   return (
     <section>
@@ -70,21 +71,21 @@ export function WeatherPage() {
           ) : null}
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {(forecast.data ?? []).map((day) => (
-              <Card key={day.id} className="overflow-hidden p-0">
-                <EntityPhoto src={weatherPhoto()} alt={formatDate(day.forecastAt)} />
-                <div className="p-4">
+              <Card key={day.id} className="flex gap-3 p-3">
+                <EntityPhoto src={weatherPhoto()} alt={date(day.forecastAt)} />
+                <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <h2 className="font-medium text-pf-green">{formatDate(day.forecastAt)}</h2>
+                    <h2 className="font-medium text-pf-green">{date(day.forecastAt)}</h2>
                     <StatusBadge value={day.sprayingWindow} />
                   </div>
                   <p className="mt-2 text-sm">
-                    {formatNumber(Number(day.temperatureMin), 0)}–
-                    {formatNumber(Number(day.temperatureMax), 0)} °C
+                    {number(Number(day.temperatureMin), 0)}–
+                    {number(Number(day.temperatureMax), 0)} °C
                   </p>
                   <p className="text-sm text-pf-muted">
                     {t('weather.rainWind', {
-                      rain: formatNumber(Number(day.rainMm), 1),
-                      wind: formatNumber(Number(day.windKmh), 0),
+                      rain: number(Number(day.rainMm), 1),
+                      wind: number(Number(day.windKmh), 0),
                     })}
                   </p>
                 </div>

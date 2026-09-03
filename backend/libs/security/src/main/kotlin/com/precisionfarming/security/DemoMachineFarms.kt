@@ -23,6 +23,8 @@ object DemoMachineFarms {
         DemoIds.uuid("machine-010") to DemoIds.uuid("farm-006"),
         DemoIds.uuid("machine-011") to DemoIds.uuid("farm-007"),
         DemoIds.uuid("machine-012") to DemoIds.uuid("farm-008"),
+        DemoIds.uuid("machine-013") to DemoIds.uuid("farm-003"),
+        DemoIds.uuid("machine-014") to DemoIds.uuid("farm-006"),
     )
 
     private val runtime = ConcurrentHashMap<UUID, UUID>()

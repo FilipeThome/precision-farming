@@ -214,40 +214,51 @@ class OperationService(
         )
         val now = Instant.now()
         val rows = listOf(
-            Row("op-001", "field-001", "farm-001", "Plantio", "COMPLETED", "machine-001", "item-001"),
-            Row("op-002", "field-001", "farm-001", "Pulverização", "IN_PROGRESS", "machine-002", "item-001"),
-            Row("op-003", "field-002", "farm-001", "Adubação", "PLANNED", "machine-001", "item-002"),
-            Row("op-004", "field-003", "farm-001", "Inspeção", "PLANNED", null, "item-001"),
-            Row("op-005", "field-004", "farm-002", "Plantio", "PAUSED", "machine-004", "item-003"),
-            Row("op-006", "field-005", "farm-002", "Pulverização", "IN_PROGRESS", "machine-006", "item-005"),
-            Row("op-007", "field-006", "farm-003", "Plantio", "COMPLETED", "machine-005", "item-007"),
-            Row("op-008", "field-007", "farm-003", "Adubação", "PAUSED", "machine-005", "item-008"),
-            Row("op-009", "field-008", "farm-003", "Pulverização", "PLANNED", null, "item-008"),
-            Row("op-010", "field-009", "farm-004", "Plantio", "IN_PROGRESS", "machine-007", "item-009"),
-            Row("op-011", "field-010", "farm-004", "Colheita", "PLANNED", "machine-008", "item-010"),
-            Row("op-012", "field-011", "farm-004", "Adubação", "COMPLETED", "machine-007", "item-009"),
-            Row("op-013", "field-012", "farm-005", "Plantio", "PLANNED", "machine-009", "item-011"),
-            Row("op-014", "field-013", "farm-005", "Pulverização", "PAUSED", "machine-009", "item-011"),
-            Row("op-015", "field-016", "farm-005", "Inspeção", "COMPLETED", null, "item-012"),
-            Row("op-016", "field-017", "farm-006", "Plantio", "IN_PROGRESS", "machine-010", "item-013"),
-            Row("op-017", "field-018", "farm-006", "Adubação", "PLANNED", "machine-010", "item-014"),
-            Row("op-018", "field-019", "farm-007", "Pulverização", "PAUSED", "machine-011", "item-015"),
-            Row("op-019", "field-020", "farm-007", "Plantio", "COMPLETED", null, "item-015"),
-            Row("op-020", "field-021", "farm-008", "Adubação", "IN_PROGRESS", "machine-012", "item-016"),
+            Row("op-001", "field-001", "farm-001", "PLANTING", "COMPLETED", "machine-001", "item-001"),
+            Row("op-002", "field-001", "farm-001", "SPRAYING", "IN_PROGRESS", "machine-002", "item-001"),
+            Row("op-003", "field-002", "farm-001", "FERTILIZING", "PLANNED", "machine-001", "item-002"),
+            Row("op-004", "field-003", "farm-001", "INSPECTION", "PLANNED", null, "item-001"),
+            Row("op-005", "field-004", "farm-002", "PLANTING", "PAUSED", "machine-004", "item-003"),
+            Row("op-006", "field-005", "farm-002", "SPRAYING", "IN_PROGRESS", "machine-006", "item-005"),
+            Row("op-007", "field-006", "farm-003", "PLANTING", "COMPLETED", "machine-005", "item-007"),
+            Row("op-008", "field-007", "farm-003", "FERTILIZING", "PAUSED", "machine-005", "item-008"),
+            Row("op-009", "field-008", "farm-003", "SPRAYING", "PLANNED", "machine-013", "item-008"),
+            Row("op-010", "field-009", "farm-004", "PLANTING", "IN_PROGRESS", "machine-007", "item-009"),
+            Row("op-011", "field-010", "farm-004", "HARVEST", "PLANNED", "machine-008", "item-010"),
+            Row("op-012", "field-011", "farm-004", "FERTILIZING", "COMPLETED", "machine-007", "item-009"),
+            Row("op-013", "field-012", "farm-005", "PLANTING", "PLANNED", "machine-009", "item-011"),
+            Row("op-014", "field-013", "farm-005", "SPRAYING", "PAUSED", "machine-009", "item-011"),
+            Row("op-015", "field-016", "farm-005", "INSPECTION", "COMPLETED", null, "item-012"),
+            Row("op-016", "field-017", "farm-006", "PLANTING", "IN_PROGRESS", "machine-010", "item-013"),
+            Row("op-017", "field-018", "farm-006", "FERTILIZING", "PLANNED", "machine-010", "item-014"),
+            Row("op-018", "field-019", "farm-007", "SPRAYING", "PAUSED", "machine-011", "item-015"),
+            Row("op-019", "field-020", "farm-007", "PLANTING", "COMPLETED", null, "item-015"),
+            Row("op-020", "field-021", "farm-008", "FERTILIZING", "IN_PROGRESS", "machine-012", "item-016"),
         )
-        val existing = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
+        val existing = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).associateBy { it.id }
         repo.saveAll(
-            rows.filter { DemoIds.uuid(it.key) !in existing }.map { r ->
-                OperationEntity(
-                    DemoIds.uuid(r.key), DemoIds.uuid(r.field), DemoIds.uuid(r.farm), r.type, r.status,
-                    now.minus(2, ChronoUnit.DAYS), now.plus(1, ChronoUnit.DAYS),
-                    if (r.status != "PLANNED") now.minus(1, ChronoUnit.DAYS) else null,
-                    if (r.status == "COMPLETED") now.minus(2, ChronoUnit.HOURS) else null,
-                    r.machine?.let { DemoIds.uuid(it) },
-                    if (r.status == "PAUSED") "Chuva" else null,
-                    DemoIds.uuid(r.item),
-                    BigDecimal("20"),
-                )
+            rows.map { r ->
+                val id = DemoIds.uuid(r.key)
+                val found = existing[id]
+                if (found != null) {
+                    found.fieldId = DemoIds.uuid(r.field)
+                    found.farmId = DemoIds.uuid(r.farm)
+                    found.type = r.type
+                    found.itemId = DemoIds.uuid(r.item)
+                    if (found.machineId == null) found.machineId = r.machine?.let { DemoIds.uuid(it) }
+                    found
+                } else {
+                    OperationEntity(
+                        id, DemoIds.uuid(r.field), DemoIds.uuid(r.farm), r.type, r.status,
+                        now.minus(2, ChronoUnit.DAYS), now.plus(1, ChronoUnit.DAYS),
+                        if (r.status != "PLANNED") now.minus(1, ChronoUnit.DAYS) else null,
+                        if (r.status == "COMPLETED") now.minus(2, ChronoUnit.HOURS) else null,
+                        r.machine?.let { DemoIds.uuid(it) },
+                        if (r.status == "PAUSED") "RAIN" else null,
+                        DemoIds.uuid(r.item),
+                        BigDecimal("20"),
+                    )
+                }
             },
         )
     }

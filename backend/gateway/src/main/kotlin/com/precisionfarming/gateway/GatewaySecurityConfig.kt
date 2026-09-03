@@ -1,12 +1,12 @@
 package com.precisionfarming.gateway
 
+import com.precisionfarming.common.PemKeys
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.security.config.Customizer
 import org.springframework.security.config.web.server.ServerHttpSecurity
-import org.springframework.security.oauth2.jose.jws.MacAlgorithm
 import org.springframework.security.oauth2.jwt.JwtException
 import org.springframework.security.oauth2.jwt.NimbusReactiveJwtDecoder
 import org.springframework.security.oauth2.jwt.ReactiveJwtDecoder
@@ -14,16 +14,14 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.reactive.CorsConfigurationSource
 import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
-import javax.crypto.spec.SecretKeySpec
 
 @Configuration
 class GatewaySecurityConfig(
-    @Value("\${app.security.jwt-secret}") private val jwtSecret: String,
+    @Value("\${app.security.jwt-public-key}") private val jwtPublicKey: String,
 ) {
     @Bean
     fun jwtDecoder(): ReactiveJwtDecoder {
-        val key = SecretKeySpec(jwtSecret.toByteArray(), "HmacSHA256")
-        val nimbus = NimbusReactiveJwtDecoder.withSecretKey(key).macAlgorithm(MacAlgorithm.HS256).build()
+        val nimbus = NimbusReactiveJwtDecoder.withPublicKey(PemKeys.parsePublic(jwtPublicKey)).build()
         return ReactiveJwtDecoder { token ->
             nimbus.decode(token).handle { jwt, sink ->
                 val type = jwt.getClaimAsString("type")
@@ -60,6 +58,7 @@ class GatewaySecurityConfig(
                     "/actuator/info",
                     "/api/v1/auth/login",
                     "/api/v1/auth/refresh",
+                    "/api/v1/auth/logout",
                 ).permitAll()
                 it.pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 it.anyExchange().authenticated()

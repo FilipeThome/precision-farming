@@ -1,7 +1,7 @@
 import { fieldPhoto } from '@/shared/demo/media'
 import { useFieldsQuery } from '@/features/fields/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -13,6 +13,7 @@ export function FieldsPage() {
   const fields = useFieldsQuery(farmId)
   const err = queryError(fields.error)
   const { t } = useI18n()
+  const { number, label } = useFormat()
 
   return (
     <section>
@@ -31,11 +32,11 @@ export function FieldsPage() {
           {(fields.data ?? []).map((field) => (
             <EntityCard
               key={field.id}
-              title={field.name}
-              subtitle={`${field.crop}${field.variety ? ` · ${field.variety}` : ''}`}
-              meta={`${formatNumber(Number(field.areaHa), 1)} ha`}
+              title={label(field.id, field.name)}
+              subtitle={`${label(field.crop)}${field.variety ? ` · ${label(field.variety)}` : ''}`}
+              meta={`${number(Number(field.areaHa), 1)} ha`}
               imageSrc={fieldPhoto(field.id, field.crop, field.farmId)}
-              imageAlt={field.name}
+              imageAlt={label(field.id, field.name)}
             />
           ))}
         </div>

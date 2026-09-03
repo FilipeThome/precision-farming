@@ -7,9 +7,9 @@ import {
   useScoutingQuery,
   useSoilSamplesQuery,
 } from '@/features/agronomy/queries'
-import { cropPhoto, scoutingPhoto, soilPhoto } from '@/shared/demo/media'
+import { farmPhoto, scoutingPhoto, soilPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -23,6 +23,7 @@ export function AgronomyPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('scouting')
   const { t } = useI18n()
+  const { dateTime, number, label } = useFormat()
   const scouting = useScoutingQuery(farmId, { enabled: tab === 'scouting' })
   const soil = useSoilSamplesQuery(farmId, { enabled: tab === 'soil' })
   const recommendations = useRecommendationsQuery(farmId, { enabled: tab === 'recommendations' })
@@ -86,11 +87,11 @@ export function AgronomyPage() {
               ? (scouting.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.pest ?? row.id}
-                    subtitle={row.notes}
-                    meta={`${row.severity ?? '—'} · ${formatDateTime(row.observedAt)}`}
+                    title={label(row.pest, row.fieldId ?? row.id)}
+                    subtitle={row.notes ? label(row.notes) : undefined}
+                    meta={`${label(row.severity)} · ${dateTime(row.observedAt)}`}
                     imageSrc={scoutingPhoto()}
-                    imageAlt={row.pest ?? 'scouting'}
+                    imageAlt={label(row.pest)}
                   />
                 ))
               : null}
@@ -98,18 +99,18 @@ export function AgronomyPage() {
               ? (soil.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.lab ?? row.id}
+                    title={label(row.lab, row.fieldId ?? row.id)}
                     subtitle={
                       row.ph != null
                         ? t('agronomy.soil.phOm', {
-                            ph: formatNumber(Number(row.ph), 1),
-                            om: formatNumber(Number(row.organicMatterPct ?? 0), 1),
+                            ph: number(Number(row.ph), 1),
+                            om: number(Number(row.organicMatterPct ?? 0), 1),
                           })
                         : undefined
                     }
-                    meta={formatDateTime(row.sampledAt)}
+                    meta={dateTime(row.sampledAt)}
                     imageSrc={soilPhoto()}
-                    imageAlt={row.lab ?? 'soil'}
+                    imageAlt={label(row.lab)}
                   />
                 ))
               : null}
@@ -117,11 +118,11 @@ export function AgronomyPage() {
               ? (recommendations.data ?? []).map((row) => (
                   <EntityCard
                     key={row.id}
-                    title={row.title ?? row.kind ?? row.id}
-                    subtitle={row.summary}
-                    meta={`${row.priority ?? '—'} · ${formatDateTime(row.createdAt)}`}
-                    imageSrc={cropPhoto()}
-                    imageAlt={row.title ?? 'recommendation'}
+                    title={label(row.title ?? row.kind, row.id)}
+                    subtitle={row.summary ? label(row.summary) : undefined}
+                    meta={`${label(row.priority)} · ${dateTime(row.createdAt)}`}
+                    imageSrc={farmPhoto(row.farmId) ?? farmPhoto(farmId)}
+                    imageAlt={label(row.title)}
                   />
                 ))
               : null}

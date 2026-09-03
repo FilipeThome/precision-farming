@@ -8,3 +8,7 @@ export async function loginRequest(email: string, password: string): Promise<Tok
 export async function fetchMe(): Promise<MeResponse> {
   return apiGet<MeResponse>('/api/v1/auth/me')
 }
+
+export async function logoutRequest(refreshToken: string | null): Promise<void> {
+  await apiPost('/api/v1/auth/logout', { refreshToken }, false, { skipRefresh: true })
+}

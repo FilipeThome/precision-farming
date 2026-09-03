@@ -1,6 +1,7 @@
 package com.precisionfarming.finance.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.finance.domain.MarketQuoteProvider
@@ -42,6 +43,7 @@ data class MarketExposureDto(val id: UUID, val farmId: UUID, val commodity: Stri
 data class PnlRowDto(
     val id: String,
     val farmId: UUID?,
+    val farmName: String?,
     val revenue: BigDecimal,
     val cost: BigDecimal,
     val margin: BigDecimal,
@@ -70,6 +72,7 @@ class FinanceService(
             PnlRowDto(
                 id = "pnl-$fid",
                 farmId = fid,
+                farmName = DemoCatalog.farmName(fid),
                 revenue = revenue,
                 cost = cost,
                 margin = revenue.subtract(cost),
@@ -90,7 +93,7 @@ class FinanceService(
     @Transactional
     fun seed() {
         val now = Instant.now()
-        val categories = listOf("SEED", "FERTILIZER", "CHEMICAL", "FUEL", "LABOR", "MAINTENANCE", "FREIGHT", "REVENUE")
+        val costCategories = listOf("SEED", "FERTILIZER", "CHEMICAL", "FUEL", "LABOR", "MAINTENANCE", "FREIGHT")
         val farms = (1..8).map { "farm-%03d".format(it) }
         val fieldsByFarm = mapOf(
             "farm-001" to listOf("field-001", "field-002", "field-003", "field-014"),
@@ -106,20 +109,36 @@ class FinanceService(
             (1..56).map { i ->
                 Callable {
                     val farm = farms[(i - 1) % farms.size]
-                    val cat = categories[(i - 1) % categories.size]
-                    val amount = if (cat == "REVENUE") BigDecimal("${50000 + i * 1200}") else BigDecimal("${800 + i * 37}")
+                    val cat = costCategories[((i - 1) / farms.size) % costCategories.size]
+                    val amount = BigDecimal("${800 + i * 37}")
                     val farmFields = fieldsByFarm.getValue(farm)
                     val fieldId = if (i % 2 == 0) DemoIds.uuid(farmFields[(i - 1) % farmFields.size]) else null
                     CostEntity(
                         DemoIds.uuid("cost-%03d".format(i)), DemoIds.uuid(farm),
                         fieldId,
-                        cat, "Lançamento demo $i", amount, "BRL", now.minus(i.toLong(), ChronoUnit.DAYS),
+                        cat, "DEMO_ENTRY_$i", amount, "BRL", now.minus(i.toLong(), ChronoUnit.DAYS),
                     )
                 }
             },
         )
-        val existingCosts = costs.findAllById(costRows.map { it.id }).map { it.id }.toHashSet()
-        costs.saveAll(costRows.filter { it.id !in existingCosts })
+        costs.saveAll(costRows)
+
+        val revenueRows = farms.flatMapIndexed { idx, farm ->
+            val farmId = DemoIds.uuid(farm)
+            listOf(
+                CostEntity(
+                    DemoIds.uuid("rev-%03d".format(idx + 1)), farmId, null,
+                    "REVENUE", "SOY_RECEIPT", BigDecimal("${220000 + idx * 28000}"), "BRL",
+                    now.minus((idx + 2).toLong(), ChronoUnit.DAYS),
+                ),
+                CostEntity(
+                    DemoIds.uuid("rev-b-%03d".format(idx + 1)), farmId, null,
+                    "REVENUE", "CORN_SALE", BigDecimal("${98000 + idx * 14000}"), "BRL",
+                    now.minus((idx + 12).toLong(), ChronoUnit.DAYS),
+                ),
+            )
+        }
+        costs.saveAll(revenueRows)
 
         val budgetRows = listOf(
             BudgetEntity(DemoIds.uuid("budget-001"), DemoIds.uuid("farm-001"), "2025/26", "FERTILIZER", BigDecimal("420000"), BigDecimal("388000")),
@@ -135,29 +154,27 @@ class FinanceService(
             BudgetEntity(DemoIds.uuid("budget-011"), DemoIds.uuid("farm-005"), "2025/26", "FERTILIZER", BigDecimal("155000"), BigDecimal("149000")),
             BudgetEntity(DemoIds.uuid("budget-012"), DemoIds.uuid("farm-007"), "2025/26", "FUEL", BigDecimal("76000"), BigDecimal("71200")),
         )
-        val existingBudgets = budgets.findAllById(budgetRows.map { it.id }).map { it.id }.toHashSet()
-        budgets.saveAll(budgetRows.filter { it.id !in existingBudgets })
+        budgets.saveAll(budgetRows)
 
         val cashflowRows = listOf(
-            CashflowEntity(DemoIds.uuid("cf-001"), DemoIds.uuid("farm-001"), "Recebimento soja", "IN", BigDecimal("850000"), now.plus(15, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-002"), DemoIds.uuid("farm-001"), "Pagamento insumos", "OUT", BigDecimal("220000"), now.plus(5, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-003"), DemoIds.uuid("farm-002"), "Frete", "OUT", BigDecimal("48000"), now.plus(8, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-004"), DemoIds.uuid("farm-003"), "Contrato milho", "IN", BigDecimal("610000"), now.plus(30, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-005"), DemoIds.uuid("farm-006"), "Recebimento soja", "IN", BigDecimal("420000"), now.plus(20, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-006"), DemoIds.uuid("farm-001"), "Parcela financiamento", "OUT", BigDecimal("95000"), now.minus(25, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-007"), DemoIds.uuid("farm-001"), "Adiantamento trading", "IN", BigDecimal("310000"), now.minus(18, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-008"), DemoIds.uuid("farm-001"), "Folha operacional", "OUT", BigDecimal("128000"), now.minus(10, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-009"), DemoIds.uuid("farm-001"), "Venda milho", "IN", BigDecimal("275000"), now.minus(3, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-010"), DemoIds.uuid("farm-001"), "Manutenção frota", "OUT", BigDecimal("42000"), now.plus(12, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-011"), DemoIds.uuid("farm-001"), "Arrendamento", "OUT", BigDecimal("180000"), now.plus(22, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-012"), DemoIds.uuid("farm-004"), "Recebimento soja", "IN", BigDecimal("390000"), now.plus(18, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-013"), DemoIds.uuid("farm-005"), "Combustível", "OUT", BigDecimal("56000"), now.plus(6, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-014"), DemoIds.uuid("farm-007"), "Contrato algodão", "IN", BigDecimal("510000"), now.plus(40, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-015"), DemoIds.uuid("farm-008"), "Impostos e taxas", "OUT", BigDecimal("34000"), now.plus(9, ChronoUnit.DAYS)),
-            CashflowEntity(DemoIds.uuid("cf-016"), DemoIds.uuid("farm-002"), "Recebimento milho", "IN", BigDecimal("245000"), now.minus(7, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-001"), DemoIds.uuid("farm-001"), "SOY_RECEIPT", "IN", BigDecimal("850000"), now.plus(15, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-002"), DemoIds.uuid("farm-001"), "INPUT_PAYMENT", "OUT", BigDecimal("220000"), now.plus(5, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-003"), DemoIds.uuid("farm-002"), "FREIGHT_PAYMENT", "OUT", BigDecimal("48000"), now.plus(8, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-004"), DemoIds.uuid("farm-003"), "CORN_CONTRACT", "IN", BigDecimal("610000"), now.plus(30, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-005"), DemoIds.uuid("farm-006"), "SOY_RECEIPT", "IN", BigDecimal("420000"), now.plus(20, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-006"), DemoIds.uuid("farm-001"), "LOAN_INSTALLMENT", "OUT", BigDecimal("95000"), now.minus(25, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-007"), DemoIds.uuid("farm-001"), "TRADING_ADVANCE", "IN", BigDecimal("310000"), now.minus(18, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-008"), DemoIds.uuid("farm-001"), "PAYROLL", "OUT", BigDecimal("128000"), now.minus(10, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-009"), DemoIds.uuid("farm-001"), "CORN_SALE", "IN", BigDecimal("275000"), now.minus(3, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-010"), DemoIds.uuid("farm-001"), "FLEET_MAINTENANCE", "OUT", BigDecimal("42000"), now.plus(12, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-011"), DemoIds.uuid("farm-001"), "LEASE", "OUT", BigDecimal("180000"), now.plus(22, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-012"), DemoIds.uuid("farm-004"), "SOY_RECEIPT", "IN", BigDecimal("390000"), now.plus(18, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-013"), DemoIds.uuid("farm-005"), "FUEL_PAYMENT", "OUT", BigDecimal("56000"), now.plus(6, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-014"), DemoIds.uuid("farm-007"), "COTTON_CONTRACT", "IN", BigDecimal("510000"), now.plus(40, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-015"), DemoIds.uuid("farm-008"), "TAXES", "OUT", BigDecimal("34000"), now.plus(9, ChronoUnit.DAYS)),
+            CashflowEntity(DemoIds.uuid("cf-016"), DemoIds.uuid("farm-002"), "CORN_RECEIPT", "IN", BigDecimal("245000"), now.minus(7, ChronoUnit.DAYS)),
         )
-        val existingCf = cashflows.findAllById(cashflowRows.map { it.id }).map { it.id }.toHashSet()
-        cashflows.saveAll(cashflowRows.filter { it.id !in existingCf })
+        cashflows.saveAll(cashflowRows)
 
         val quoteRows = market.demoQuotes().mapIndexed { idx, triple ->
             val (commodity, exchange, price) = triple
@@ -166,8 +183,7 @@ class FinanceService(
                 if (exchange == "B3") "BRL" else "USD", now,
             )
         }
-        val existingQuotes = quotes.findAllById(quoteRows.map { it.id }).map { it.id }.toHashSet()
-        quotes.saveAll(quoteRows.filter { it.id !in existingQuotes })
+        quotes.saveAll(quoteRows)
 
         val contractRows = listOf(
             MarketContractEntity(DemoIds.uuid("contract-001"), DemoIds.uuid("farm-001"), "SOY", BigDecimal("1200"), BigDecimal("138.20"), "BRL", now.plus(45, ChronoUnit.DAYS), "OPEN"),
@@ -175,8 +191,7 @@ class FinanceService(
             MarketContractEntity(DemoIds.uuid("contract-003"), DemoIds.uuid("farm-003"), "SOY", BigDecimal("2000"), BigDecimal("12.45"), "USD", now.plus(90, ChronoUnit.DAYS), "HEDGED"),
             MarketContractEntity(DemoIds.uuid("contract-004"), DemoIds.uuid("farm-007"), "SOY", BigDecimal("900"), BigDecimal("137.50"), "BRL", now.plus(50, ChronoUnit.DAYS), "OPEN"),
         )
-        val existingContracts = contracts.findAllById(contractRows.map { it.id }).map { it.id }.toHashSet()
-        contracts.saveAll(contractRows.filter { it.id !in existingContracts })
+        contracts.saveAll(contractRows)
 
         val exposureRows = listOf(
             MarketExposureEntity(DemoIds.uuid("exposure-001"), DemoIds.uuid("farm-001"), "SOY", BigDecimal("1800"), BigDecimal("1200"), BigDecimal("62.5")),
@@ -185,8 +200,7 @@ class FinanceService(
             MarketExposureEntity(DemoIds.uuid("exposure-004"), DemoIds.uuid("farm-006"), "SOY", BigDecimal("1400"), BigDecimal("600"), BigDecimal("58.0")),
             MarketExposureEntity(DemoIds.uuid("exposure-005"), DemoIds.uuid("farm-008"), "CORN", BigDecimal("700"), BigDecimal("300"), BigDecimal("48.5")),
         )
-        val existingExposures = exposures.findAllById(exposureRows.map { it.id }).map { it.id }.toHashSet()
-        exposures.saveAll(exposureRows.filter { it.id !in existingExposures })
+        exposures.saveAll(exposureRows)
     }
 
     private fun CostEntity.toDto() = CostDto(id, farmId, fieldId, category, description, amount, currency, occurredAt)

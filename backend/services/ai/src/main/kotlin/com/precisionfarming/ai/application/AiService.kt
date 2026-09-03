@@ -56,68 +56,56 @@ class AiService(private val repo: PredictionJpaRepository) {
             PredictionEntity(
                 DemoIds.uuid("prediction-001"), "MACHINE_FAILURE_RISK", "MACHINE", DemoIds.uuid("machine-001"),
                 BigDecimal("0.72"), BigDecimal("0.81"), "demo-gradient-baseline", "0.1.0",
-                Instant.parse("2026-08-31T10:00:00Z"), "High engine hours|Increasing temperature variance|Recent diagnostic event",
+                Instant.parse("2026-08-31T10:00:00Z"), "HIGH_ENGINE_HOURS|INCREASING_TEMP_VARIANCE|RECENT_DIAGNOSTIC",
                 72, DemoIds.uuid("farm-001"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-002"), "YIELD_FORECAST", "FIELD", DemoIds.uuid("field-001"),
                 BigDecimal("0.64"), BigDecimal("0.70"), "demo-gradient-baseline", "0.1.0",
-                now, "Baseline soja Boa Vista|Clima na média da safra", 720, DemoIds.uuid("farm-001"),
+                now, "SOY_BASELINE_BOA_VISTA|SEASON_AVG_WEATHER", 720, DemoIds.uuid("farm-001"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-003"), "OPERATIONAL_DELAY_RISK", "OPERATION", DemoIds.uuid("op-002"),
                 BigDecimal("0.55"), BigDecimal("0.66"), "demo-gradient-baseline", "0.1.0",
-                now, "Backlog de pulverização|Janela climática desfavorável", 48, DemoIds.uuid("farm-001"),
+                now, "SPRAY_BACKLOG|UNFAVORABLE_WEATHER_WINDOW", 48, DemoIds.uuid("farm-001"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-004"), "MACHINE_FAILURE_RISK", "MACHINE", DemoIds.uuid("machine-004"),
                 BigDecimal("0.68"), BigDecimal("0.74"), "demo-gradient-baseline", "0.1.0",
-                now, "WO em atraso|Horas de motor elevadas", 96, DemoIds.uuid("farm-002"),
+                now, "OVERDUE_WO|HIGH_ENGINE_HOURS", 96, DemoIds.uuid("farm-002"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-005"), "YIELD_FORECAST", "FIELD", DemoIds.uuid("field-006"),
                 BigDecimal("0.71"), BigDecimal("0.78"), "demo-gradient-baseline", "0.1.0",
-                now, "Talhão A com boa umidade|NDVI estável", 720, DemoIds.uuid("farm-003"),
+                now, "FIELD_A_GOOD_MOISTURE|STABLE_NDVI", 720, DemoIds.uuid("farm-003"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-006"), "OPERATIONAL_DELAY_RISK", "OPERATION", DemoIds.uuid("op-010"),
                 BigDecimal("0.61"), BigDecimal("0.69"), "demo-gradient-baseline", "0.1.0",
-                now, "Fila de plantio|Capacidade de frota limitada", 36, DemoIds.uuid("farm-004"),
+                now, "PLANTING_QUEUE|LIMITED_FLEET", 36, DemoIds.uuid("farm-004"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-007"), "WEATHER_RISK", "FARM", DemoIds.uuid("farm-005"),
                 BigDecimal("0.48"), BigDecimal("0.62"), "demo-gradient-baseline", "0.1.0",
-                now, "Chuva prevista 48h|Vento acima do limiar", 48, DemoIds.uuid("farm-005"),
+                now, "RAIN_48H|WIND_ABOVE_THRESHOLD", 48, DemoIds.uuid("farm-005"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-008"), "PEST_PRESSURE", "FIELD", DemoIds.uuid("field-017"),
                 BigDecimal("0.52"), BigDecimal("0.60"), "demo-gradient-baseline", "0.1.0",
-                now, "Histórico de lagarta|Temperatura favorável", 120, DemoIds.uuid("farm-006"),
+                now, "CATERPILLAR_HISTORY|FAVORABLE_TEMP", 120, DemoIds.uuid("farm-006"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-009"), "MACHINE_FAILURE_RISK", "MACHINE", DemoIds.uuid("machine-011"),
                 BigDecimal("0.77"), BigDecimal("0.83"), "demo-gradient-baseline", "0.1.0",
-                now, "Status MAINTENANCE|Vibração anormal", 24, DemoIds.uuid("farm-007"),
+                now, "STATUS_MAINTENANCE|ABNORMAL_VIBRATION", 24, DemoIds.uuid("farm-007"),
             ),
             PredictionEntity(
                 DemoIds.uuid("prediction-010"), "YIELD_FORECAST", "FIELD", DemoIds.uuid("field-021"),
                 BigDecimal("0.58"), BigDecimal("0.67"), "demo-gradient-baseline", "0.1.0",
-                now, "Safra inicial|Solo com P médio", 720, DemoIds.uuid("farm-008"),
+                now, "EARLY_SEASON|MEDIUM_P_SOIL", 720, DemoIds.uuid("farm-008"),
             ),
         )
-        val existing = repo.findAllById(rows.map { it.id }).associateBy { it.id }
-        val toInsert = rows.filter { it.id !in existing }
-        if (toInsert.isNotEmpty()) {
-            repo.saveAll(toInsert)
-        }
-        rows.forEach { demo ->
-            existing[demo.id]?.let { e ->
-                if (e.farmId == null) {
-                    e.farmId = demo.farmId
-                    repo.save(e)
-                }
-            }
-        }
+        repo.saveAll(rows)
     }
 
     private fun PredictionEntity.toDto() = PredictionDto(

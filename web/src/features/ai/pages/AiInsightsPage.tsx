@@ -1,6 +1,6 @@
 import { useInsightsQuery } from '@/features/ai/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatPercent } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -12,6 +12,7 @@ export function AiInsightsPage() {
   const insights = useInsightsQuery(farmId)
   const err = queryError(insights.error)
   const { t } = useI18n()
+  const { dateTime, percent, label } = useFormat()
 
   return (
     <section>
@@ -30,21 +31,24 @@ export function AiInsightsPage() {
           {(insights.data ?? []).map((item) => (
             <Card key={item.id} className="flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="font-semibold text-pf-green">{item.type}</h2>
+                <h2 className="font-semibold text-pf-green">{label(item.type)}</h2>
                 <span className="rounded-full bg-pf-teal/15 px-2 py-0.5 text-xs font-medium text-pf-teal">
-                  Demo model
+                  {t('ai.demoModel')}
                 </span>
               </div>
               <p className="text-sm text-pf-muted">
-                {item.model} · v{item.modelVersion} · {formatDateTime(item.generatedAt)}
-                {item.demo ? ' · demo' : ''}
+                {item.model} · v{item.modelVersion} · {dateTime(item.generatedAt)}
+                {item.demo ? ` · ${t('ai.demoModel')}` : ''}
               </p>
               <p className="text-sm">
-                Score {formatPercent(item.score)} · confiança {formatPercent(item.confidence)}
+                {t('ai.scoreConfidence', {
+                  score: percent(item.score),
+                  confidence: percent(item.confidence),
+                })}
               </p>
               <ul className="list-disc pl-5 text-sm text-pf-muted">
                 {item.explanation.map((line, index) => (
-                  <li key={`${item.id}-${index}`}>{line}</li>
+                  <li key={`${item.id}-${index}`}>{label(line)}</li>
                 ))}
               </ul>
             </Card>

@@ -5,6 +5,7 @@ import com.precisionfarming.asset.infrastructure.MachineJpaRepository
 import com.precisionfarming.asset.infrastructure.WorkOrderEntity
 import com.precisionfarming.asset.infrastructure.WorkOrderJpaRepository
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoMachineFarms
@@ -90,51 +91,70 @@ class AssetService(
 
     @Transactional
     fun seed() {
-        data class Row(val key: String, val farm: String, val name: String, val type: String, val mfr: String, val model: String, val status: String)
+        data class Row(val key: String, val farm: String, val type: String, val mfr: String, val model: String, val status: String)
         val rows = listOf(
-            Row("machine-001", "farm-001", "Trator 01", "Trator", "John Deere", "8R 410", "OPERATING"),
-            Row("machine-002", "farm-001", "Pulverizador 01", "Pulverizador", "John Deere", "R4045", "OPERATING"),
-            Row("machine-003", "farm-001", "Colheitadeira 01", "Colheitadeira", "New Holland", "CR7.90", "IDLE"),
-            Row("machine-004", "farm-002", "Trator 02", "Trator", "Massey Ferguson", "8737", "MAINTENANCE"),
-            Row("machine-005", "farm-003", "Plantadeira 01", "Plantadeira", "Stara", "Absoluta", "OPERATING"),
-            Row("machine-006", "farm-002", "Pulverizador 02", "Pulverizador", "Jacto", "Uniport 3030", "IDLE"),
-            Row("machine-007", "farm-004", "Trator 03", "Trator", "Case IH", "Magnum 340", "OPERATING"),
-            Row("machine-008", "farm-004", "Colheitadeira 02", "Colheitadeira", "John Deere", "S780", "IDLE"),
-            Row("machine-009", "farm-005", "Trator 04", "Trator", "Valtra", "BH194", "OPERATING"),
-            Row("machine-010", "farm-006", "Plantadeira 02", "Plantadeira", "John Deere", "DB60", "IDLE"),
-            Row("machine-011", "farm-007", "Pulverizador 03", "Pulverizador", "Stara", "Imperador 3.0", "MAINTENANCE"),
-            Row("machine-012", "farm-008", "Trator 05", "Trator", "New Holland", "T8.380", "OPERATING"),
+            Row("machine-001", "farm-001", "TRACTOR", "John Deere", "8R 410", "OPERATING"),
+            Row("machine-002", "farm-001", "SPRAYER", "John Deere", "R4045", "OPERATING"),
+            Row("machine-003", "farm-001", "HARVESTER", "New Holland", "CR7.90", "IDLE"),
+            Row("machine-004", "farm-002", "TRACTOR", "Massey Ferguson", "8737", "MAINTENANCE"),
+            Row("machine-005", "farm-003", "PLANTER", "Stara", "Absoluta", "OPERATING"),
+            Row("machine-006", "farm-002", "SPRAYER", "Jacto", "Uniport 3030", "IDLE"),
+            Row("machine-007", "farm-004", "TRACTOR", "Case IH", "Magnum 340", "OPERATING"),
+            Row("machine-008", "farm-004", "HARVESTER", "John Deere", "S780", "IDLE"),
+            Row("machine-009", "farm-005", "TRACTOR", "Valtra", "BH194", "OPERATING"),
+            Row("machine-010", "farm-006", "PLANTER", "John Deere", "DB60", "IDLE"),
+            Row("machine-011", "farm-007", "SPRAYER", "Stara", "Imperador 3.0", "MAINTENANCE"),
+            Row("machine-012", "farm-008", "TRACTOR", "New Holland", "T8.380", "OPERATING"),
+            Row("machine-013", "farm-003", "DRONE", "DJI", "Agras T50", "OPERATING"),
+            Row("machine-014", "farm-006", "DRONE", "DJI", "Agras T20P", "IDLE"),
         )
-        val existing = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).map { it.id }.toHashSet()
+        val existingMachines = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).associateBy { it.id }
         repo.saveAll(
-            rows.filter { DemoIds.uuid(it.key) !in existing }.map { r ->
-                MachineEntity(DemoIds.uuid(r.key), DemoIds.uuid(r.farm), r.name, r.type, r.mfr, r.model, r.status)
+            rows.map { r ->
+                val id = DemoIds.uuid(r.key)
+                val found = existingMachines[id]
+                if (found != null) {
+                    found.farmId = DemoIds.uuid(r.farm)
+                    found.name = DemoCatalog.machines.getValue(r.key)
+                    found.type = r.type
+                    found.manufacturer = r.mfr
+                    found.model = r.model
+                    found
+                } else {
+                    MachineEntity(id, DemoIds.uuid(r.farm), DemoCatalog.machines.getValue(r.key), r.type, r.mfr, r.model, r.status)
+                }
             },
         )
         val now = Instant.now()
-        val machineFarms = rows.associate { it.key to it.farm }
-        val machines = rows.map { it.key }
+        val original = rows.take(12)
         val titles = listOf(
-            "Troca de filtros", "Revisão hidráulica", "Calibração de GPS", "Troca de óleo",
-            "Inspeção de bicos", "Alinhamento", "Substituição de correia", "Diagnóstico motor",
+            "FILTER_CHANGE", "HYDRAULIC_SERVICE", "GPS_CALIBRATION", "OIL_CHANGE",
+            "NOZZLE_INSPECTION", "ALIGNMENT", "BELT_REPLACEMENT", "ENGINE_DIAGNOSTIC",
         )
-        val woRows = (1..24).map { i ->
-            val machine = machines[(i - 1) % machines.size]
-            val farm = machineFarms.getValue(machine)
-            val completed = i % 4 == 0
-            WorkOrderEntity(
-                DemoIds.uuid("wo-%03d".format(i)),
-                DemoIds.uuid(farm),
-                DemoIds.uuid(machine),
-                titles[(i - 1) % titles.size] + " #$i",
-                listOf("LOW", "MEDIUM", "HIGH", "CRITICAL")[i % 4],
-                if (completed) "COMPLETED" else "OPEN",
-                now.minus(i.toLong(), ChronoUnit.DAYS),
-                if (completed) now.minus((i - 1).toLong(), ChronoUnit.DAYS) else null,
-            )
-        }
-        val existingWo = workOrders.findAllById(woRows.map { it.id }).map { it.id }.toHashSet()
-        workOrders.saveAll(woRows.filter { it.id !in existingWo })
+        val woCatalog = (1..24).map { i ->
+            val machine = original[(i - 1) % original.size]
+            Triple(i, machine.key, machine.farm)
+        } + listOf(
+            Triple(25, "machine-013", "farm-003"),
+            Triple(26, "machine-014", "farm-006"),
+        )
+        val woIds = woCatalog.map { DemoIds.uuid("wo-%03d".format(it.first)) }
+        val existingWo = workOrders.findAllById(woIds).map { it.id }.toSet()
+        workOrders.saveAll(
+            woCatalog.filter { DemoIds.uuid("wo-%03d".format(it.first)) !in existingWo }.map { (i, machine, farm) ->
+                val completed = i % 4 == 0
+                WorkOrderEntity(
+                    DemoIds.uuid("wo-%03d".format(i)),
+                    DemoIds.uuid(farm),
+                    DemoIds.uuid(machine),
+                    titles[(i - 1) % titles.size] + " #$i",
+                    listOf("LOW", "MEDIUM", "HIGH", "CRITICAL")[i % 4],
+                    if (completed) "COMPLETED" else "OPEN",
+                    now.minus(i.toLong(), ChronoUnit.DAYS),
+                    if (completed) now.minus((i - 1).toLong(), ChronoUnit.DAYS) else null,
+                )
+            },
+        )
     }
 
     private fun MachineEntity.toDto() = MachineDto(id, farmId, name, type, manufacturer, model, status)

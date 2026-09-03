@@ -13,27 +13,30 @@ import type {
   YieldRecord,
 } from '@/shared/api/types'
 
-export function groupCostsByCategory(costs: FinanceCost[]) {
+type Label = (value?: string | null) => string
+
+export function groupCostsByCategory(costs: FinanceCost[], label: Label = (v) => v ?? '') {
   const map = new Map<string, number>()
   for (const row of costs) {
     if (!row.category || row.category === 'REVENUE') continue
-    map.set(row.category, (map.get(row.category) ?? 0) + Number(row.amount ?? 0))
+    const name = label(row.category)
+    map.set(name, (map.get(name) ?? 0) + Number(row.amount ?? 0))
   }
   return [...map.entries()].map(([name, value]) => ({ name, value }))
 }
 
-export function pnlChartRows(rows: FinancePnl[]) {
+export function pnlChartRows(rows: FinancePnl[], farmName: Label = shortId) {
   return rows.map((row) => ({
-    name: shortId(row.farmId ?? row.id),
+    name: farmName(row.farmId ?? row.id),
     revenue: Number(row.revenue ?? 0),
     cost: Number(row.cost ?? 0),
     margin: Number(row.margin ?? 0),
   }))
 }
 
-export function budgetChartRows(rows: FinanceBudget[]) {
+export function budgetChartRows(rows: FinanceBudget[], label: Label = (v) => v ?? '') {
   return rows.map((row) => ({
-    name: row.category ?? shortId(row.id),
+    name: label(row.category) || shortId(row.id),
     planned: Number(row.planned ?? 0),
     actual: Number(row.actual ?? 0),
   }))
@@ -54,40 +57,43 @@ export function cashflowChartRows(rows: FinanceCashflow[]) {
     })
 }
 
-export function alertSeverityPie(alerts: Alert[]) {
+export function alertSeverityPie(alerts: Alert[], label: Label = (v) => v ?? '') {
   const map = new Map<string, number>()
   for (const a of alerts) {
-    map.set(a.severity, (map.get(a.severity) ?? 0) + 1)
+    const name = label(a.severity)
+    map.set(name, (map.get(name) ?? 0) + 1)
   }
   return [...map.entries()].map(([name, value]) => ({ name, value }))
 }
 
-export function opsStatusBars(ops: Operation[]) {
+export function opsStatusBars(ops: Operation[], label: Label = (v) => v ?? '') {
   const map = new Map<string, number>()
   for (const op of ops) {
-    map.set(op.status, (map.get(op.status) ?? 0) + 1)
+    const name = label(op.status)
+    map.set(name, (map.get(name) ?? 0) + 1)
   }
   return [...map.entries()].map(([name, value]) => ({ name, value }))
 }
 
-export function fleetStatusBars(machines: Machine[]) {
+export function fleetStatusBars(machines: Machine[], label: Label = (v) => v ?? '') {
   const map = new Map<string, number>()
   for (const m of machines) {
-    map.set(m.status, (map.get(m.status) ?? 0) + 1)
+    const name = label(m.status)
+    map.set(name, (map.get(name) ?? 0) + 1)
   }
   return [...map.entries()].map(([name, value]) => ({ name, value }))
 }
 
-export function yieldByField(rows: YieldRecord[]) {
+export function yieldByField(rows: YieldRecord[], fieldName: Label = shortId) {
   return rows.map((row) => ({
-    name: shortId(row.fieldId ?? row.id),
+    name: fieldName(row.fieldId ?? row.id),
     yield: Number(row.yieldTHa ?? 0),
   }))
 }
 
-export function storageOccupancy(units: StorageUnit[]) {
+export function storageOccupancy(units: StorageUnit[], label: Label = (v) => v ?? '') {
   return units.map((u) => ({
-    name: u.name ?? shortId(u.id),
+    name: label(u.name) || shortId(u.id),
     used: Number(u.usedT ?? 0),
     capacity: Number(u.capacityT ?? 0),
   }))
@@ -104,24 +110,25 @@ export function weatherSeries(rows: WeatherForecast[]) {
     }))
 }
 
-export function inventoryStockBars(items: InventoryItem[]) {
+export function inventoryStockBars(items: InventoryItem[], label: Label = (v) => v ?? '') {
   return items.map((item) => ({
-    name: item.name,
+    name: label(item.name),
     stock: Number(item.quantity),
     reserved: Number(item.reserved),
   }))
 }
 
-export function exposureBars(rows: MarketExposure[]) {
+export function exposureBars(rows: MarketExposure[], label: Label = (v) => v ?? '') {
   return rows.map((row) => ({
-    name: row.commodity ?? shortId(row.id),
+    name: label(row.commodity) || shortId(row.id),
     open: Number(row.openT ?? 0),
     hedged: Number(row.hedgedT ?? 0),
     risk: Number(row.riskScore ?? 0),
   }))
 }
 
-function shortId(id: string) {
+function shortId(id?: string | null) {
+  if (!id) return '—'
   return id.length > 8 ? id.slice(0, 8) : id
 }
 

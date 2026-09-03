@@ -1,5 +1,5 @@
 import type { TraceabilityLot } from '@/shared/api/types'
-import { formatDateTime } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
@@ -8,6 +8,7 @@ type Props = {
 }
 
 export function TraceabilityChain({ events }: Props) {
+  const { dateTime, label } = useFormat()
   const ordered = [...events].sort(
     (a, b) => new Date(a.occurredAt).getTime() - new Date(b.occurredAt).getTime(),
   )
@@ -18,9 +19,9 @@ export function TraceabilityChain({ events }: Props) {
         <li key={event.id} className="relative">
           <span className="absolute -left-[1.35rem] top-3 h-2.5 w-2.5 rounded-full bg-pf-teal" />
           <EntityCard
-            title={event.eventType}
-            subtitle={event.summary}
-            meta={formatDateTime(event.occurredAt)}
+            title={label(event.eventType)}
+            subtitle={label(event.summary)}
+            meta={dateTime(event.occurredAt)}
           >
             <StatusBadge value={event.crop} />
           </EntityCard>
