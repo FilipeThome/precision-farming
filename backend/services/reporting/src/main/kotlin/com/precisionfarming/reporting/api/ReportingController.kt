@@ -19,6 +19,9 @@ class ReportingController(
     private val farmAccess: FarmAccess,
     private val svc: ReportingService,
 ) {
+    @GetMapping
+    fun catalog() = svc.reportCatalog()
+
     @GetMapping("/operations.csv")
     fun operations(@RequestParam(required = false) farmId: UUID?): ResponseEntity<String> {
         val csv = svc.operationsCsv(farmAccess.current(), farmId)
@@ -31,10 +34,27 @@ class ReportingController(
         return csvAttachment("inventory.csv", csv)
     }
 
+    @GetMapping("/operations.pdf")
+    fun operationsPdf(@RequestParam(required = false) farmId: UUID?): ResponseEntity<ByteArray> {
+        val pdf = svc.operationsPdf(farmAccess.current(), farmId)
+        return pdfAttachment("operations.pdf", pdf)
+    }
+
+    @GetMapping("/inventory.pdf")
+    fun inventoryPdf(@RequestParam(required = false) farmId: UUID?): ResponseEntity<ByteArray> {
+        val pdf = svc.inventoryPdf(farmAccess.current(), farmId)
+        return pdfAttachment("inventory.pdf", pdf)
+    }
+
     private fun csvAttachment(filename: String, csv: String) = ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=$filename")
         .contentType(MediaType.parseMediaType("text/csv"))
         .body(csv)
+
+    private fun pdfAttachment(filename: String, pdf: ByteArray) = ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=$filename")
+        .contentType(MediaType.APPLICATION_PDF)
+        .body(pdf)
 }
 
 @RestController
