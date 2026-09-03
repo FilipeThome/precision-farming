@@ -17,16 +17,31 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 object Session {
     var accessToken: String? = null
+        private set
     var userId: String? = null
+        private set
+
+    private val _signedIn = MutableStateFlow(false)
+    val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
+
+    fun set(accessToken: String?, userId: String?) {
+        this.accessToken = accessToken
+        this.userId = userId
+        _signedIn.value = !accessToken.isNullOrBlank() && !userId.isNullOrBlank()
+    }
 
     fun clear() {
         accessToken = null
         userId = null
+        _signedIn.value = false
     }
 }
 
@@ -433,15 +448,13 @@ data class SyncPullResponse(
 )
 
 suspend fun login(email: String, password: String): TokenResponse {
-    Session.accessToken = null
-    Session.userId = null
+    Session.clear()
     TokenStore.clear()
     val res: TokenResponse = api.post("/api/v1/auth/login") {
         contentType(ContentType.Application.Json)
         setBody(LoginRequest(email, password))
     }.body()
-    Session.accessToken = res.accessToken
-    Session.userId = res.userId
+    Session.set(res.accessToken, res.userId)
     TokenStore.save(res.accessToken, res.userId)
     return res
 }

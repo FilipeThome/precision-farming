@@ -15,6 +15,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -73,8 +74,16 @@ fun HomeShell(onLogout: () -> Unit) {
     val currentRoute = backStack?.destination?.route
     var farmMenu by remember { mutableStateOf(false) }
     var farmList by remember { mutableStateOf<List<FarmDto>>(emptyList()) }
-    LaunchedEffect(Unit) {
-        farmList = runCatching { farms() }.getOrDefault(emptyList())
+    var farmLoadFailed by remember { mutableStateOf(false) }
+    var farmLoadEpoch by remember { mutableIntStateOf(0) }
+    LaunchedEffect(farmLoadEpoch) {
+        val result = runCatching { farms() }
+        result.onSuccess {
+            farmList = it
+            farmLoadFailed = false
+        }.onFailure {
+            farmLoadFailed = true
+        }
     }
     val farmLabel = farmList.firstOrNull { it.id == FarmFilter.farmId }?.name
         ?: S.t("farm.filter.all")
@@ -84,7 +93,10 @@ fun HomeShell(onLogout: () -> Unit) {
                 title = { Text(S.t("app.name")) },
                 actions = {
                     Box {
-                        TextButton(onClick = { farmMenu = true }) { Text(farmLabel) }
+                        TextButton(onClick = {
+                            if (farmLoadFailed) farmLoadEpoch++
+                            farmMenu = true
+                        }) { Text(farmLabel) }
                         DropdownMenu(expanded = farmMenu, onDismissRequest = { farmMenu = false }) {
                             DropdownMenuItem(
                                 text = { Text(S.t("farm.filter.all")) },
@@ -98,6 +110,15 @@ fun HomeShell(onLogout: () -> Unit) {
                                     text = { Text(farm.name) },
                                     onClick = {
                                         FarmFilter.farmId = farm.id
+                                        farmMenu = false
+                                    },
+                                )
+                            }
+                            if (farmLoadFailed) {
+                                DropdownMenuItem(
+                                    text = { Text(S.t("common.refresh")) },
+                                    onClick = {
+                                        farmLoadEpoch++
                                         farmMenu = false
                                     },
                                 )
