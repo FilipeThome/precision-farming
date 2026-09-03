@@ -149,7 +149,7 @@ class ReportingService(
 @Service
 class ReportingSeed(
     private val svc: ReportingService,
-    @Value("\${app.seed:false}") private val seed: Boolean,
+    @Value("\${app.seed:true}") private val seed: Boolean,
 ) {
     @Bean
     fun seedReporting() = ApplicationRunner { if (seed) svc.seed() }

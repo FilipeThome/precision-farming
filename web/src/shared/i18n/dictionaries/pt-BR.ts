@@ -292,6 +292,8 @@ export const ptBR = {
   'alerts.ack': 'Reconhecer',
   'reports.title': 'Relatórios',
   'reports.description': 'Download autenticado de PDFs gerados pelo gateway, com demos anexadas por tipo de relatório.',
+  'reports.emptyTitle': 'Nenhum relatório',
+  'reports.emptyDescription': 'Não há relatórios disponíveis no momento.',
   'settings.title': 'Configurações',
   'settings.description': 'Perfil autenticado via GET /api/v1/auth/me.',
   'settings.emptyTitle': 'Usuário não encontrado',

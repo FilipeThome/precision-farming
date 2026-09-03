@@ -63,8 +63,8 @@ export function ReportsPage() {
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={items.length === 0}
-        emptyTitle={t('common.empty')}
-        emptyDescription={t('reports.description')}
+        emptyTitle={t('reports.emptyTitle')}
+        emptyDescription={t('reports.emptyDescription')}
         onRetry={() => void reports.refetch()}
       >
         <div className="grid gap-4 md:grid-cols-2">
