@@ -15,10 +15,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.precisionfarming.mobile.data.reportInventoryCsv
-import com.precisionfarming.mobile.data.reportOperationsCsv
+import com.precisionfarming.mobile.data.FarmFilter
+import com.precisionfarming.mobile.data.reportInventoryPdf
+import com.precisionfarming.mobile.data.reportOperationsPdf
 import com.precisionfarming.mobile.i18n.S
-import com.precisionfarming.mobile.ui.components.CsvShare
+import com.precisionfarming.mobile.ui.components.FileShare
 import kotlinx.coroutines.launch
 
 @Composable
@@ -31,7 +32,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         scope.launch {
             pending = kind
             error = null
-            runCatching { CsvShare.share(context, load(), filename) }
+            runCatching { FileShare.share(context, load(), filename, "application/pdf") }
                 .onFailure { error = it.message ?: S.t("common.error") }
             pending = null
         }
@@ -43,7 +44,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         Button(
             enabled = pending == null,
             onClick = {
-                share("operations", "operations.csv") { reportOperationsCsv() }
+                share("operations", "operations.pdf") { reportOperationsPdf(FarmFilter.farmId) }
             },
         ) {
             Text(if (pending == "operations") S.t("reports.pending") else S.t("reports.operations"))
@@ -51,7 +52,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         Button(
             enabled = pending == null,
             onClick = {
-                share("inventory", "inventory.csv") { reportInventoryCsv() }
+                share("inventory", "inventory.pdf") { reportInventoryPdf(FarmFilter.farmId) }
             },
         ) {
             Text(if (pending == "inventory") S.t("reports.pending") else S.t("reports.inventory"))
