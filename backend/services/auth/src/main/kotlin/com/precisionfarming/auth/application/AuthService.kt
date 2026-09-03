@@ -54,14 +54,14 @@ class AuthService(
         return tokens(user)
     }
 
+    fun peekRefreshUserId(refreshToken: String): UUID {
+        val claims = parseRefresh(refreshToken)
+        return UUID.fromString(claims.subject)
+    }
+
     @Transactional
     fun refresh(cmd: RefreshCommand): TokenResponse {
-        val claims = try {
-            jwtIssuer.parse(cmd.refreshToken)
-        } catch (_: Exception) {
-            throw UnauthorizedException("Invalid refresh token")
-        }
-        if (claims["type"] != "refresh") throw UnauthorizedException("Invalid refresh token")
+        val claims = parseRefresh(cmd.refreshToken)
         val jti = claims.id ?: throw UnauthorizedException("Invalid refresh token")
         val user = users.findById(UUID.fromString(claims.subject)).orElseThrow {
             UnauthorizedException("Invalid refresh token")
@@ -180,11 +180,24 @@ class AuthService(
         )
         saved.forEach { user ->
             val farms = DemoFarmDirectory.forRole(user.role.name)
+            if (resetExisting) {
+                memberships.findByIdUserId(user.id)
+                    .filter { it.id.farmId !in farms }
+                    .forEach { memberships.deleteByIdUserIdAndIdFarmId(user.id, it.id.farmId) }
+            }
             farms.forEach { farmId ->
                 val id = UserFarmId(user.id, farmId)
                 if (!memberships.existsById(id)) memberships.save(UserFarmEntity(id))
             }
         }
+    }
+
+    private fun parseRefresh(refreshToken: String) = try {
+        jwtIssuer.parse(refreshToken)
+    } catch (_: Exception) {
+        throw UnauthorizedException("Invalid refresh token")
+    }.also { claims ->
+        if (claims["type"] != "refresh") throw UnauthorizedException("Invalid refresh token")
     }
 }
 

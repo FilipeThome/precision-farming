@@ -79,12 +79,41 @@ class AuthServiceTest {
         verify { refreshTokens.findByUserId(user.id) }
     }
 
-    private fun user(status: UserStatus) = UserEntity(
+    @Test
+    fun peekRefreshUserIdReadsSubjectWithoutRotating() {
+        val user = user(UserStatus.ACTIVE)
+        val issued = jwt.createRefreshToken(user.id)
+        assertEquals(user.id, svc.peekRefreshUserId(issued.token))
+        verify(exactly = 0) { refreshTokens.findByJtiForUpdate(any()) }
+    }
+
+    @Test
+    fun resetDeletesMembershipsOutsideCanonicalRole() {
+        val user = user(UserStatus.ACTIVE, UserRole.FARM_MANAGER).apply {
+            email = "manager@precisionfarming.demo"
+        }
+        val extra = DemoIds.uuid("farm-008")
+        val keep = DemoIds.uuid("farm-001")
+        every { users.findByEmailIn(any()) } returns listOf(user)
+        every { users.saveAll(any<Iterable<UserEntity>>()) } answers { firstArg() }
+        every { memberships.findByIdUserId(user.id) } returns listOf(
+            UserFarmEntity(UserFarmId(user.id, extra)),
+            UserFarmEntity(UserFarmId(user.id, keep)),
+        )
+        every { memberships.existsById(any()) } returns true
+
+        svc.reset()
+
+        verify { memberships.deleteByIdUserIdAndIdFarmId(user.id, extra) }
+        verify(exactly = 0) { memberships.deleteByIdUserIdAndIdFarmId(user.id, keep) }
+    }
+
+    private fun user(status: UserStatus, role: UserRole = UserRole.ADMIN) = UserEntity(
         id = UUID.randomUUID(),
         name = "Admin",
         email = "admin@precisionfarming.demo",
         passwordHash = encoder.encode("Precision@123"),
-        role = UserRole.ADMIN,
+        role = role,
         status = status,
     )
 }
