@@ -16,20 +16,21 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 @Composable
 fun AppRoot() {
     LocaleStore.locale
-    remember {
+    val startDestination = remember {
         val token = TokenStore.read()
         val userId = TokenStore.readUserId()
         if (!token.isNullOrBlank() && !userId.isNullOrBlank()) {
             Session.set(token, userId)
+            "home"
         } else {
             TokenStore.clear()
             Session.clear()
+            "login"
         }
-        true
     }
     val signedIn by Session.signedIn.collectAsState()
     val nav = rememberNavController()
-    NavHost(nav, startDestination = if (signedIn) "home" else "login") {
+    NavHost(nav, startDestination = startDestination) {
         composable("login") {
             LoginScreen {
                 nav.navigate("home") { popUpTo("login") { inclusive = true } }
@@ -38,7 +39,10 @@ fun AppRoot() {
         composable("home") {
             HomeShell(
                 onLogout = {
-                    nav.navigate("login") { popUpTo("home") { inclusive = true } }
+                    nav.navigate("login") {
+                        popUpTo("home") { inclusive = true }
+                        launchSingleTop = true
+                    }
                 },
             )
         }
@@ -48,7 +52,7 @@ fun AppRoot() {
         if (!signedIn && route != null && route != "login") {
             FarmFilter.farmId = null
             nav.navigate("login") {
-                popUpTo(nav.graph.id) { inclusive = true }
+                popUpTo("home") { inclusive = true }
                 launchSingleTop = true
             }
         }
