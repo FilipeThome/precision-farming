@@ -23,15 +23,15 @@ class FarmAccess {
             ?.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
             ?.toSet()
             .orEmpty()
-        if (claimed.isEmpty()) {
+        val userId = runCatching { UUID.fromString(jwt.subject) }.getOrNull()
+        val granted = userId?.let { UserFarmGrants.farmIds(it) }.orEmpty()
+        val farmIds = claimed + granted
+        if (farmIds.isEmpty()) {
             throw UnauthorizedException("Missing farmIds claim")
         }
-        // JWT claims + runtime-created farms for this role (seed IDs stay in the token).
-        val runtimeCreated = DemoFarmDirectory.forRole(role) - DemoFarmDirectory.ALL
-        val userId = runCatching { UUID.fromString(jwt.subject) }.getOrNull()
         return AccessScope(
             tenantId = tenantId,
-            farmIds = claimed + runtimeCreated,
+            farmIds = farmIds,
             role = role,
             userId = userId,
         )

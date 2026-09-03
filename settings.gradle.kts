@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 
 include("backend:libs:common")
 include("backend:libs:security")
+include("backend:libs:security-issuer")
 include("backend:gateway")
 include("backend:services:auth")
 include("backend:services:farm")

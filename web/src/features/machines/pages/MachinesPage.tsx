@@ -1,6 +1,7 @@
 import { machinePhoto } from '@/shared/demo/media'
 import { useMachinesQuery } from '@/features/machines/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
@@ -14,6 +15,7 @@ export function MachinesPage() {
   const machines = useMachinesQuery(farmId)
   const err = queryError(machines.error)
   const { t } = useI18n()
+  const { label } = useFormat()
 
   return (
     <section>
@@ -30,18 +32,18 @@ export function MachinesPage() {
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(machines.data ?? []).map((machine) => (
-            <Card key={machine.id} className="overflow-hidden p-0">
+            <Card key={machine.id} className="flex gap-3 p-3">
               <EntityPhoto
                 src={machinePhoto(machine.id, machine.type)}
-                alt={machine.name}
+                alt={label(machine.id, machine.name)}
               />
-              <div className="flex flex-col gap-2 p-4">
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold text-pf-green">{machine.name}</h2>
+                  <h2 className="font-semibold text-pf-green">{label(machine.id, machine.name)}</h2>
                   <StatusBadge value={machine.status} />
                 </div>
                 <p className="text-sm text-pf-muted">
-                  {machine.type} · {machine.manufacturer} {machine.model}
+                  {label(machine.type)} · {machine.manufacturer} {machine.model}
                 </p>
               </div>
             </Card>

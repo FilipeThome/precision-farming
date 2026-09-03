@@ -145,8 +145,13 @@ export async function apiGet<T>(path: string, query?: Record<string, QueryValue>
   return apiRequest<T>(`${path}${toQuery(query)}`)
 }
 
-export async function apiPost<T>(path: string, body?: unknown, idempotent = true): Promise<T> {
-  return apiRequest<T>(path, { method: 'POST', body, idempotent })
+export async function apiPost<T>(
+  path: string,
+  body?: unknown,
+  idempotent = true,
+  extra: { skipAuth?: boolean; skipRefresh?: boolean } = {},
+): Promise<T> {
+  return apiRequest<T>(path, { method: 'POST', body, idempotent, ...extra })
 }
 
 export async function apiDownload(path: string, filename: string): Promise<void> {

@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 
 import { useEsgQuery, useTraceabilityQuery } from '@/features/compliance/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -17,6 +17,7 @@ export function CompliancePage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('traceability')
   const { t } = useI18n()
+  const { dateTime, number, label } = useFormat()
   const traceability = useTraceabilityQuery(farmId, { enabled: tab === 'traceability' })
   const esg = useEsgQuery(farmId, { enabled: tab === 'esg' })
   const active = tab === 'traceability' ? traceability : esg
@@ -84,8 +85,8 @@ export function CompliancePage() {
                 <EntityCard
                   key={lot.lotCode}
                   title={lot.lotCode}
-                  subtitle={lot.crop}
-                  meta={formatDateTime(lot.latestAt)}
+                  subtitle={label(lot.crop)}
+                  meta={dateTime(lot.latestAt)}
                 >
                   <Link
                     to={`/compliance/lots/${encodeURIComponent(lot.lotCode)}`}
@@ -98,16 +99,16 @@ export function CompliancePage() {
             : (esg.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.metric ?? row.id}
+                  title={label(row.metric, row.id)}
                   subtitle={
                     row.value != null
-                      ? `${formatNumber(Number(row.value), 2)} ${row.unit ?? ''}`.trim()
+                      ? `${number(Number(row.value), 2)} ${row.unit ?? ''}`.trim()
                       : undefined
                   }
                   meta={
                     row.score != null
                       ? t('compliance.esg.score', {
-                          score: formatNumber(Number(row.score), 1),
+                          score: number(Number(row.score), 1),
                           period: row.periodLabel ?? '',
                         })
                       : row.periodLabel

@@ -2,7 +2,7 @@ import type { Operation } from '@/shared/api/types'
 import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import type { MessageKey } from '@/shared/i18n/useI18n'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
@@ -68,6 +68,7 @@ function OperationActions({
 
 export function OpsBoard({ operations, pauseReason, commands }: Props) {
   const { t } = useI18n()
+  const { label, dateTime } = useFormat()
 
   return (
     <div className="grid gap-3 xl:grid-cols-4">
@@ -83,20 +84,20 @@ export function OpsBoard({ operations, pauseReason, commands }: Props) {
                 <Card className="border-dashed text-sm text-pf-muted">{t('operations.board.empty')}</Card>
               ) : (
                 column.map((op) => (
-                  <Card key={op.id} className="overflow-hidden p-0">
+                  <Card key={op.id} className="flex gap-3 p-3">
                     <EntityPhoto
                       src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
-                      alt={op.type}
+                      alt={label(op.type)}
                     />
-                    <div className="flex flex-col gap-2 p-3">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
                       <div className="flex items-center gap-2">
-                        <h2 className="font-semibold text-pf-green">{op.type}</h2>
+                        <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>
                         <StatusBadge value={op.status} />
                       </div>
                       <p className="text-xs text-pf-muted">
-                        {t('operations.plannedStart', { when: formatDateTime(op.plannedStart) })}
+                        {t('operations.plannedStart', { when: dateTime(op.plannedStart) })}
                         {op.pauseReason
-                          ? ` · ${t('operations.pauseMeta', { reason: op.pauseReason })}`
+                          ? ` · ${t('operations.pauseMeta', { reason: label(op.pauseReason) })}`
                           : ''}
                       </p>
                       <OperationActions op={op} pauseReason={pauseReason} commands={commands} />
@@ -114,6 +115,7 @@ export function OpsBoard({ operations, pauseReason, commands }: Props) {
 
 export function OpsList({ operations, pauseReason, commands }: Props) {
   const { t } = useI18n()
+  const { label, dateTime } = useFormat()
 
   return (
     <div className="flex flex-col gap-3">
@@ -123,16 +125,16 @@ export function OpsList({ operations, pauseReason, commands }: Props) {
             <EntityPhoto
               variant="thumb"
               src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
-              alt={op.type}
+              alt={label(op.type)}
             />
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-pf-green">{op.type}</h2>
+                <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>
                 <StatusBadge value={op.status} />
               </div>
               <p className="mt-1 text-xs text-pf-muted">
-                {t('operations.plannedStart', { when: formatDateTime(op.plannedStart) })}
-                {op.pauseReason ? ` · ${t('operations.pauseMeta', { reason: op.pauseReason })}` : ''}
+                {t('operations.plannedStart', { when: dateTime(op.plannedStart) })}
+                {op.pauseReason ? ` · ${t('operations.pauseMeta', { reason: label(op.pauseReason) })}` : ''}
               </p>
             </div>
           </div>

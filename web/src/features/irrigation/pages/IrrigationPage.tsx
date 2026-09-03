@@ -6,7 +6,7 @@ import {
 } from '@/features/irrigation/queries'
 import { irrigationPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDateTime, formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -21,6 +21,7 @@ export function IrrigationPage() {
   const farmId = useUiStore((s) => s.farmId)
   const [tab, setTab] = useState<Tab>('assets')
   const { t } = useI18n()
+  const { number, dateTime, label } = useFormat()
   const assets = useIrrigationAssetsQuery(farmId, { enabled: tab === 'assets' })
   const recommendations = useIrrigationRecommendationsQuery(farmId, {
     enabled: tab === 'recommendations',
@@ -62,10 +63,10 @@ export function IrrigationPage() {
             ? (assets.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.name ?? row.id}
-                  subtitle={row.type}
-                  imageSrc={irrigationPhoto()}
-                  imageAlt={row.name ?? row.type ?? 'irrigation'}
+                  title={label(row.name, row.id)}
+                  subtitle={label(row.type)}
+                  imageSrc={irrigationPhoto(row.type)}
+                  imageAlt={label(row.name, row.type)}
                 >
                   {row.status ? <StatusBadge value={row.status} /> : null}
                 </EntityCard>
@@ -73,13 +74,13 @@ export function IrrigationPage() {
             : (recommendations.data ?? []).map((row) => (
                 <EntityCard
                   key={row.id}
-                  title={row.reason ?? row.id}
+                  title={label(row.reason, row.fieldId ?? row.id)}
                   subtitle={
-                    row.volumeMm != null ? `${formatNumber(Number(row.volumeMm), 1)} mm` : undefined
+                    row.volumeMm != null ? `${number(Number(row.volumeMm), 1)} mm` : undefined
                   }
-                  meta={`${row.priority ?? '—'} · ${formatDateTime(row.recommendedAt)}`}
+                  meta={`${label(row.priority)} · ${dateTime(row.recommendedAt)}`}
                   imageSrc={irrigationPhoto()}
-                  imageAlt={row.reason ?? 'irrigation'}
+                  imageAlt={label(row.reason)}
                 />
               ))}
         </div>

@@ -58,7 +58,7 @@ class FarmController(
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/farms")
     fun createFarm(@Valid @RequestBody body: FarmRequest) =
-        farmService.createFarm(UpsertFarm(body.name, body.location, body.areaHa, body.timezone))
+        farmService.createFarm(farmAccess.current(), UpsertFarm(body.name, body.location, body.areaHa, body.timezone))
 
     @GetMapping("/farms/{id}")
     fun farm(@PathVariable id: UUID) = farmService.getFarm(farmAccess.current(), id)

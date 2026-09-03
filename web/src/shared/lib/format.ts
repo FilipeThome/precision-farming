@@ -1,48 +1,35 @@
-const statusLabels: Record<string, string> = {
-  OPERATING: 'Operando',
-  IDLE: 'Parada',
-  MAINTENANCE: 'Manutenção',
-  PLANNED: 'Planejada',
-  IN_PROGRESS: 'Em andamento',
-  PAUSED: 'Pausada',
-  COMPLETED: 'Concluída',
-  OPEN: 'Aberto',
-  ACKED: 'Reconhecido',
-  CRITICAL: 'Crítico',
-  WARNING: 'Atenção',
-  INFO: 'Info',
-  FAVORABLE: 'Favorável',
-  UNFAVORABLE: 'Desfavorável',
+import { domainLabel } from '@/shared/i18n/domainLabels'
+import type { Locale } from '@/shared/i18n/locales'
+import { DEFAULT_LOCALE } from '@/shared/i18n/locales'
+
+export function formatStatus(value: string, locale: Locale = DEFAULT_LOCALE): string {
+  return domainLabel(locale, value)
 }
 
-export function formatStatus(value: string): string {
-  return statusLabels[value] ?? value
-}
-
-export function formatNumber(value: number, digits = 0): string {
-  return new Intl.NumberFormat('pt-BR', {
+export function formatNumber(value: number, digits = 0, locale: Locale = DEFAULT_LOCALE): string {
+  return new Intl.NumberFormat(locale, {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
   }).format(value)
 }
 
-export function formatDateTime(value: string | null | undefined): string {
+export function formatDateTime(value: string | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('pt-BR', {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: 'short',
     timeStyle: 'short',
   }).format(date)
 }
 
-export function formatDate(value: string | null | undefined): string {
+export function formatDate(value: string | null | undefined, locale: Locale = DEFAULT_LOCALE): string {
   if (!value) return '—'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return value
-  return new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' }).format(date)
+  return new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(date)
 }
 
-export function formatPercent(value: number): string {
-  return `${formatNumber(value * 100, 0)}%`
+export function formatPercent(value: number, locale: Locale = DEFAULT_LOCALE): string {
+  return `${formatNumber(value * 100, 0, locale)}%`
 }

@@ -5,6 +5,7 @@ import com.precisionfarming.finance.application.FinanceService
 import com.precisionfarming.finance.domain.MarketQuoteProvider
 import com.precisionfarming.finance.infrastructure.BudgetJpaRepository
 import com.precisionfarming.finance.infrastructure.CashflowJpaRepository
+import com.precisionfarming.finance.infrastructure.CostEntity
 import com.precisionfarming.finance.infrastructure.CostJpaRepository
 import com.precisionfarming.finance.infrastructure.MarketContractJpaRepository
 import com.precisionfarming.finance.infrastructure.MarketExposureJpaRepository
@@ -61,5 +62,26 @@ class FinanceServicePnlTest {
         assertEquals(1, rows.size)
         assertEquals(farm1, rows.single().farmId)
         assertTrue(rows.single().margin.compareTo(BigDecimal("7")) == 0)
+    }
+
+    @Test
+    fun `seed upserts cost rows so leftover REVENUE ids are recategorized`() {
+        val saved = mutableListOf<CostEntity>()
+        every { costs.saveAll(any<Iterable<CostEntity>>()) } answers {
+            val rows = firstArg<Iterable<CostEntity>>().toList()
+            saved += rows
+            rows
+        }
+
+        svc.seed()
+
+        val cost008 = saved.single { it.id == DemoIds.uuid("cost-008") }
+        assertEquals("SEED", cost008.category)
+        assertEquals(DemoIds.uuid("farm-008"), cost008.farmId)
+        assertTrue(saved.none { it.id == DemoIds.uuid("cost-008") && it.category == "REVENUE" })
+        val rev = saved.filter { it.category == "REVENUE" }
+        assertEquals(16, rev.size)
+        assertTrue(rev.any { it.id == DemoIds.uuid("rev-001") && it.description == "SOY_RECEIPT" })
+        assertTrue(rev.any { it.id == DemoIds.uuid("rev-b-008") && it.description == "CORN_SALE" })
     }
 }

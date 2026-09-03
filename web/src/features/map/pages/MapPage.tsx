@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import { MapLayerToggles } from '@/features/map/components/MapLayerToggles'
 import { useMapLayersQuery } from '@/features/map/queries'
@@ -33,6 +33,8 @@ export function MapPage() {
     })
   }
 
+  const activeLayerKinds = useMemo(() => [...enabledKinds], [enabledKinds])
+
   const loading = fields.isLoading || layers.isLoading
   const isError = fields.isError || layers.isError
 
@@ -58,7 +60,8 @@ export function MapPage() {
         />
         <FieldMap
           fields={fields.data ?? []}
-          activeLayerKinds={[...enabledKinds]}
+          layers={layers.data ?? []}
+          activeLayerKinds={activeLayerKinds}
           className="min-h-[560px] flex-1"
         />
       </QueryPageState>

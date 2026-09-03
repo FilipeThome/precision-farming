@@ -8,6 +8,7 @@ import {
 import { useOperationCommands, useOperationsQuery } from '@/features/operations/queries'
 import { opsStatusBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
@@ -23,6 +24,7 @@ export function OperationsPage() {
   const operations = useOperationsQuery(farmId)
   const commands = useOperationCommands()
   const { t } = useI18n()
+  const { label } = useFormat()
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [statusFilter, setStatusFilter] = useState<OpsStatusFilter>('ALL')
   const [pauseReason, setPauseReason] = useState(() => t('operations.pauseReasonDefault'))
@@ -75,7 +77,7 @@ export function OperationsPage() {
       {(operations.data?.length ?? 0) > 0 ? (
         <ChartCard title={t('charts.opsByStatus')} className="mb-4">
           <BarChartBlock
-            data={opsStatusBars(operations.data ?? [])}
+            data={opsStatusBars(operations.data ?? [], label)}
             xKey="name"
             bars={[{ dataKey: 'value', name: t('charts.count'), color: CHART_COLORS.green }]}
           />

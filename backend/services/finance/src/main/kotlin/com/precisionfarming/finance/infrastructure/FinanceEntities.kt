@@ -15,13 +15,13 @@ import java.util.UUID
 @Table(name = "cost_transactions")
 class CostEntity(
     @Id val id: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
-    @Column(name = "field_id") val fieldId: UUID?,
-    val category: String,
-    val description: String,
-    val amount: BigDecimal,
-    val currency: String,
-    @Column(name = "occurred_at") val occurredAt: Instant,
+    @Column(name = "farm_id") var farmId: UUID,
+    @Column(name = "field_id") var fieldId: UUID?,
+    var category: String,
+    var description: String,
+    var amount: BigDecimal,
+    var currency: String,
+    @Column(name = "occurred_at") var occurredAt: Instant,
 )
 
 @Entity

@@ -23,6 +23,8 @@ const MACHINE_PHOTOS: Record<string, string> = {
   '4a764502-e9d8-315e-a22b-afae790d1352': '/demo/machines/machine-010.jpg',
   'b408224c-1bd9-3a7e-a9e6-b4970fe86693': '/demo/machines/machine-011.jpg',
   'd4b460c4-37b3-321d-a601-535f9ecd8583': '/demo/machines/machine-012.jpg',
+  '9861d50d-527b-385c-b89b-b0674467015f': '/demo/machines/machine-013.jpg',
+  '9b2296fa-d133-37db-be2f-be69dc802915': '/demo/machines/machine-014.jpg',
 }
 
 const TYPE_FALLBACK: Record<string, string> = {
@@ -30,6 +32,12 @@ const TYPE_FALLBACK: Record<string, string> = {
   Pulverizador: '/demo/machines/machine-002.jpg',
   Colheitadeira: '/demo/machines/machine-003.jpg',
   Plantadeira: '/demo/machines/machine-005.jpg',
+  Drone: '/demo/machines/machine-013.jpg',
+  TRACTOR: '/demo/machines/machine-001.jpg',
+  SPRAYER: '/demo/machines/machine-002.jpg',
+  HARVESTER: '/demo/machines/machine-003.jpg',
+  PLANTER: '/demo/machines/machine-005.jpg',
+  DRONE: '/demo/machines/machine-013.jpg',
 }
 
 const CROP_PHOTOS: Record<string, string> = {
@@ -38,8 +46,50 @@ const CROP_PHOTOS: Record<string, string> = {
   algodão: '/demo/crops/algodao.jpg',
   algodao: '/demo/crops/algodao.jpg',
   soy: '/demo/crops/soja.jpg',
+  soybean: '/demo/crops/soja.jpg',
   corn: '/demo/crops/milho.jpg',
+  maize: '/demo/crops/milho.jpg',
   cotton: '/demo/crops/algodao.jpg',
+}
+
+const INVENTORY_PHOTOS: Record<string, string> = {
+  GLYPHOSATE: '/demo/inventory/glyphosate.jpg',
+  GLIFOSATO: '/demo/inventory/glyphosate.jpg',
+  UREA: '/demo/inventory/urea.jpg',
+  UREIA: '/demo/inventory/urea.jpg',
+  SOY_SEED: '/demo/inventory/soy-seed.jpg',
+  SOYBEAN_SEED: '/demo/inventory/soy-seed.jpg',
+  DIESEL_S10: '/demo/inventory/diesel.jpg',
+  DIESEL: '/demo/inventory/diesel.jpg',
+  TWO_FOUR_D: '/demo/inventory/24d.jpg',
+  '2_4_D': '/demo/inventory/24d.jpg',
+  '24D': '/demo/inventory/24d.jpg',
+  OIL_FILTER: '/demo/inventory/oil-filter.jpg',
+  CORN_SEED: '/demo/inventory/corn-seed.jpg',
+  MAP: '/demo/inventory/map.jpg',
+  INSECTICIDE: '/demo/inventory/insecticide.jpg',
+  INSETICIDA: '/demo/inventory/insecticide.jpg',
+  KCL: '/demo/inventory/kcl.jpg',
+  DRIVE_BELT: '/demo/inventory/drive-belt.jpg',
+  COTTON_SEED: '/demo/inventory/cotton-seed.jpg',
+  PRE_EMERGENT: '/demo/inventory/pre-emergent.jpg',
+  HYDRAULIC_OIL: '/demo/inventory/hydraulic-oil.jpg',
+}
+
+const INVENTORY_CATEGORY_PHOTOS: Record<string, string> = {
+  PESTICIDE: '/demo/inventory/insecticide.jpg',
+  FERTILIZER: '/demo/inventory/urea.jpg',
+  SEED: '/demo/inventory/soy-seed.jpg',
+  FUEL: '/demo/inventory/diesel.jpg',
+  PART: '/demo/inventory/oil-filter.jpg',
+}
+
+const IRRIGATION_PHOTOS: Record<string, string> = {
+  PIVOT: '/demo/infra/pivot.jpg',
+  DRIP: '/demo/infra/drip.jpg',
+  SPRINKLER: '/demo/infra/sprinkler.jpg',
+  PUMP: '/demo/infra/pump.jpg',
+  RESERVOIR: '/demo/infra/reservoir.jpg',
 }
 
 export function farmPhoto(farmId?: string | null): string | undefined {
@@ -67,12 +117,15 @@ export function fieldPhoto(fieldId?: string | null, crop?: string | null, farmId
   return farms[idx] ?? '/demo/crops/default.jpg'
 }
 
-export function storagePhoto(_type?: string | null): string {
+export function storagePhoto(type?: string | null): string {
+  const key = norm(type)
+  if (key.includes('WAREHOUSE')) return '/demo/infra/warehouse.jpg'
   return '/demo/infra/silo.jpg'
 }
 
-export function irrigationPhoto(): string {
-  return '/demo/infra/irrigation.jpg'
+export function irrigationPhoto(type?: string | null): string {
+  const key = norm(type)
+  return IRRIGATION_PHOTOS[key] ?? '/demo/infra/irrigation.jpg'
 }
 
 export function logisticsPhoto(): string {
@@ -91,8 +144,20 @@ export function weatherPhoto(): string {
   return '/demo/infra/weather.jpg'
 }
 
-export function inventoryPhoto(): string {
+export function inventoryPhoto(name?: string | null, category?: string | null): string {
+  const byName = INVENTORY_PHOTOS[norm(name)]
+  if (byName) return byName
+  const byCategory = INVENTORY_CATEGORY_PHOTOS[norm(category)]
+  if (byCategory) return byCategory
   return '/demo/infra/inventory.jpg'
+}
+
+function norm(value?: string | null): string {
+  return (value ?? '')
+    .trim()
+    .toUpperCase()
+    .replace(/[,.]/g, '')
+    .replace(/[\s-]+/g, '_')
 }
 
 function hash(value: string): number {

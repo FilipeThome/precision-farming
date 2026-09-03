@@ -1,7 +1,7 @@
 import { cropPhoto, farmPhoto } from '@/shared/demo/media'
 import { useSeasonsQuery } from '@/features/seasons/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatDate } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
@@ -14,6 +14,7 @@ export function SeasonsPage() {
   const seasons = useSeasonsQuery(farmId)
   const err = queryError(seasons.error)
   const { t } = useI18n()
+  const { date, label } = useFormat()
 
   return (
     <section>
@@ -32,11 +33,11 @@ export function SeasonsPage() {
           {(seasons.data ?? []).map((season) => (
             <EntityCard
               key={season.id}
-              title={season.name ?? season.id}
-              subtitle={season.crop ?? undefined}
-              meta={`${formatDate(season.startDate)} – ${formatDate(season.endDate)}`}
+              title={label(season.name, season.id)}
+              subtitle={season.crop ? label(season.crop) : undefined}
+              meta={`${date(season.startDate)} – ${date(season.endDate)}`}
               imageSrc={season.crop ? cropPhoto(season.crop) : farmPhoto(season.farmId)}
-              imageAlt={season.name ?? season.crop ?? 'season'}
+              imageAlt={label(season.name, season.crop)}
             >
               {season.status ? <StatusBadge value={season.status} /> : null}
             </EntityCard>

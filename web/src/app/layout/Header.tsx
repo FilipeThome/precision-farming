@@ -2,10 +2,12 @@ import { Bell, LogOut, Menu } from 'lucide-react'
 import { useNavigate } from 'react-router'
 
 import { queryClient } from '@/app/queryClient'
+import { logoutRequest } from '@/features/auth/api'
 import { useAlertsQuery } from '@/features/alerts/queries'
 import { useFarmsQuery } from '@/features/farms/queries'
 import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { useFormat } from '@/shared/lib/useFormat'
 import { useAuthStore } from '@/shared/auth/store'
 import { useOnline } from '@/shared/lib/useOnline'
 import { Button } from '@/shared/ui/Button'
@@ -22,9 +24,16 @@ export function Header() {
   const alerts = useAlertsQuery(farmId)
   const online = useOnline()
   const { t } = useI18n()
+  const { label } = useFormat()
   const openAlerts = (alerts.data ?? []).filter((a) => a.status === 'OPEN').length
 
-  function onLogout() {
+  async function onLogout() {
+    const refreshToken = useAuthStore.getState().refreshToken
+    try {
+      await logoutRequest(refreshToken)
+    } catch {
+      // local sign-out still proceeds
+    }
     clearSession()
     queryClient.clear()
     navigate('/login', { replace: true })
@@ -45,7 +54,7 @@ export function Header() {
           <option value="">{t('chrome.allFarms')}</option>
           {(farms.data ?? []).map((farm) => (
             <option key={farm.id} value={farm.id}>
-              {farm.name}
+              {label(farm.id, farm.name)}
             </option>
           ))}
         </select>

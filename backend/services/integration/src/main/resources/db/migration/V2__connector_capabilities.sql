@@ -1,0 +1,2 @@
+ALTER TABLE connectors
+    ADD COLUMN capabilities VARCHAR(255) NOT NULL DEFAULT '';

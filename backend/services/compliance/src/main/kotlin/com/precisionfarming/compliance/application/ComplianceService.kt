@@ -47,21 +47,20 @@ class ComplianceService(
     fun seed() {
         val now = Instant.now()
         val traceRows = listOf(
-            TraceabilityEntity(DemoIds.uuid("trace-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "HARVEST", "Colheita talhão 01 vinculada ao silo 01", now.minus(2, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "APPLICATION", "Aplicação de inseticida registrada", now.minus(20, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "LOT-BV-002", "Milho", "PLANTING", "Plantio com lote de semente item-003", now.minus(60, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "LOT-SH-010", "Soja", "TRANSPORT", "Carga load-003 despachada", now.minus(1, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-005"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "STORAGE", "Lote recebido no silo A", now.minus(5, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-006"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "TRANSPORT", "Carga load-002 em trânsito para Porto Seco", now.minus(1, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-007"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "Soja", "STORAGE", "Lote consolidado no silo 01", now.minus(12, ChronoUnit.HOURS)),
-            TraceabilityEntity(DemoIds.uuid("trace-008"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "HARVEST", "Colheita parcial talhão A", now.minus(8, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-009"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "Soja", "APPLICATION", "Fungicida pré-colheita", now.minus(25, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-010"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "Soja", "HARVEST", "Colheita talhão ES-Norte", now.minus(3, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-011"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "Soja", "TRANSPORT", "Carga load-008 entregue", now.minus(1, ChronoUnit.DAYS)),
-            TraceabilityEntity(DemoIds.uuid("trace-012"), DemoIds.uuid("farm-004"), DemoIds.uuid("field-009"), "LOT-PR-040", "Soja", "PLANTING", "Plantio talhão Leste", now.minus(90, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-001"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "SOY", "HARVEST", "HARVEST_FIELD01_SILO01", now.minus(2, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-002"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "SOY", "APPLICATION", "INSECTICIDE_APPLICATION_LOGGED", now.minus(20, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-003"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-002"), "LOT-BV-002", "CORN", "PLANTING", "PLANTING_SEED_LOT", now.minus(60, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-004"), DemoIds.uuid("farm-002"), DemoIds.uuid("field-004"), "LOT-SH-010", "SOY", "TRANSPORT", "LOAD_003_DISPATCHED", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-005"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "SOY", "STORAGE", "LOT_RECEIVED_SILO_A", now.minus(5, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-006"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "SOY", "TRANSPORT", "LOAD_002_IN_TRANSIT_DRY_PORT", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-007"), DemoIds.uuid("farm-001"), DemoIds.uuid("field-001"), "LOT-BV-001", "SOY", "STORAGE", "LOT_CONSOLIDATED_SILO01", now.minus(12, ChronoUnit.HOURS)),
+            TraceabilityEntity(DemoIds.uuid("trace-008"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "SOY", "HARVEST", "PARTIAL_HARVEST_FIELD_A", now.minus(8, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-009"), DemoIds.uuid("farm-003"), DemoIds.uuid("field-006"), "LOT-HZ-020", "SOY", "APPLICATION", "PREHARVEST_FUNGICIDE", now.minus(25, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-010"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "SOY", "HARVEST", "HARVEST_FIELD_ES_NORTH", now.minus(3, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-011"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "SOY", "TRANSPORT", "LOAD_008_DELIVERED", now.minus(1, ChronoUnit.DAYS)),
+            TraceabilityEntity(DemoIds.uuid("trace-012"), DemoIds.uuid("farm-004"), DemoIds.uuid("field-009"), "LOT-PR-040", "SOY", "PLANTING", "PLANTING_EAST_FIELD", now.minus(90, ChronoUnit.DAYS)),
         )
-        val existingTraces = traces.findAllById(traceRows.map { it.id }).map { it.id }.toHashSet()
-        traces.saveAll(traceRows.filter { it.id !in existingTraces })
+        traces.saveAll(traceRows)
 
         val esgRows = listOf(
             EsgMetricEntity(DemoIds.uuid("esg-001"), DemoIds.uuid("farm-001"), "CO2E_PER_HA", BigDecimal("1.85"), "tCO2e/ha", "2025/26", BigDecimal("78")),
@@ -73,8 +72,7 @@ class ComplianceService(
             EsgMetricEntity(DemoIds.uuid("esg-007"), DemoIds.uuid("farm-006"), "SOIL_HEALTH", BigDecimal("6.8"), "index", "2025/26", BigDecimal("70")),
             EsgMetricEntity(DemoIds.uuid("esg-008"), DemoIds.uuid("farm-008"), "WATER_PER_TON", BigDecimal("405"), "m3/t", "2025/26", BigDecimal("73")),
         )
-        val existingEsg = esg.findAllById(esgRows.map { it.id }).map { it.id }.toHashSet()
-        esg.saveAll(esgRows.filter { it.id !in existingEsg })
+        esg.saveAll(esgRows)
     }
 
     private fun TraceabilityEntity.toDto() = TraceabilityDto(id, farmId, fieldId, lotCode, crop, eventType, summary, occurredAt)

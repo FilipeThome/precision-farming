@@ -2,7 +2,7 @@ import { useInventoryQuery } from '@/features/inventory/queries'
 import { inventoryStockBars } from '@/shared/charts/adapters'
 import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
-import { formatNumber } from '@/shared/lib/format'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
@@ -16,6 +16,7 @@ export function InventoryPage() {
   const inventory = useInventoryQuery(farmId)
   const err = queryError(inventory.error)
   const { t } = useI18n()
+  const { number, label } = useFormat()
 
   return (
     <section>
@@ -33,7 +34,7 @@ export function InventoryPage() {
         {(inventory.data?.length ?? 0) > 0 ? (
           <ChartCard title={t('charts.inventoryStock')} className="mb-4">
             <BarChartBlock
-              data={inventoryStockBars(inventory.data ?? [])}
+              data={inventoryStockBars(inventory.data ?? [], label)}
               xKey="name"
               bars={[
                 { dataKey: 'stock', name: t('charts.stock'), color: CHART_COLORS.green },
@@ -46,11 +47,11 @@ export function InventoryPage() {
           {(inventory.data ?? []).map((item) => (
             <EntityCard
               key={item.id}
-              title={item.name}
-              subtitle={item.category}
-              meta={`${formatNumber(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${formatNumber(Number(item.reserved), 1)}`}
-              imageSrc={inventoryPhoto()}
-              imageAlt={item.name}
+              title={label(item.name)}
+              subtitle={label(item.category)}
+              meta={`${number(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${number(Number(item.reserved), 1)}`}
+              imageSrc={inventoryPhoto(item.name, item.category)}
+              imageAlt={label(item.name)}
             />
           ))}
         </div>

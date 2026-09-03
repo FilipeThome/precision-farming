@@ -65,7 +65,7 @@ chmod +x scripts/compose-up.sh
 
 Detalhes: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`.
 
-Opcional: `WEB_GOOGLE_MAPS_API_KEY` / `VITE_GOOGLE_MAPS_API_KEY` (nunca commitar). Sem chave, o mapa mostra status e retry — não um PNG estático.
+O mapa web usa Leaflet com imagens de satélite Esri (sem chave do Google Maps).
 
 ## ADRs
 

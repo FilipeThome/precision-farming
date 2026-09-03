@@ -2,13 +2,17 @@ package com.precisionfarming.farm
 
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.farm.application.FarmService
+import com.precisionfarming.farm.application.UpsertFarm
 import com.precisionfarming.farm.application.UpsertField
+import com.precisionfarming.farm.infrastructure.FarmEntity
+import com.precisionfarming.farm.infrastructure.AuthMembershipClient
 import com.precisionfarming.farm.infrastructure.FarmJpaRepository
 import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoTenant
+import com.precisionfarming.security.UserFarmGrants
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -23,9 +27,27 @@ class FarmServiceTest {
     private val farms = mockk<FarmJpaRepository>()
     private val fields = mockk<FieldJpaRepository>()
     private val seasons = mockk<SeasonJpaRepository>()
-    private val svc = FarmService(farms, fields, seasons)
+    private val memberships = mockk<AuthMembershipClient>(relaxed = true)
+    private val svc = FarmService(farms, fields, seasons, memberships)
 
-    private fun scope(farmId: UUID) = AccessScope(DemoTenant.ID, setOf(farmId), "ADMIN")
+    private fun scope(farmId: UUID, userId: UUID? = null) =
+        AccessScope(DemoTenant.ID, setOf(farmId), "ADMIN", userId)
+
+    @Test
+    fun createFarmAddsFarmToCreatorGrants() {
+        val userId = UUID.randomUUID()
+        every { farms.save(any()) } answers { firstArg<FarmEntity>() }
+
+        val dto = svc.createFarm(
+            scope(UUID.randomUUID(), userId),
+            UpsertFarm("Nova", "MS", BigDecimal.TEN, "America/Campo_Grande"),
+        )
+        try {
+            assertTrue(UserFarmGrants.farmIds(userId).contains(dto.id))
+        } finally {
+            UserFarmGrants.revoke(dto.id, userId)
+        }
+    }
 
     @Test
     fun createFieldPersistsParsedGeoJsonCoordinates() {

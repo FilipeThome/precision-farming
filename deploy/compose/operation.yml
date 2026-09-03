@@ -17,6 +17,7 @@ services:
     restart: unless-stopped
     env_file:
       - deploy/compose/demo.env
+      - deploy/compose/demo-operation.env
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
