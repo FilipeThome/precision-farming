@@ -17,6 +17,7 @@ import com.precisionfarming.farm.infrastructure.AuthMembershipClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.UnauthorizedException
 import com.precisionfarming.security.DemoFieldFarms
+import com.precisionfarming.security.UserFarmGrants
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
@@ -96,6 +97,7 @@ class FarmService(
         val entity = FarmEntity(UUID.randomUUID(), cmd.name, cmd.location, cmd.areaHa, cmd.timezone)
         val saved = farms.save(entity).toDto()
         memberships.grant(userId, saved.id)
+        UserFarmGrants.grant(userId, saved.id)
         return saved
     }
 
@@ -118,6 +120,7 @@ class FarmService(
         fields.deleteByFarmId(id)
         farms.deleteById(id)
         memberships.revoke(id)
+        UserFarmGrants.revoke(id)
     }
 
     fun listFields(scope: AccessScope, farmId: UUID?) =

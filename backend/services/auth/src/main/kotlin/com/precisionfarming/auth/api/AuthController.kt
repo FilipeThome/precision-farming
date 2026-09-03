@@ -51,14 +51,22 @@ class AuthController(
     @PostMapping("/refresh")
     fun refresh(@Valid @RequestBody body: RefreshRequest, request: HttpServletRequest): TokenResponse {
         rateLimiter.check("refresh-ip:${clientIp(request)}")
-        val tokens = authService.refresh(RefreshCommand(body.refreshToken))
-        rateLimiter.check("refresh-user:${tokens.userId}")
-        return tokens
+        val userId = authService.peekRefreshUserId(body.refreshToken)
+        rateLimiter.check("refresh-user:$userId")
+        return authService.refresh(RefreshCommand(body.refreshToken))
     }
 
     @PostMapping("/logout")
-    fun logout(@AuthenticationPrincipal jwt: Jwt, @RequestBody(required = false) body: LogoutRequest?) {
-        authService.logout(UUID.fromString(jwt.subject))
+    fun logout(
+        @AuthenticationPrincipal jwt: Jwt?,
+        @RequestBody(required = false) body: LogoutRequest?,
+    ) {
+        val userId = when {
+            jwt != null -> UUID.fromString(jwt.subject)
+            !body?.refreshToken.isNullOrBlank() -> authService.peekRefreshUserId(body.refreshToken!!)
+            else -> throw UnauthorizedException("Invalid credentials")
+        }
+        authService.logout(userId)
     }
 
     @GetMapping("/me")

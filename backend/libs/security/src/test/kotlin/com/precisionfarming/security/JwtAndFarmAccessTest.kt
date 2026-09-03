@@ -166,6 +166,27 @@ class JwtAndFarmAccessTest {
     }
 
     @Test
+    fun userFarmGrantsJoinJwtScopeForThatUserOnly() {
+        val existing = DemoIds.uuid("farm-001")
+        val created = UUID.randomUUID()
+        val owner = UUID.randomUUID()
+        val other = UUID.randomUUID()
+        UserFarmGrants.grant(owner, created)
+        try {
+            val ownerScope = farmAccess.fromJwt(
+                jwt(farmIds = listOf(existing.toString()), subject = owner.toString(), role = "ADMIN"),
+            )
+            assertEquals(setOf(existing, created), ownerScope.farmIds)
+            val otherScope = farmAccess.fromJwt(
+                jwt(farmIds = listOf(existing.toString()), subject = other.toString(), role = "ADMIN"),
+            )
+            assertEquals(setOf(existing), otherScope.farmIds)
+        } finally {
+            UserFarmGrants.revoke(created, owner)
+        }
+    }
+
+    @Test
     fun claimedFarmIdsAreHonored() {
         val farm = DemoIds.uuid("farm-001")
         val userId = UUID.randomUUID()
