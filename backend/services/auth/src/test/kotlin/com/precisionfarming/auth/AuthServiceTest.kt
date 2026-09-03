@@ -54,6 +54,7 @@ class AuthServiceTest {
         every { refreshTokens.findByJtiForUpdate(issued.jti.toString()) } returns RefreshTokenEntity(
             UUID.randomUUID(), user.id, issued.jti.toString(), issued.expiresAt, null,
         )
+        every { refreshTokens.save(any()) } answers { firstArg() }
 
         val tokens = svc.refresh(RefreshCommand(issued.token))
 
