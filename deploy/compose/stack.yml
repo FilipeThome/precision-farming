@@ -1,7 +1,7 @@
 # Convenience app overlays with Compose profiles (infra stays in root docker-compose.yml).
 # Mobile is intentionally excluded.
 #
-# Core demo (gateway + auth + farm + web) — from repo root:
+# Core demo (gateway + auth + farm + reporting + web) — from repo root:
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
 #     --env-file deploy/compose/demo.env --profile core up -d --build
 #
@@ -255,7 +255,7 @@ services:
 
   reporting:
     <<: *jvm
-    profiles: [reporting, all]
+    profiles: [reporting, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
