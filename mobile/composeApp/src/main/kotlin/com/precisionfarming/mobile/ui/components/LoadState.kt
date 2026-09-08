@@ -22,8 +22,8 @@ fun <T> Result<List<T>>.toLoadState(): LoadState<T> =
 @Composable
 fun <T> LoadedList(
     state: LoadState<T>,
-    format: (T) -> String,
     itemContent: (@Composable (T) -> Unit)? = null,
+    format: (T) -> String,
 ) {
     when (state) {
         is LoadState.Loading -> Text(S.t("common.loading"))

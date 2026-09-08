@@ -39,4 +39,6 @@ interface ItemJpaRepository : JpaRepository<ItemEntity, UUID> {
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<ItemEntity>
 }
 
-interface MovementJpaRepository : JpaRepository<MovementEntity, UUID>
+interface MovementJpaRepository : JpaRepository<MovementEntity, UUID> {
+    fun findByItemIdOrderByOccurredAtAsc(itemId: UUID): List<MovementEntity>
+}

@@ -1,7 +1,12 @@
-import { useState } from 'react'
-
-import { DispatchLoadButton } from '@/features/harvest/components/DispatchLoadButton'
-import { StorageLotsList } from '@/features/harvest/components/StorageLotsList'
+import { HarvestPlanInspector } from '@/features/harvest/components/HarvestPlanInspector'
+import {
+  HarvestLogisticsGrid,
+  HarvestLotsGrid,
+  HarvestPlanGrid,
+  HarvestStorageGrid,
+  HarvestYieldGrid,
+} from '@/features/harvest/components/HarvestGrids'
+import { StorageLotInspector } from '@/features/harvest/components/StorageLotInspector'
 import {
   useHarvestPlansQuery,
   useLogisticsLoadsQuery,
@@ -10,78 +15,51 @@ import {
   useYieldQuery,
 } from '@/features/harvest/queries'
 import { storageOccupancy, yieldByField } from '@/shared/charts/adapters'
-import { cropPhoto, fieldPhoto, logisticsPhoto, storagePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
+import { usePatchSearchParams, useSearchParam } from '@/shared/lib/useSearchParam'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
 import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
-import { EntityCard } from '@/shared/ui/EntityCard'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { SectionTabs } from '@/shared/ui/SectionTabs'
-import { StatusBadge } from '@/shared/ui/StatusBadge'
 import { useUiStore } from '@/shared/ui/uiStore'
 
-type Tab = 'plans' | 'yield' | 'logistics' | 'storage'
+const TABS = ['plans', 'yield', 'logistics', 'storage'] as const
+type Tab = (typeof TABS)[number]
 type StorageView = 'units' | 'lots'
 
 export function HarvestPage() {
   const farmId = useUiStore((s) => s.farmId)
-  const [tab, setTab] = useState<Tab>('plans')
-  const [storageView, setStorageView] = useState<StorageView>('units')
+  const [tabParam] = useSearchParam('tab')
+  const [viewParam] = useSearchParam('view')
+  const patchParams = usePatchSearchParams()
+  const { selectedId, setSelectedId } = useSelectedId()
+  const tab: Tab = TABS.includes(tabParam as Tab) ? (tabParam as Tab) : 'plans'
+  const storageView: StorageView = viewParam === 'lots' ? 'lots' : 'units'
   const { t } = useI18n()
-  const { number, dateTime, label } = useFormat()
+  const { label } = useFormat()
   const plans = useHarvestPlansQuery(farmId, { enabled: tab === 'plans' })
   const yieldQ = useYieldQuery(farmId, { enabled: tab === 'yield' })
   const logistics = useLogisticsLoadsQuery(farmId, { enabled: tab === 'logistics' })
-  const storage = useStorageUnitsQuery(farmId, {
-    enabled: tab === 'storage' && storageView === 'units',
-  })
-  const lots = useStorageLotsQuery(farmId, {
-    enabled: tab === 'storage' && storageView === 'lots',
-  })
-
+  const storage = useStorageUnitsQuery(farmId, { enabled: tab === 'storage' && storageView === 'units' })
+  const lots = useStorageLotsQuery(farmId, { enabled: tab === 'storage' && storageView === 'lots' })
   const active =
-    tab === 'plans'
-      ? plans
-      : tab === 'yield'
-        ? yieldQ
-        : tab === 'logistics'
-          ? logistics
-          : storageView === 'lots'
-            ? lots
-            : storage
+    tab === 'plans' ? plans : tab === 'yield' ? yieldQ : tab === 'logistics' ? logistics : storageView === 'lots' ? lots : storage
   const err = queryError(active.error)
-
-  const emptyTitle =
-    tab === 'plans'
-      ? t('harvest.plans.emptyTitle')
-      : tab === 'yield'
-        ? t('harvest.yield.emptyTitle')
-        : tab === 'logistics'
-          ? t('harvest.logistics.emptyTitle')
-          : storageView === 'lots'
-            ? t('harvest.lots.emptyTitle')
-            : t('harvest.storage.emptyTitle')
-  const emptyDescription =
-    tab === 'plans'
-      ? t('harvest.plans.emptyDescription')
-      : tab === 'yield'
-        ? t('harvest.yield.emptyDescription')
-        : tab === 'logistics'
-          ? t('harvest.logistics.emptyDescription')
-          : storageView === 'lots'
-            ? t('harvest.lots.emptyDescription')
-            : t('harvest.storage.emptyDescription')
+  const selectedPlan = (plans.data ?? []).find((row) => row.id === selectedId)
+  const selectedLot = (lots.data ?? []).find((row) => row.id === selectedId)
 
   return (
     <section>
       <PageHeader title={t('harvest.title')} description={t('harvest.description')} />
       <SectionTabs
         active={tab}
-        onChange={setTab}
+        onChange={(next) => patchParams({ selected: null, tab: next })}
         tabs={[
           { id: 'plans', labelKey: 'harvest.tab.plans' },
           { id: 'yield', labelKey: 'harvest.tab.yield' },
@@ -94,14 +72,14 @@ export function HarvestPage() {
           <Button
             variant={storageView === 'units' ? 'primary' : 'secondary'}
             aria-pressed={storageView === 'units'}
-            onClick={() => setStorageView('units')}
+            onClick={() => patchParams({ selected: null, view: 'units' })}
           >
             {t('harvest.storage.units')}
           </Button>
           <Button
             variant={storageView === 'lots' ? 'primary' : 'secondary'}
             aria-pressed={storageView === 'lots'}
-            onClick={() => setStorageView('lots')}
+            onClick={() => patchParams({ selected: null, view: 'lots' })}
           >
             {t('harvest.storage.lots')}
           </Button>
@@ -113,8 +91,28 @@ export function HarvestPage() {
         errorMessage={err.message}
         correlationId={err.correlationId}
         isEmpty={!active.isLoading && (active.data?.length ?? 0) === 0}
-        emptyTitle={emptyTitle}
-        emptyDescription={emptyDescription}
+        emptyTitle={
+          tab === 'plans'
+            ? t('harvest.plans.emptyTitle')
+            : tab === 'yield'
+              ? t('harvest.yield.emptyTitle')
+              : tab === 'logistics'
+                ? t('harvest.logistics.emptyTitle')
+                : storageView === 'lots'
+                  ? t('harvest.lots.emptyTitle')
+                  : t('harvest.storage.emptyTitle')
+        }
+        emptyDescription={
+          tab === 'plans'
+            ? t('harvest.plans.emptyDescription')
+            : tab === 'yield'
+              ? t('harvest.yield.emptyDescription')
+              : tab === 'logistics'
+                ? t('harvest.logistics.emptyDescription')
+                : storageView === 'lots'
+                  ? t('harvest.lots.emptyDescription')
+                  : t('harvest.storage.emptyDescription')
+        }
         onRetry={() => void active.refetch()}
       >
         {tab === 'yield' && (yieldQ.data?.length ?? 0) > 0 ? (
@@ -138,92 +136,33 @@ export function HarvestPage() {
             />
           </ChartCard>
         ) : null}
+        {tab === 'plans' ? (
+          <HarvestPlanGrid items={plans.data ?? []} selectedId={selectedId} onSelect={setSelectedId} />
+        ) : null}
+        {tab === 'yield' ? <HarvestYieldGrid items={yieldQ.data ?? []} /> : null}
+        {tab === 'logistics' ? <HarvestLogisticsGrid items={logistics.data ?? []} /> : null}
         {tab === 'storage' && storageView === 'lots' ? (
-          <StorageLotsList items={lots.data ?? []} />
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2">
-            {tab === 'plans'
-              ? (plans.data ?? []).map((row) => (
-                  <EntityCard
-                    key={row.id}
-                    title={label(row.crop, row.fieldId ?? row.id)}
-                    subtitle={
-                      row.expectedTHa != null
-                        ? t('harvest.plans.expected', {
-                            value: number(Number(row.expectedTHa), 1),
-                          })
-                        : undefined
-                    }
-                    meta={dateTime(row.plannedStart)}
-                    imageSrc={cropPhoto(row.crop)}
-                    imageAlt={label(row.crop)}
-                  >
-                    {row.status ? <StatusBadge value={row.status} /> : null}
-                  </EntityCard>
-                ))
-              : null}
-            {tab === 'yield'
-              ? (yieldQ.data ?? []).map((row) => (
-                  <EntityCard
-                    key={row.id}
-                    title={label(row.fieldId, row.id)}
-                    subtitle={
-                      row.yieldTHa != null
-                        ? t('harvest.yield.value', {
-                            value: number(Number(row.yieldTHa), 1),
-                          })
-                        : undefined
-                    }
-                    meta={
-                      row.moisturePct != null
-                        ? `${number(Number(row.moisturePct), 1)}% · ${dateTime(row.recordedAt)}`
-                        : dateTime(row.recordedAt)
-                    }
-                    imageSrc={fieldPhoto(row.fieldId, undefined, row.farmId)}
-                    imageAlt={label(row.fieldId)}
-                  />
-                ))
-              : null}
-            {tab === 'logistics'
-              ? (logistics.data ?? []).map((row) => (
-                  <EntityCard
-                    key={row.id}
-                    title={label(row.destination, row.id)}
-                    subtitle={
-                      row.truckPlate
-                        ? t('harvest.logistics.truck', { plate: row.truckPlate })
-                        : undefined
-                    }
-                    meta={dateTime(row.dispatchedAt)}
-                    imageSrc={logisticsPhoto()}
-                    imageAlt={label(row.destination)}
-                  >
-                    {row.status ? <StatusBadge value={row.status} /> : null}
-                    {row.status === 'QUEUED' ? <DispatchLoadButton loadId={row.id} /> : null}
-                  </EntityCard>
-                ))
-              : null}
-            {tab === 'storage' && storageView === 'units'
-              ? (storage.data ?? []).map((row) => (
-                  <EntityCard
-                    key={row.id}
-                    title={label(row.name, row.id)}
-                    subtitle={
-                      row.capacityT != null
-                        ? t('harvest.storage.occupancy', {
-                            used: number(Number(row.usedT ?? 0), 1),
-                            capacity: number(Number(row.capacityT), 1),
-                          })
-                        : label(row.type)
-                    }
-                    imageSrc={storagePhoto(row.type)}
-                    imageAlt={label(row.name, row.type)}
-                  />
-                ))
-              : null}
-          </div>
-        )}
+          <HarvestLotsGrid items={lots.data ?? []} selectedId={selectedId} onSelect={setSelectedId} />
+        ) : null}
+        {tab === 'storage' && storageView === 'units' ? (
+          <HarvestStorageGrid items={storage.data ?? []} />
+        ) : null}
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId) && (tab === 'plans' || (tab === 'storage' && storageView === 'lots'))}
+        title={
+          selectedPlan
+            ? label(selectedPlan.crop, selectedPlan.fieldId ?? selectedPlan.id)
+            : selectedLot
+              ? label(selectedLot.crop)
+              : t('inspector.notFound')
+        }
+        subtitle={!selectedPlan && !selectedLot ? t('inspector.notFoundHint') : undefined}
+        onClose={() => setSelectedId(null)}
+      >
+        {selectedPlan ? <HarvestPlanInspector plan={selectedPlan} farmId={farmId} /> : null}
+        {selectedLot ? <StorageLotInspector lot={selectedLot} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

@@ -187,6 +187,39 @@ class JwtAndFarmAccessTest {
     }
 
     @Test
+    fun blankTenantDefaultsToDemo() {
+        val farm = DemoIds.uuid("farm-001")
+        val scope = farmAccess.fromJwt(
+            jwt(farmIds = listOf(farm.toString()), subject = UUID.randomUUID().toString(), tenantId = ""),
+        )
+        assertEquals(DemoTenant.ID, scope.tenantId)
+    }
+
+    @Test
+    fun foreignTenantIsRejected() {
+        val farm = DemoIds.uuid("farm-001")
+        assertThrows(UnauthorizedException::class.java) {
+            farmAccess.fromJwt(
+                jwt(
+                    farmIds = listOf(farm.toString()),
+                    subject = UUID.randomUUID().toString(),
+                    tenantId = UUID.randomUUID().toString(),
+                ),
+            )
+        }
+    }
+
+    @Test
+    fun invalidTenantIsRejected() {
+        val farm = DemoIds.uuid("farm-001")
+        assertThrows(UnauthorizedException::class.java) {
+            farmAccess.fromJwt(
+                jwt(farmIds = listOf(farm.toString()), subject = UUID.randomUUID().toString(), tenantId = "not-a-uuid"),
+            )
+        }
+    }
+
+    @Test
     fun claimedFarmIdsAreHonored() {
         val farm = DemoIds.uuid("farm-001")
         val userId = UUID.randomUUID()
@@ -219,15 +252,18 @@ class JwtAndFarmAccessTest {
         farmIds: List<String>,
         subject: String,
         role: String = "ADMIN",
-    ): Jwt = Jwt.withTokenValue("token")
-        .header("alg", "none")
-        .subject(subject)
-        .claim("role", role)
-        .claim("tenantId", DemoTenant.ID.toString())
-        .claim("farmIds", farmIds)
-        .issuedAt(Instant.now())
-        .expiresAt(Instant.now().plusSeconds(60))
-        .build()
+        tenantId: String? = DemoTenant.ID.toString(),
+    ): Jwt {
+        val builder = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .subject(subject)
+            .claim("role", role)
+            .claim("farmIds", farmIds)
+            .issuedAt(Instant.now())
+            .expiresAt(Instant.now().plusSeconds(60))
+        if (tenantId != null) builder.claim("tenantId", tenantId)
+        return builder.build()
+    }
 
     companion object {
         fun rsaProps(): JwtProperties {

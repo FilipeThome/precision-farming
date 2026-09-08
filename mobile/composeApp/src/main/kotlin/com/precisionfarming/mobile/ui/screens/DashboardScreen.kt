@@ -17,29 +17,41 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.precisionfarming.mobile.data.AlertDto
 import com.precisionfarming.mobile.data.DashboardKpis
 import com.precisionfarming.mobile.data.FarmFilter
+import com.precisionfarming.mobile.data.InspectNav
+import com.precisionfarming.mobile.data.MachineDto
+import com.precisionfarming.mobile.data.OperationDto
 import com.precisionfarming.mobile.data.alerts
 import com.precisionfarming.mobile.data.computeDashboardKpis
 import com.precisionfarming.mobile.data.farms
 import com.precisionfarming.mobile.data.financePnl
 import com.precisionfarming.mobile.data.machines
 import com.precisionfarming.mobile.data.operations
+import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.ControlTowerStrip
 import com.precisionfarming.mobile.ui.components.KpiCard
 import com.precisionfarming.mobile.ui.components.LoadState
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
+private data class DashboardBundle(
+    val kpis: DashboardKpis,
+    val alerts: List<AlertDto>,
+    val machines: List<MachineDto>,
+    val operations: List<OperationDto>,
+)
+
 @Composable
-fun DashboardScreen() {
-    var state by remember { mutableStateOf<LoadState<DashboardKpis>>(LoadState.Loading) }
+fun DashboardScreen(onOpen: (String) -> Unit) {
+    var state by remember { mutableStateOf<LoadState<DashboardBundle>>(LoadState.Loading) }
     val scope = rememberCoroutineScope()
     fun reload() {
         scope.launch {
-            state = LoadState.Loading
             state = runCatching {
                 val farmId = FarmFilter.farmId
                 coroutineScope {
@@ -48,12 +60,16 @@ fun DashboardScreen() {
                     val opJob = async { operations(farmId) }
                     val alertJob = async { alerts(farmId) }
                     val pnlJob = async { financePnl(farmId) }
-                    computeDashboardKpis(
-                        farmJob.await(),
-                        machineJob.await(),
-                        opJob.await(),
-                        alertJob.await(),
-                        pnlJob.await(),
+                    val farmList = farmJob.await()
+                    val machineList = machineJob.await()
+                    val opList = opJob.await()
+                    val alertList = alertJob.await()
+                    val pnlList = pnlJob.await()
+                    DashboardBundle(
+                        kpis = computeDashboardKpis(farmList, machineList, opList, alertList, pnlList),
+                        alerts = alertList,
+                        machines = machineList,
+                        operations = opList,
                     )
                 }
             }.fold(
@@ -74,33 +90,63 @@ fun DashboardScreen() {
             is LoadState.Loading -> Text(S.t("common.loading"))
             is LoadState.Err -> Text("${S.t("common.error")}: ${s.message}")
             is LoadState.Ok -> {
-                val kpis = s.items.first()
+                val bundle = s.items.first()
+                val kpis = bundle.kpis
                 if (kpis.isEmpty) {
                     Text(S.t("common.empty"))
                 } else {
-                    KpiCard(S.t("dashboard.kpi.farms"), kpis.farmCount.toString())
-                    KpiCard(S.t("dashboard.kpi.machines"), kpis.machineCount.toString())
-                    KpiCard(S.t("dashboard.kpi.operations"), kpis.operationCount.toString())
-                    KpiCard(S.t("dashboard.kpi.alerts"), kpis.alertCount.toString())
+                    ControlTowerStrip(bundle.alerts, bundle.machines, bundle.operations, onOpen)
+                    KpiCard(
+                        S.t("dashboard.kpi.farms"),
+                        kpis.farmCount.toString(),
+                        onClick = { onOpen(InspectNav.href(InspectNav.FARMS)) },
+                        contentDescription = "${S.t("dashboard.kpi.farms")}: ${kpis.farmCount}. ${S.t("kpi.openFarms")}",
+                    )
+                    KpiCard(
+                        S.t("dashboard.kpi.machines"),
+                        kpis.machineCount.toString(),
+                        onClick = { onOpen(InspectNav.href(InspectNav.MACHINES)) },
+                        contentDescription = "${S.t("dashboard.kpi.machines")}: ${kpis.machineCount}. ${S.t("kpi.openMachines")}",
+                    )
+                    KpiCard(
+                        S.t("dashboard.kpi.operations"),
+                        kpis.operationCount.toString(),
+                        onClick = { onOpen(InspectNav.href(InspectNav.OPS)) },
+                        contentDescription = "${S.t("dashboard.kpi.operations")}: ${kpis.operationCount}. ${S.t("kpi.openOperations")}",
+                    )
+                    KpiCard(
+                        S.t("dashboard.kpi.alerts"),
+                        kpis.alertCount.toString(),
+                        onClick = { onOpen(InspectNav.href(InspectNav.ALERTS)) },
+                        contentDescription = "${S.t("dashboard.kpi.alerts")}: ${kpis.alertCount}. ${S.t("kpi.openAlerts")}",
+                    )
                     KpiCard(
                         S.t("dashboard.kpi.opsProgress"),
                         "${kpis.opsProgressPct}%",
                         "${kpis.completedOps} / ${kpis.operationCount} · ${S.t("dashboard.kpi.opsProgressHint")}",
+                        onClick = { onOpen(InspectNav.href(InspectNav.OPS)) },
+                        contentDescription = "${S.t("dashboard.kpi.opsProgress")}: ${kpis.opsProgressPct}%. ${S.t("kpi.openOperations")}",
                     )
                     KpiCard(
                         S.t("dashboard.kpi.criticalAlerts"),
                         kpis.criticalAlerts.toString(),
                         S.t("dashboard.kpi.criticalAlertsHint"),
+                        onClick = { onOpen(InspectNav.href(InspectNav.ALERTS, severity = "CRITICAL")) },
+                        contentDescription = "${S.t("dashboard.kpi.criticalAlerts")}: ${kpis.criticalAlerts}. ${S.t("kpi.openAlerts")}",
                     )
                     KpiCard(
                         S.t("dashboard.kpi.fleetAvailability"),
                         "${kpis.fleetPct}%",
                         S.t("dashboard.kpi.fleetAvailabilityHint"),
+                        onClick = { onOpen(InspectNav.href(InspectNav.MACHINES)) },
+                        contentDescription = "${S.t("dashboard.kpi.fleetAvailability")}: ${kpis.fleetPct}%. ${S.t("kpi.openMachines")}",
                     )
                     KpiCard(
                         S.t("dashboard.kpi.marginRisk"),
                         kpis.negativeMargins.toString(),
                         S.t("dashboard.kpi.marginRiskHint"),
+                        onClick = { onOpen(InspectNav.href(InspectNav.FINANCE)) },
+                        contentDescription = "${S.t("dashboard.kpi.marginRisk")}: ${kpis.negativeMargins}. ${S.t("kpi.openFinance")}",
                     )
                     GroupLines(S.t("dashboard.group.ops"), kpis.opsByStatus)
                     GroupLines(S.t("dashboard.group.alerts"), kpis.alertsBySeverity)
@@ -122,6 +168,6 @@ private fun GroupLines(title: String, rows: List<Pair<String, Int>>) {
     if (rows.isEmpty()) {
         Text(S.t("common.empty"))
     } else {
-        rows.forEach { (name, count) -> Text("$name · $count") }
+        rows.forEach { (name, count) -> Text("${DomainLabels.label(name)} · $count") }
     }
 }

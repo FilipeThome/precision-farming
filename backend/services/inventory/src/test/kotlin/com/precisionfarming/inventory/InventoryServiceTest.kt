@@ -38,6 +38,48 @@ class InventoryServiceTest {
     }
 
     @Test
+    fun listMovementsRejectsOtherFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        val ex = assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
+            svc.listMovements(other, item.id)
+        }
+        assertEquals("ITEM_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun listMovementsNotFound() {
+        val id = UUID.randomUUID()
+        every { items.findById(id) } returns Optional.empty()
+        val ex = assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
+            svc.listMovements(AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR"), id)
+        }
+        assertEquals("ITEM_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun listMovementsReturnsRowsForScopedFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        val row = MovementEntity(UUID.randomUUID(), item.id, "CONSUME", BigDecimal("8"), java.time.Instant.parse("2026-09-01T00:00:00Z"), "seed")
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.findByItemIdOrderByOccurredAtAsc(item.id) } returns listOf(row)
+        val dto = svc.listMovements(scopeFor(item), item.id)
+        assertEquals(1, dto.size)
+        assertEquals(BigDecimal("8"), dto.single().quantity)
+    }
+
+    @Test
+    fun moveRejectsOtherFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            svc.move(other, MovementCmd(item.id, "IN", BigDecimal("1"), null))
+        }
+    }
+
+    @Test
     fun consumeDecrementsQuantityWhenStockIsAvailable() {
         val item = item(quantity = "50", reserved = "20")
         every { items.findById(item.id) } returns Optional.of(item)

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,24 +24,34 @@ import com.precisionfarming.mobile.data.LogisticsLoadDto
 import com.precisionfarming.mobile.data.StorageLotDto
 import com.precisionfarming.mobile.data.StorageUnitDto
 import com.precisionfarming.mobile.data.YieldRecordDto
+import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.data.dispatchLoad
 import com.precisionfarming.mobile.data.harvestPlans
 import com.precisionfarming.mobile.data.harvestYield
 import com.precisionfarming.mobile.data.logisticsLoads
 import com.precisionfarming.mobile.data.storageLots
 import com.precisionfarming.mobile.data.storageUnits
+import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.DetailSheet
+import com.precisionfarming.mobile.ui.components.EntityCard
 import com.precisionfarming.mobile.ui.components.LoadState
-import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
+import com.precisionfarming.mobile.ui.inspectors.HarvestPlanInspector
+import com.precisionfarming.mobile.ui.inspectors.StorageLotInspector
 import kotlinx.coroutines.launch
 
 private enum class HarvestTab { PLANS, YIELD, LOGISTICS, STORAGE }
 
 @Composable
-fun HarvestScreen(onBack: () -> Unit) {
+fun HarvestScreen(
+    selectedId: String?,
+    onSelect: (String) -> Unit,
+    onClearSelected: () -> Unit,
+    onBack: () -> Unit,
+) {
     var tab by remember { mutableIntStateOf(0) }
     var storageSub by remember { mutableIntStateOf(0) }
     var plans by remember { mutableStateOf<LoadState<HarvestPlanDto>>(LoadState.Loading) }
@@ -56,23 +67,24 @@ fun HarvestScreen(onBack: () -> Unit) {
             val farmId = FarmFilter.farmId
             when (tabs[tab]) {
                 HarvestTab.PLANS -> {
-                    plans = LoadState.Loading
+                    if (plans !is LoadState.Ok) plans = LoadState.Loading
                     plans = runCatching { harvestPlans(farmId) }.toLoadState()
+                    yieldState = runCatching { harvestYield(farmId) }.toLoadState()
                 }
                 HarvestTab.YIELD -> {
-                    yieldState = LoadState.Loading
+                    if (yieldState !is LoadState.Ok) yieldState = LoadState.Loading
                     yieldState = runCatching { harvestYield(farmId) }.toLoadState()
                 }
                 HarvestTab.LOGISTICS -> {
-                    loads = LoadState.Loading
+                    if (loads !is LoadState.Ok) loads = LoadState.Loading
                     loads = runCatching { logisticsLoads(farmId) }.toLoadState()
                 }
                 HarvestTab.STORAGE -> {
                     if (storageSub == 0) {
-                        units = LoadState.Loading
+                        if (units !is LoadState.Ok) units = LoadState.Loading
                         units = runCatching { storageUnits(farmId) }.toLoadState()
                     } else {
-                        lots = LoadState.Loading
+                        if (lots !is LoadState.Ok) lots = LoadState.Loading
                         lots = runCatching { storageLots(farmId) }.toLoadState()
                     }
                 }
@@ -80,6 +92,11 @@ fun HarvestScreen(onBack: () -> Unit) {
         }
     }
     LaunchedEffect(tab, storageSub, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    val planItems = (plans as? LoadState.Ok)?.items.orEmpty()
+    val lotItems = (lots as? LoadState.Ok)?.items.orEmpty()
+    val yieldItems = (yieldState as? LoadState.Ok)?.items.orEmpty()
+    val selectedPlan = planItems.byId(selectedId) { it.id }
+    val selectedLot = lotItems.byId(selectedId) { it.id }
     Column(
         Modifier
             .padding(16.dp)
@@ -87,7 +104,7 @@ fun HarvestScreen(onBack: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("harvest.title"))
+        Text(S.t("harvest.title"), style = MaterialTheme.typography.titleLarge)
         SectionTabs(
             labels = listOf(S.t("tab.plans"), S.t("tab.yield"), S.t("tab.logistics"), S.t("tab.storage")),
             selectedIndex = tab,
@@ -95,28 +112,28 @@ fun HarvestScreen(onBack: () -> Unit) {
         )
         msg?.let { Text(it) }
         when (tabs[tab]) {
-            HarvestTab.PLANS -> LoadedList(plans) { p ->
-                listOfNotNull(p.crop, p.status, p.expectedTHa?.let { "${it}t/ha" }, p.plannedStart)
-                    .joinToString(" · ")
-                    .ifBlank { p.id }
-            }
-            HarvestTab.YIELD -> LoadedList(yieldState) { y ->
-                listOfNotNull(
-                    y.recordedAt,
-                    y.yieldTHa?.let { "${it}t/ha" },
-                    y.moisturePct?.let { "${S.t("harvest.moisture")} $it%" },
+            HarvestTab.PLANS -> HarvestList(plans) { p ->
+                EntityCard(
+                    headline = DomainLabels.label(p.crop),
+                    supporting = listOfNotNull(p.expectedTHa?.let { "${it}t/ha" }, p.plannedStart).joinToString(" · "),
+                    status = DomainLabels.label(p.status),
+                    onClick = { onSelect(p.id) },
                 )
-                    .joinToString(" · ")
-                    .ifBlank { y.id }
             }
-            HarvestTab.LOGISTICS -> LoadedList(
-                loads,
-                format = { load ->
-                    listOfNotNull(load.truckPlate, load.destination, load.tons?.let { "${it}t" }, load.status)
-                        .joinToString(" · ")
-                        .ifBlank { load.id }
-                },
-                itemContent = { load ->
+            HarvestTab.YIELD -> HarvestList(yieldState) { y ->
+                    EntityCard(
+                    headline = y.yieldTHa?.let { "${it}t/ha" } ?: y.id,
+                    supporting = listOfNotNull(y.recordedAt, y.moisturePct?.let { "${S.t("harvest.moisture")} $it%" })
+                        .joinToString(" · "),
+                )
+            }
+            HarvestTab.LOGISTICS -> HarvestList(loads) { load ->
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    EntityCard(
+                        headline = load.truckPlate ?: load.id,
+                        supporting = listOfNotNull(load.destination, load.tons?.let { "${it}t" }).joinToString(" · "),
+                        status = DomainLabels.label(load.status),
+                    )
                     val queued = load.status?.equals("QUEUED", ignoreCase = true) == true
                     if (queued) {
                         TextButton(onClick = {
@@ -126,8 +143,8 @@ fun HarvestScreen(onBack: () -> Unit) {
                             }
                         }) { Text(S.t("harvest.dispatch")) }
                     }
-                },
-            )
+                }
+            }
             HarvestTab.STORAGE -> {
                 SectionTabs(
                     labels = listOf(S.t("tab.units"), S.t("tab.lots")),
@@ -135,20 +152,58 @@ fun HarvestScreen(onBack: () -> Unit) {
                     onSelect = { storageSub = it },
                 )
                 if (storageSub == 0) {
-                    LoadedList(units) { u ->
-                        listOfNotNull(u.name, u.type, u.usedT?.let { "usado $it" }, u.capacityT?.let { "cap $it" })
-                            .joinToString(" · ")
-                            .ifBlank { u.id }
+                    HarvestList(units) { u ->
+                        EntityCard(
+                            headline = u.name ?: u.id,
+                            supporting = listOfNotNull(
+                                DomainLabels.label(u.type),
+                                u.usedT?.let { "${S.t("charts.used")} $it" },
+                                u.capacityT?.let { "${S.t("charts.capacity")} $it" },
+                            ).joinToString(" · "),
+                        )
                     }
                 } else {
-                    LoadedList(lots) { lot ->
-                        listOfNotNull(lot.crop, lot.tons?.let { "${it}t" }, lot.quality, lot.receivedAt)
-                            .joinToString(" · ")
-                            .ifBlank { lot.id }
+                    HarvestList(lots) { lot ->
+                        EntityCard(
+                            headline = DomainLabels.label(lot.crop),
+                            supporting = listOfNotNull(lot.tons?.let { "${it}t" }, lot.quality).joinToString(" · "),
+                            onClick = { onSelect(lot.id) },
+                        )
                     }
                 }
             }
         }
         TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) }
+    }
+    if (!selectedId.isNullOrBlank()) {
+        when {
+            selectedPlan != null -> DetailSheet(
+                title = DomainLabels.label(selectedPlan.crop),
+                found = true,
+                onDismiss = onClearSelected,
+            ) { HarvestPlanInspector(selectedPlan, yieldItems) }
+            selectedLot != null -> DetailSheet(
+                title = DomainLabels.label(selectedLot.crop),
+                found = true,
+                onDismiss = onClearSelected,
+            ) { StorageLotInspector(selectedLot) }
+            else -> DetailSheet(
+                title = S.t("inspector.notFound"),
+                found = false,
+                onDismiss = onClearSelected,
+            ) {}
+        }
+    }
+}
+
+@Composable
+private fun <T> HarvestList(state: LoadState<T>, content: @Composable (T) -> Unit) {
+    when (state) {
+        is LoadState.Loading -> Text(S.t("common.loading"))
+        is LoadState.Err -> Text("${S.t("common.error")}: ${state.message}")
+        is LoadState.Ok -> {
+            if (state.items.isEmpty()) Text(S.t("common.empty"))
+            else state.items.forEach { content(it) }
+        }
     }
 }
