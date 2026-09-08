@@ -43,6 +43,12 @@ Recorded after parallel architect review. Implementation may proceed.
 
 Adopted Compose hardening: infra ports published as `127.0.0.1:<port>:<container>` only. Production must not publish Postgres/Timescale/Rabbit/Redis/MinIO.
 
+| YC web inspector increment | [react-architect](145bedf2-dc5d-46b2-b3c0-a5f014b51ce8) | APPROVED WITH AMENDMENTS — URL `?selected=` DetailDrawer, KPI/chart title links, live XOR demo telemetry, no new routes/BFF |
+| Inspector series on backend | [kotlin-architect](d2f0d043-45da-443d-a621-c9a28eb21450) | APPROVED WITH AMENDMENTS — no frontend hash series; telemetry metrics on-read; operations.area_ha + machine-summary; inventory movements GET; no telemetry_daily |
+| Hardening (review + audit) | [kotlin-architect](443616f0-5fc8-4adc-b79d-298e84871691) | APPROVED WITH AMENDMENTS — machine-summary from/to default rolling 7d + MAX_LIST; telemetry hourly gap-fill; metrics last interval = min(1h, inferred step); listed GETs 404 not 403 (writes stay 403); FarmAccess rejects non-DemoTenant; refresh limiter user-only; /internal loopback/RFC1918 + secret; gateway RewritePath /dev/seed/reset/{service}; no BFF, no inventory.move() in seed |
+| Web hardening (review + audit) | [react-architect](ed3a1e9c-8bf0-4bc5-8a3a-a83f4a68355e) | APPROVE WITH AMENDMENTS — invalidate inventory after op commands; weighted yield (no SUM t/ha); sibling select vs actions on Ops/Alerts; demo hint email-only; machine-summary from/to last 7d; no invented series / new routes |
+| YC mobile inspector increment | [kmp-architect](9054541b-112e-49bb-ba52-a423d01c3d4f) | APPROVED — composeApp only; query ?selected= (not ops/{id}); DetailSheet + Control Tower + yieldMath; no KMP split / Maps SDK / BFF |
+
 See `docs/full-spec-implementation-slice.md`.
 
 ## Deferred (next slices)

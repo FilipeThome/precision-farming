@@ -1,10 +1,12 @@
-import { machinePhoto } from '@/shared/demo/media'
+import { MachineInspector } from '@/features/machines/components/MachineInspector'
 import { useMachinesQuery } from '@/features/machines/queries'
+import { machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
-import { Card } from '@/shared/ui/Card'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
+import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -16,6 +18,8 @@ export function MachinesPage() {
   const err = queryError(machines.error)
   const { t } = useI18n()
   const { label } = useFormat()
+  const { selectedId, setSelectedId } = useSelectedId()
+  const selected = (machines.data ?? []).find((machine) => machine.id === selectedId)
 
   return (
     <section>
@@ -32,24 +36,28 @@ export function MachinesPage() {
       >
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(machines.data ?? []).map((machine) => (
-            <Card key={machine.id} className="flex gap-3 p-3">
-              <EntityPhoto
-                src={machinePhoto(machine.id, machine.type)}
-                alt={label(machine.id, machine.name)}
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-2">
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-semibold text-pf-green">{label(machine.id, machine.name)}</h2>
-                  <StatusBadge value={machine.status} />
-                </div>
-                <p className="text-sm text-pf-muted">
-                  {label(machine.type)} · {machine.manufacturer} {machine.model}
-                </p>
-              </div>
-            </Card>
+            <EntityCard
+              key={machine.id}
+              title={label(machine.id, machine.name)}
+              subtitle={`${label(machine.type)} · ${machine.manufacturer} ${machine.model}`}
+              imageSrc={machinePhoto(machine.id, machine.type)}
+              imageAlt={label(machine.id, machine.name)}
+              selected={machine.id === selectedId}
+              onSelect={() => setSelectedId(machine.id)}
+            >
+              <StatusBadge value={machine.status} />
+            </EntityCard>
           ))}
         </div>
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId)}
+        title={selected ? label(selected.id, selected.name) : t('inspector.notFound')}
+        subtitle={selected ? t('machines.selectHint') : t('inspector.notFoundHint')}
+        onClose={() => setSelectedId(null)}
+      >
+        {selected ? <MachineInspector machine={selected} farmId={farmId} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

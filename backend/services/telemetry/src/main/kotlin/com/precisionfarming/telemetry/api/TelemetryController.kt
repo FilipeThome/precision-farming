@@ -42,6 +42,18 @@ class TelemetryController(
         from ?: Instant.now().minus(1, ChronoUnit.DAYS),
         to ?: Instant.now(),
     )
+
+    @GetMapping("/{id}/metrics")
+    fun metrics(
+        @PathVariable id: UUID,
+        @RequestParam(required = false) from: Instant?,
+        @RequestParam(required = false) to: Instant?,
+    ) = svc.metrics(
+        farmAccess.current(),
+        id,
+        from ?: Instant.now().minus(7, ChronoUnit.DAYS),
+        to ?: Instant.now(),
+    )
 }
 
 @RestController

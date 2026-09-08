@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { OperationInspector } from '@/features/operations/components/OperationInspector'
 import { OpsBoard, OpsList } from '@/features/operations/components/OpsBoard'
 import {
   OpsStatusFilters,
@@ -10,9 +11,11 @@ import { opsStatusBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
 import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
@@ -28,6 +31,8 @@ export function OperationsPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [statusFilter, setStatusFilter] = useState<OpsStatusFilter>('ALL')
   const [pauseReason, setPauseReason] = useState(() => t('operations.pauseReasonDefault'))
+  const { selectedId, setSelectedId } = useSelectedId()
+  const selected = (operations.data ?? []).find((op) => op.id === selectedId)
   const err = queryError(operations.error)
   const commandError =
     commands.start.error || commands.pause.error || commands.complete.error
@@ -94,11 +99,31 @@ export function OperationsPage() {
         onRetry={() => void operations.refetch()}
       >
         {viewMode === 'board' ? (
-          <OpsBoard operations={filtered} pauseReason={pauseReason} commands={commands} />
+          <OpsBoard
+            operations={filtered}
+            pauseReason={pauseReason}
+            commands={commands}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
         ) : (
-          <OpsList operations={filtered} pauseReason={pauseReason} commands={commands} />
+          <OpsList
+            operations={filtered}
+            pauseReason={pauseReason}
+            commands={commands}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
         )}
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId)}
+        title={selected ? label(selected.type) : t('inspector.notFound')}
+        subtitle={selected ? undefined : t('inspector.notFoundHint')}
+        onClose={() => setSelectedId(null)}
+      >
+        {selected ? <OperationInspector operation={selected} farmId={farmId} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

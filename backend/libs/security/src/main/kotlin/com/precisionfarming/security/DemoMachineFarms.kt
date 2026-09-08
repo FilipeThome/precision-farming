@@ -2,6 +2,7 @@ package com.precisionfarming.security
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.ForbiddenException
+import com.precisionfarming.common.NotFoundException
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -39,6 +40,12 @@ object DemoMachineFarms {
         val farmId = farmId(machineId)
             ?: throw ForbiddenException("Machine out of scope", "FARM_SCOPE_DENIED")
         scope.requireFarm(farmId)
+    }
+
+    fun requireMachineRead(scope: AccessScope, machineId: UUID) {
+        val farmId = farmId(machineId)
+            ?: throw NotFoundException("MACHINE_NOT_FOUND", "Not found")
+        scope.requireFarmRead(farmId, "MACHINE_NOT_FOUND", "Not found")
     }
 
     fun requireBelongsToFarm(machineId: UUID, farmId: UUID) {

@@ -1,11 +1,14 @@
+import { InventoryInspector } from '@/features/inventory/components/InventoryInspector'
 import { useInventoryQuery } from '@/features/inventory/queries'
 import { inventoryStockBars } from '@/shared/charts/adapters'
 import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
@@ -17,6 +20,8 @@ export function InventoryPage() {
   const err = queryError(inventory.error)
   const { t } = useI18n()
   const { number, label } = useFormat()
+  const { selectedId, setSelectedId } = useSelectedId()
+  const selected = (inventory.data ?? []).find((item) => item.id === selectedId)
 
   return (
     <section>
@@ -52,10 +57,20 @@ export function InventoryPage() {
               meta={`${number(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${number(Number(item.reserved), 1)}`}
               imageSrc={inventoryPhoto(item.name, item.category)}
               imageAlt={label(item.name)}
+              selected={item.id === selectedId}
+              onSelect={() => setSelectedId(item.id)}
             />
           ))}
         </div>
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId)}
+        title={selected ? label(selected.name) : t('inspector.notFound')}
+        subtitle={selected ? undefined : t('inspector.notFoundHint')}
+        onClose={() => setSelectedId(null)}
+      >
+        {selected ? <InventoryInspector item={selected} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

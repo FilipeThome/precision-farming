@@ -2,6 +2,7 @@ package com.precisionfarming.security
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.ForbiddenException
+import com.precisionfarming.common.NotFoundException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -41,5 +42,14 @@ class AccessScopeTest {
     @Test
     fun requireEntityFarmAllowsScopedFarm() {
         scope.requireEntityFarm(farm2)
+    }
+
+    @Test
+    fun requireFarmReadLooksLikeMissing() {
+        val ex = assertThrows(NotFoundException::class.java) {
+            scope.requireFarmRead(farm3, "ITEM_NOT_FOUND", "Item not found")
+        }
+        assertEquals("ITEM_NOT_FOUND", ex.code)
+        assertEquals(404, ex.httpStatus)
     }
 }

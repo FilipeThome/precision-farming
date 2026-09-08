@@ -26,6 +26,7 @@ class OperationEntity(
     @Column(name = "pause_reason") var pauseReason: String?,
     @Column(name = "item_id") var itemId: UUID?,
     @Column(name = "item_quantity") var itemQuantity: BigDecimal?,
+    @Column(name = "area_ha") var areaHa: BigDecimal? = null,
     @Version var version: Long = 0,
 )
 
@@ -44,5 +45,6 @@ class SagaEntity(
 interface OperationJpaRepository : JpaRepository<OperationEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<OperationEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<OperationEntity>
+    fun findByMachineIdAndFarmIdIn(machineId: UUID, farmIds: Collection<UUID>): List<OperationEntity>
 }
 interface SagaJpaRepository : JpaRepository<SagaEntity, UUID>

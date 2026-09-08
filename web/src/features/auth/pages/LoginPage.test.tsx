@@ -47,7 +47,7 @@ describe('LoginPage', () => {
     expect(screen.getByLabelText('Senha')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
     expect(screen.getByText(/manager@precisionfarming.demo/)).toBeInTheDocument()
-    expect(screen.getByText(/Precision@123/)).toBeInTheDocument()
+    expect(screen.queryByText(/Precision@123/)).not.toBeInTheDocument()
   })
 
   it('submits credentials and stores the session', async () => {

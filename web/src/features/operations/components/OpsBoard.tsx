@@ -27,9 +27,11 @@ type Props = {
   operations: Operation[]
   pauseReason: string
   commands: Commands
+  selectedId?: string | null
+  onSelect?: (id: string) => void
 }
 
-function OperationActions({
+export function OperationActions({
   op,
   pauseReason,
   commands,
@@ -66,9 +68,60 @@ function OperationActions({
   )
 }
 
-export function OpsBoard({ operations, pauseReason, commands }: Props) {
+function OpsRow({
+  op,
+  layout,
+  selected,
+  pauseReason,
+  commands,
+  onSelect,
+}: {
+  op: Operation
+  layout: 'board' | 'list'
+  selected: boolean
+  pauseReason: string
+  commands: Commands
+  onSelect?: (id: string) => void
+}) {
   const { t } = useI18n()
   const { label, dateTime } = useFormat()
+  return (
+    <Card
+      className={`flex flex-wrap items-start justify-between gap-3 p-3 ${
+        selected ? 'ring-2 ring-pf-teal' : ''
+      }`}
+    >
+      <button
+        type="button"
+        className={`flex min-w-0 flex-1 items-start gap-3 rounded-[12px] text-left hover:border-pf-teal focus-visible:outline focus-visible:ring-2 focus-visible:ring-pf-teal ${
+          layout === 'board' ? 'flex-col' : ''
+        }`}
+        aria-pressed={selected}
+        onClick={() => onSelect?.(op.id)}
+      >
+        <EntityPhoto
+          variant={layout === 'list' ? 'thumb' : undefined}
+          src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
+          alt={label(op.type)}
+        />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>
+            <StatusBadge value={op.status} />
+          </div>
+          <p className="mt-1 text-xs text-pf-muted">
+            {t('operations.plannedStart', { when: dateTime(op.plannedStart) })}
+            {op.pauseReason ? ` · ${t('operations.pauseMeta', { reason: label(op.pauseReason) })}` : ''}
+          </p>
+        </div>
+      </button>
+      <OperationActions op={op} pauseReason={pauseReason} commands={commands} />
+    </Card>
+  )
+}
+
+export function OpsBoard({ operations, pauseReason, commands, selectedId, onSelect }: Props) {
+  const { t } = useI18n()
 
   return (
     <div className="grid gap-3 xl:grid-cols-4">
@@ -84,25 +137,15 @@ export function OpsBoard({ operations, pauseReason, commands }: Props) {
                 <Card className="border-dashed text-sm text-pf-muted">{t('operations.board.empty')}</Card>
               ) : (
                 column.map((op) => (
-                  <Card key={op.id} className="flex gap-3 p-3">
-                    <EntityPhoto
-                      src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
-                      alt={label(op.type)}
-                    />
-                    <div className="flex min-w-0 flex-1 flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>
-                        <StatusBadge value={op.status} />
-                      </div>
-                      <p className="text-xs text-pf-muted">
-                        {t('operations.plannedStart', { when: dateTime(op.plannedStart) })}
-                        {op.pauseReason
-                          ? ` · ${t('operations.pauseMeta', { reason: label(op.pauseReason) })}`
-                          : ''}
-                      </p>
-                      <OperationActions op={op} pauseReason={pauseReason} commands={commands} />
-                    </div>
-                  </Card>
+                  <OpsRow
+                    key={op.id}
+                    op={op}
+                    layout="board"
+                    selected={op.id === selectedId}
+                    pauseReason={pauseReason}
+                    commands={commands}
+                    onSelect={onSelect}
+                  />
                 ))
               )}
             </div>
@@ -113,33 +156,19 @@ export function OpsBoard({ operations, pauseReason, commands }: Props) {
   )
 }
 
-export function OpsList({ operations, pauseReason, commands }: Props) {
-  const { t } = useI18n()
-  const { label, dateTime } = useFormat()
-
+export function OpsList({ operations, pauseReason, commands, selectedId, onSelect }: Props) {
   return (
     <div className="flex flex-col gap-3">
       {operations.map((op) => (
-        <Card key={op.id} className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
-            <EntityPhoto
-              variant="thumb"
-              src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
-              alt={label(op.type)}
-            />
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>
-                <StatusBadge value={op.status} />
-              </div>
-              <p className="mt-1 text-xs text-pf-muted">
-                {t('operations.plannedStart', { when: dateTime(op.plannedStart) })}
-                {op.pauseReason ? ` · ${t('operations.pauseMeta', { reason: label(op.pauseReason) })}` : ''}
-              </p>
-            </div>
-          </div>
-          <OperationActions op={op} pauseReason={pauseReason} commands={commands} />
-        </Card>
+        <OpsRow
+          key={op.id}
+          op={op}
+          layout="list"
+          selected={op.id === selectedId}
+          pauseReason={pauseReason}
+          commands={commands}
+          onSelect={onSelect}
+        />
       ))}
     </div>
   )
