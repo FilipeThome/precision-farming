@@ -75,7 +75,7 @@ O mapa web usa Leaflet com imagens de satélite Esri (sem chave do Google Maps).
 
 ## Seed
 
-Com `APP_SEED=true` (padrão) cada serviço popula dados demo na subida. Reset: `POST /api/v1/dev/seed/reset` (hoje roteado ao auth; os demais expõem o mesmo path localmente).
+Com `APP_SEED=true` (padrão) cada serviço popula dados demo na subida. Reset: `POST /api/v1/dev/seed/reset` (auth) ou `POST /api/v1/dev/seed/reset/{service}` (farm, machines, telemetry, weather, operation, inventory, alerts, ai, notifications, files, reports, sync, integrations, agronomy, irrigation, harvest, finance, compliance).
 
 ## Limitações
 

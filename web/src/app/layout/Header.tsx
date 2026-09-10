@@ -1,5 +1,5 @@
 import { Bell, LogOut, Menu } from 'lucide-react'
-import { useNavigate } from 'react-router'
+import { Link, useNavigate } from 'react-router'
 
 import { queryClient } from '@/app/queryClient'
 import { logoutRequest } from '@/features/auth/api'
@@ -64,9 +64,11 @@ export function Header() {
       ) : null}
       <div className="ml-auto flex items-center gap-3">
         <LocaleToggle />
-        <span
-          className="relative inline-flex text-pf-green"
+        <Link
+          to="/alerts"
+          className="relative inline-flex rounded-[12px] p-1 text-pf-green hover:bg-pf-green/10 focus-visible:outline focus-visible:ring-2 focus-visible:ring-pf-teal"
           title={t('chrome.openAlerts', { count: openAlerts })}
+          aria-label={t('chrome.openAlerts', { count: openAlerts })}
         >
           <Bell className="h-5 w-5" aria-hidden />
           {openAlerts > 0 ? (
@@ -74,7 +76,7 @@ export function Header() {
               {openAlerts}
             </span>
           ) : null}
-        </span>
+        </Link>
         <span className="hidden text-sm text-pf-muted sm:inline">{name}</span>
         <Button variant="secondary" onClick={onLogout}>
           <LogOut className="h-4 w-4" aria-hidden />

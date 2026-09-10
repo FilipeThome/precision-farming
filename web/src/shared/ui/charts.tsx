@@ -14,7 +14,13 @@ import {
   YAxis,
 } from 'recharts'
 
+import { useI18n } from '@/shared/i18n/useI18n'
 import { CHART_COLORS, CHART_SERIES } from '@/shared/ui/ChartCard'
+
+function ChartEmpty() {
+  const { t } = useI18n()
+  return <p className="flex h-full items-center justify-center text-sm text-pf-muted">{t('charts.empty')}</p>
+}
 
 type NamedValue = { name: string; value: number }
 
@@ -25,7 +31,7 @@ type BarChartBlockProps = {
 }
 
 export function BarChartBlock({ data, xKey, bars }: BarChartBlockProps) {
-  if (data.length === 0) return null
+  if (data.length === 0) return <ChartEmpty />
   return (
     <ResponsiveContainer width="100%" height="100%">
       <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -55,7 +61,7 @@ type LineChartBlockProps = {
 }
 
 export function LineChartBlock({ data, xKey, lines }: LineChartBlockProps) {
-  if (data.length === 0) return null
+  if (data.length === 0) return <ChartEmpty />
   return (
     <ResponsiveContainer width="100%" height="100%">
       <LineChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -85,7 +91,7 @@ type PieChartBlockProps = {
 }
 
 export function PieChartBlock({ data }: PieChartBlockProps) {
-  if (data.length === 0) return null
+  if (data.length === 0) return <ChartEmpty />
   return (
     <ResponsiveContainer width="100%" height="100%">
       <PieChart>

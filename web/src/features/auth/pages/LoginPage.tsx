@@ -92,7 +92,7 @@ export function LoginPage() {
         </form>
         {DEMO_HINT ? (
           <p className="mt-4 text-xs text-pf-muted">
-            {t('login.demoHint')} <code>{DEMO_EMAIL}</code> / <code>Precision@123</code>
+            {t('login.demoHint')} <code>{DEMO_EMAIL}</code>
           </p>
         ) : null}
       </Card>

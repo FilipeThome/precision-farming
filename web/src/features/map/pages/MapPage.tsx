@@ -1,11 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import { FieldInspector } from '@/features/fields/components/FieldInspector'
 import { MapLayerToggles } from '@/features/map/components/MapLayerToggles'
 import { useMapLayersQuery } from '@/features/map/queries'
 import { useFieldsQuery } from '@/features/fields/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
 import { FieldMap } from '@/shared/maps/FieldMap'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
@@ -17,6 +21,9 @@ export function MapPage() {
   const [enabledKinds, setEnabledKinds] = useState<Set<string>>(new Set())
   const err = queryError(fields.error || layers.error)
   const { t } = useI18n()
+  const { label } = useFormat()
+  const { selectedId, setSelectedId } = useSelectedId()
+  const selected = (fields.data ?? []).find((field) => field.id === selectedId)
 
   useEffect(() => {
     const kinds = layers.data?.map((layer) => layer.kind) ?? []
@@ -34,7 +41,6 @@ export function MapPage() {
   }
 
   const activeLayerKinds = useMemo(() => [...enabledKinds], [enabledKinds])
-
   const loading = fields.isLoading || layers.isLoading
   const isError = fields.isError || layers.isError
 
@@ -62,9 +68,18 @@ export function MapPage() {
           fields={fields.data ?? []}
           layers={layers.data ?? []}
           activeLayerKinds={activeLayerKinds}
+          onFieldClick={setSelectedId}
           className="min-h-[560px] flex-1"
         />
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId)}
+        title={selected ? label(selected.id, selected.name) : t('inspector.notFound')}
+        subtitle={selected ? undefined : t('inspector.notFoundHint')}
+        onClose={() => setSelectedId(null)}
+      >
+        {selected ? <FieldInspector field={selected} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

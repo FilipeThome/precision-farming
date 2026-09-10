@@ -29,6 +29,7 @@ class TelemetryEntity(
 
 interface TelemetryJpaRepository : JpaRepository<TelemetryEntity, TelemetryId> {
     fun existsByMachineId(machineId: UUID): Boolean
+    fun findTopByMachineIdOrderByObservedAtDesc(machineId: UUID): TelemetryEntity?
     fun findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(
         machineId: UUID,
         from: Instant,

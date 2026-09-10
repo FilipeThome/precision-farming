@@ -5,6 +5,8 @@ import com.precisionfarming.operation.application.OperationService
 import com.precisionfarming.security.FarmAccess
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.*
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 data class PauseRequest(val reason: String? = null)
@@ -17,6 +19,18 @@ class OperationController(
 ) {
     @GetMapping
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
+
+    @GetMapping("/machine-summary")
+    fun machineSummary(
+        @RequestParam machineId: UUID,
+        @RequestParam(required = false) from: Instant?,
+        @RequestParam(required = false) to: Instant?,
+    ) = svc.machineSummary(
+        farmAccess.current(),
+        machineId,
+        from ?: Instant.now().minus(7, ChronoUnit.DAYS),
+        to ?: Instant.now(),
+    )
 
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")

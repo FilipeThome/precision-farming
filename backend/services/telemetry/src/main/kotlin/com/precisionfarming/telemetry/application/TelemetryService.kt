@@ -3,10 +3,11 @@ package com.precisionfarming.telemetry.application
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoMachineFarms
-import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.telemetry.infrastructure.TelemetryEntity
+import com.precisionfarming.telemetry.infrastructure.TelemetryId
 import com.precisionfarming.telemetry.infrastructure.TelemetryJpaRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
@@ -15,6 +16,8 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.concurrent.Callable
@@ -31,16 +34,25 @@ data class TrackPoint(val lat: Double, val lon: Double, val observedAt: Instant)
 @Service
 class TelemetryService(private val repo: TelemetryJpaRepository) {
     fun history(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TelemetryPoint> {
-        DemoMachineFarms.requireMachine(scope, machineId)
+        DemoMachineFarms.requireMachineRead(scope, machineId)
         requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
     }
 
     fun track(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TrackPoint> {
-        DemoMachineFarms.requireMachine(scope, machineId)
+        DemoMachineFarms.requireMachineRead(scope, machineId)
         requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
             .map { TrackPoint(it.lat, it.lon, it.observedAt) }
+    }
+
+    fun metrics(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): MachineMetricsDto {
+        DemoMachineFarms.requireMachineRead(scope, machineId)
+        requireRange(from, to)
+        val rows = repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
+        return TelemetryMetrics.aggregate(
+            rows.map { TelemetrySample(it.observedAt, it.speedKmh, it.fuelPct) },
+        )
     }
 
     private fun requireRange(from: Instant, to: Instant) {
@@ -51,40 +63,55 @@ class TelemetryService(private val repo: TelemetryJpaRepository) {
 
     @Transactional
     fun seed() {
-        val machines = listOf(
-            "machine-001" to Pair(-19.39, -54.57),
-            "machine-002" to Pair(-19.41, -54.55),
-            "machine-003" to Pair(-19.37, -54.59),
-            "machine-013" to Pair(-12.54, -55.47),
-        )
-        val missing = machines.filter { !repo.existsByMachineId(DemoIds.uuid(it.first)) }
-        if (missing.isEmpty()) return
         val end = Instant.now().truncatedTo(ChronoUnit.HOURS)
-        val start = end.minus(7, ChronoUnit.DAYS)
+        val windowStart = end.minus(7, ChronoUnit.DAYS)
         val series = VirtualJobs.all(
-            missing.mapIndexed { idx, (key, pos) ->
-                Callable { generateSeries(DemoIds.uuid(key), pos, idx, start, end) }
+            SEED_MACHINES.mapIndexed { idx, (key, pos) ->
+                Callable { gapFill(key, pos, idx, windowStart, end) }
             },
         )
         series.flatten().chunked(BATCH).forEach { repo.saveAll(it) }
     }
 
+    private fun gapFill(
+        machineKey: String,
+        pos: Pair<Double, Double>,
+        idx: Int,
+        windowStart: Instant,
+        end: Instant,
+    ): List<TelemetryEntity> {
+        val machineId = DemoIds.uuid(machineKey)
+        val last = repo.findTopByMachineIdOrderByObservedAtDesc(machineId)
+        val start = if (last == null) {
+            windowStart
+        } else {
+            val nextHour = last.observedAt.truncatedTo(ChronoUnit.HOURS).plus(1, ChronoUnit.HOURS)
+            if (nextHour.isAfter(windowStart)) nextHour else windowStart
+        }
+        if (!start.isBefore(end)) return emptyList()
+        val points = generateSeries(machineKey, pos, idx, start, end)
+        val existing = repo.findAllById(points.map { TelemetryId(it.id, it.observedAt) }).map { it.id }.toSet()
+        return points.filter { it.id !in existing }
+    }
+
     private fun generateSeries(
-        machineId: UUID,
+        machineKey: String,
         pos: Pair<Double, Double>,
         idx: Int,
         start: Instant,
         end: Instant,
     ): List<TelemetryEntity> {
+        val machineId = DemoIds.uuid(machineKey)
         val points = ArrayList<TelemetryEntity>(POINTS_PER_MACHINE)
         var t = start
         var n = 0
         while (t.isBefore(end)) {
+            val hourOfDay = t.atZone(ZoneOffset.UTC).hour
+            val operating = hourOfDay in 6..18 && (idx + hourOfDay) % 7 != 0
             val hour = t.epochSecond / 3600.0
-            val operating = (t.epochSecond / 60) % 180 < 120
             points.add(
                 TelemetryEntity(
-                    id = UUID.randomUUID(),
+                    id = DemoIds.uuid("tel-$machineKey-${HOUR_KEY.format(t)}"),
                     machineId = machineId,
                     observedAt = t,
                     lat = pos.first + 0.01 * sin(hour + idx),
@@ -96,7 +123,7 @@ class TelemetryService(private val repo: TelemetryJpaRepository) {
                 ),
             )
             n++
-            t = t.plus(15, ChronoUnit.MINUTES)
+            t = t.plus(1, ChronoUnit.HOURS)
         }
         return points
     }
@@ -106,7 +133,24 @@ class TelemetryService(private val repo: TelemetryJpaRepository) {
 
     private companion object {
         const val BATCH = 500
-        const val POINTS_PER_MACHINE = 7 * 24 * 4
+        const val POINTS_PER_MACHINE = 7 * 24
+        val HOUR_KEY: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyyMMddHH").withZone(ZoneOffset.UTC)
+        val SEED_MACHINES = listOf(
+            "machine-001" to Pair(-19.39, -54.57),
+            "machine-002" to Pair(-19.41, -54.55),
+            "machine-003" to Pair(-19.37, -54.59),
+            "machine-004" to Pair(-17.79, -50.92),
+            "machine-005" to Pair(-12.54, -55.47),
+            "machine-006" to Pair(-17.81, -50.90),
+            "machine-007" to Pair(-13.05, -55.90),
+            "machine-008" to Pair(-13.07, -55.92),
+            "machine-009" to Pair(-22.22, -54.80),
+            "machine-010" to Pair(-13.68, -57.88),
+            "machine-011" to Pair(-16.62, -54.10),
+            "machine-012" to Pair(-18.79, -52.62),
+            "machine-013" to Pair(-12.54, -55.47),
+            "machine-014" to Pair(-13.70, -57.86),
+        )
     }
 }
 

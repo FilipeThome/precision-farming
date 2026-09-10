@@ -11,6 +11,7 @@ type FieldMapProps = {
   className?: string
   activeLayerKinds?: string[]
   layers?: MapLayer[]
+  onFieldClick?: (fieldId: string) => void
 }
 
 const ESRI_IMAGERY = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -28,12 +29,15 @@ export function FieldMap({
   className = 'h-[520px]',
   activeLayerKinds = [],
   layers = [],
+  onFieldClick,
 }: FieldMapProps) {
   const { t } = useI18n()
   const elRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<L.Map | null>(null)
   const groupRef = useRef<L.FeatureGroup | null>(null)
   const fittedKeyRef = useRef<string | null>(null)
+  const onFieldClickRef = useRef(onFieldClick)
+  onFieldClickRef.current = onFieldClick
   const [loadError, setLoadError] = useState(false)
   const setKey = fieldSetKey(fields)
 
@@ -79,6 +83,7 @@ export function FieldMap({
           dashArray: poly.dashArray,
         })
           .bindTooltip(tooltipElement(poly.name))
+          .on('click', () => onFieldClickRef.current?.(poly.id))
           .addTo(group)
       }
     }
