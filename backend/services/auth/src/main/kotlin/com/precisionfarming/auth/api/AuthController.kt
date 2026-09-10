@@ -2,6 +2,7 @@ package com.precisionfarming.auth.api
 
 import com.precisionfarming.auth.application.AuthRateLimiter
 import com.precisionfarming.auth.application.AuthService
+import com.precisionfarming.auth.application.InternalNets
 import com.precisionfarming.auth.application.LoginCommand
 import com.precisionfarming.auth.application.RefreshCommand
 import com.precisionfarming.auth.application.TokenResponse
@@ -50,7 +51,7 @@ class AuthController(
 
     @PostMapping("/refresh")
     fun refresh(@Valid @RequestBody body: RefreshRequest, request: HttpServletRequest): TokenResponse {
-        rateLimiter.check("refresh-ip:${clientIp(request)}")
+        rateLimiter.check("refresh:${clientIp(request)}")
         val userId = authService.peekRefreshUserId(body.refreshToken)
         rateLimiter.check("refresh-user:$userId")
         return authService.refresh(RefreshCommand(body.refreshToken))
@@ -88,8 +89,9 @@ class AuthInternalController(
     fun mintServiceToken(
         @RequestHeader("X-Service-Mint") secret: String?,
         @RequestBody body: ServiceTokenRequest,
+        request: HttpServletRequest,
     ): ServiceTokenResponse {
-        requireMint(secret, props.serviceMintSecret)
+        requireMint(secret, props.serviceMintSecret, request)
         if (body.farmIds.isEmpty() || body.farmIds.size > JwtIssuer.MAX_SERVICE_FARMS) {
             throw UnauthorizedException("Invalid service token request")
         }
@@ -102,8 +104,9 @@ class AuthInternalController(
     fun grant(
         @RequestHeader("X-Auth-Internal") secret: String?,
         @RequestBody body: MembershipRequest,
+        request: HttpServletRequest,
     ) {
-        requireMint(secret, props.authInternalSecret)
+        requireMint(secret, props.authInternalSecret, request)
         authService.grantFarm(body.userId, body.farmId)
     }
 
@@ -113,13 +116,18 @@ class AuthInternalController(
         @RequestHeader("X-Auth-Internal") secret: String?,
         @RequestParam farmId: UUID,
         @RequestParam(required = false) userId: UUID?,
+        request: HttpServletRequest,
     ) {
-        requireMint(secret, props.authInternalSecret)
+        requireMint(secret, props.authInternalSecret, request)
         authService.revokeFarm(userId, farmId)
     }
 
-    private fun requireMint(provided: String?, expected: String) {
-        if (expected.length < 32 || provided.isNullOrBlank() || !PemKeys.secretsEqual(provided, expected)) {
+    private fun requireMint(provided: String?, expected: String, request: HttpServletRequest) {
+        if (!InternalNets.allowed(request.remoteAddr) ||
+            expected.length < 32 ||
+            provided.isNullOrBlank() ||
+            !PemKeys.secretsEqual(provided, expected)
+        ) {
             throw UnauthorizedException("Invalid credentials")
         }
     }

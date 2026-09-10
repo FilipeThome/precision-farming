@@ -17,6 +17,9 @@ class InventoryController(
     @GetMapping
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
+    @GetMapping("/{itemId}/movements")
+    fun movements(@PathVariable itemId: UUID) = svc.listMovements(farmAccess.current(), itemId)
+
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     fun create(@RequestBody body: UpsertItem) = svc.create(farmAccess.current(), body)

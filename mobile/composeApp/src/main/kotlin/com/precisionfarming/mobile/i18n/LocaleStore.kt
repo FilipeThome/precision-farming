@@ -22,6 +22,7 @@ object LocaleStore {
         locale = AppLocale.fromTag(p.getString(KEY, AppLocale.PT_BR.tag))
     }
 
+    @JvmName("updateLocale")
     fun setLocale(next: AppLocale) {
         if (locale == next) return
         locale = next
@@ -37,5 +38,11 @@ object S {
             AppLocale.EN_US -> En.map
         }
         return map[key] ?: key
+    }
+
+    fun t(key: String, vararg vars: Pair<String, String>): String {
+        var out = t(key)
+        vars.forEach { (name, value) -> out = out.replace("{$name}", value) }
+        return out
     }
 }

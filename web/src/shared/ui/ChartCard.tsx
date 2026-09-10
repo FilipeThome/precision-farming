@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router'
 
+import { useI18n } from '@/shared/i18n/useI18n'
 import { Card } from '@/shared/ui/Card'
 
 type ChartCardProps = {
@@ -7,12 +9,26 @@ type ChartCardProps = {
   description?: string
   children: ReactNode
   className?: string
+  to?: string
 }
 
-export function ChartCard({ title, description, children, className = '' }: ChartCardProps) {
+export function ChartCard({ title, description, children, className = '', to }: ChartCardProps) {
+  const { t } = useI18n()
   return (
     <Card className={`min-h-[280px] ${className}`}>
-      <h3 className="text-sm font-semibold text-pf-green">{title}</h3>
+      <div className="flex items-start justify-between gap-2">
+        {to ? (
+          <Link
+            to={to}
+            className="text-sm font-semibold text-pf-green underline-offset-2 hover:underline focus-visible:outline focus-visible:ring-2 focus-visible:ring-pf-teal"
+          >
+            {title}
+            <span className="ml-2 text-xs font-normal text-pf-teal">{t('charts.openLink')}</span>
+          </Link>
+        ) : (
+          <h3 className="text-sm font-semibold text-pf-green">{title}</h3>
+        )}
+      </div>
       {description ? <p className="mt-1 text-xs text-pf-muted">{description}</p> : null}
       <div className="mt-3 h-56 w-full">{children}</div>
     </Card>

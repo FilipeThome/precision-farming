@@ -18,7 +18,7 @@ class FarmAccess {
     fun fromJwt(jwt: Jwt): AccessScope {
         val role = jwt.getClaimAsString("role") ?: "OPERATOR"
         val tenantRaw = jwt.getClaimAsString("tenantId")
-        val tenantId = runCatching { UUID.fromString(tenantRaw) }.getOrDefault(DemoTenant.ID)
+        val tenantId = resolveTenant(tenantRaw)
         val claimed = jwt.getClaimAsStringList("farmIds")
             ?.mapNotNull { runCatching { UUID.fromString(it) }.getOrNull() }
             ?.toSet()
@@ -35,5 +35,13 @@ class FarmAccess {
             role = role,
             userId = userId,
         )
+    }
+
+    private fun resolveTenant(tenantRaw: String?): UUID {
+        if (tenantRaw.isNullOrBlank()) return DemoTenant.ID
+        val parsed = runCatching { UUID.fromString(tenantRaw) }.getOrNull()
+            ?: throw UnauthorizedException("Invalid tenant")
+        if (parsed != DemoTenant.ID) throw UnauthorizedException("Invalid tenant")
+        return parsed
     }
 }

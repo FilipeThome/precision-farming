@@ -1,8 +1,11 @@
-import { fieldPhoto } from '@/shared/demo/media'
+import { FieldInspector } from '@/features/fields/components/FieldInspector'
 import { useFieldsQuery } from '@/features/fields/queries'
+import { fieldPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
+import { useSelectedId } from '@/shared/lib/useSelectedId'
+import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
@@ -14,6 +17,8 @@ export function FieldsPage() {
   const err = queryError(fields.error)
   const { t } = useI18n()
   const { number, label } = useFormat()
+  const { selectedId, setSelectedId } = useSelectedId()
+  const selected = (fields.data ?? []).find((field) => field.id === selectedId)
 
   return (
     <section>
@@ -37,10 +42,20 @@ export function FieldsPage() {
               meta={`${number(Number(field.areaHa), 1)} ha`}
               imageSrc={fieldPhoto(field.id, field.crop, field.farmId)}
               imageAlt={label(field.id, field.name)}
+              selected={field.id === selectedId}
+              onSelect={() => setSelectedId(field.id)}
             />
           ))}
         </div>
       </QueryPageState>
+      <DetailDrawer
+        open={Boolean(selectedId)}
+        title={selected ? label(selected.id, selected.name) : t('inspector.notFound')}
+        subtitle={selected ? undefined : t('inspector.notFoundHint')}
+        onClose={() => setSelectedId(null)}
+      >
+        {selected ? <FieldInspector field={selected} /> : null}
+      </DetailDrawer>
     </section>
   )
 }

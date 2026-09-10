@@ -1,6 +1,7 @@
 package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
+import com.precisionfarming.common.DemoIds
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
 import com.precisionfarming.inventory.infrastructure.ItemEntity
@@ -13,8 +14,11 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Optional
 import java.util.UUID
 
@@ -26,6 +30,32 @@ class InventoryServiceTest {
     private fun scopeFor(item: ItemEntity) = AccessScope(DemoTenant.ID, setOf(item.farmId), "OPERATOR")
 
     @Test
+    fun seedRewritesExistingMovementTimestamps() {
+        val id = DemoIds.uuid("move-item-001-d0")
+        val existing = MovementEntity(
+            id,
+            DemoIds.uuid("item-001"),
+            "CONSUME",
+            BigDecimal("8"),
+            Instant.parse("2020-01-01T00:00:00Z"),
+            "seed:consume:item-001:d0",
+        )
+        every { items.findAllById(any<Iterable<UUID>>()) } returns emptyList()
+        every { items.saveAll(any<Iterable<ItemEntity>>()) } answers { firstArg() }
+        every { movements.findAllById(any<Iterable<UUID>>()) } returns listOf(existing)
+        lateinit var saved: List<MovementEntity>
+        every { movements.saveAll(any<Iterable<MovementEntity>>()) } answers {
+            firstArg<Iterable<MovementEntity>>().toList().also { saved = it }
+        }
+
+        svc.seed()
+
+        val updated = saved.first { it.id == id }
+        val weekAgo = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(8, ChronoUnit.DAYS)
+        assertTrue(updated.occurredAt.isAfter(weekAgo))
+    }
+
+    @Test
     fun consumeRejectsWhenQuantityInsufficient() {
         val item = item(quantity = "10", reserved = "0")
         every { items.findById(item.id) } returns Optional.of(item)
@@ -35,6 +65,48 @@ class InventoryServiceTest {
         }
         assertEquals("INSUFFICIENT_STOCK", ex.code)
         assertEquals(BigDecimal("10"), item.quantity)
+    }
+
+    @Test
+    fun listMovementsRejectsOtherFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        val ex = assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
+            svc.listMovements(other, item.id)
+        }
+        assertEquals("ITEM_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun listMovementsNotFound() {
+        val id = UUID.randomUUID()
+        every { items.findById(id) } returns Optional.empty()
+        val ex = assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
+            svc.listMovements(AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR"), id)
+        }
+        assertEquals("ITEM_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun listMovementsReturnsRowsForScopedFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        val row = MovementEntity(UUID.randomUUID(), item.id, "CONSUME", BigDecimal("8"), java.time.Instant.parse("2026-09-01T00:00:00Z"), "seed")
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.findByItemIdOrderByOccurredAtAsc(item.id) } returns listOf(row)
+        val dto = svc.listMovements(scopeFor(item), item.id)
+        assertEquals(1, dto.size)
+        assertEquals(BigDecimal("8"), dto.single().quantity)
+    }
+
+    @Test
+    fun moveRejectsOtherFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            svc.move(other, MovementCmd(item.id, "IN", BigDecimal("1"), null))
+        }
     }
 
     @Test

@@ -29,9 +29,9 @@ class DashboardKpisTest {
                 OperationDto("o4", "TILL", "PLANNED"),
             ),
             alerts = listOf(
-                AlertDto("a1", "Storm", "CRITICAL", "OPEN"),
-                AlertDto("a2", "Low fuel", "WARNING", "OPEN"),
-                AlertDto("a3", "Old", "CRITICAL", "ACKED"),
+                AlertDto("a1", "Storm", severity = "CRITICAL", status = "OPEN"),
+                AlertDto("a2", "Low fuel", severity = "WARNING", status = "OPEN"),
+                AlertDto("a3", "Old", severity = "CRITICAL", status = "ACKED"),
             ),
             pnl = listOf(
                 FinancePnlDto(id = "p1", revenue = 100.0, cost = 40.0, margin = 60.0),

@@ -4,6 +4,9 @@ import androidx.compose.material3.ScrollableTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -22,6 +25,9 @@ fun SectionTabs(
                 selected = selectedIndex == index,
                 onClick = { onSelect(index) },
                 text = { Text(label) },
+                modifier = Modifier.semantics {
+                    contentDescription = label
+                },
             )
         }
     }

@@ -2,6 +2,7 @@ package com.precisionfarming.mobile.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -10,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.i18n.S
 
@@ -71,5 +74,9 @@ private fun Group(title: String, content: @Composable () -> Unit) {
 
 @Composable
 private fun Item(route: String, labelKey: String, onOpen: (String) -> Unit) {
-    TextButton(onClick = { onOpen(route) }) { Text(S.t(labelKey)) }
+    val label = S.t(labelKey)
+    TextButton(
+        onClick = { onOpen(route) },
+        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = label },
+    ) { Text(label) }
 }

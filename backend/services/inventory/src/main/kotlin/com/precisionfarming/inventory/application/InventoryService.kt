@@ -1,6 +1,7 @@
 package com.precisionfarming.inventory.application
 
 import com.precisionfarming.common.ConflictException
+import com.precisionfarming.common.capped
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
@@ -16,6 +17,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 data class ItemDto(
@@ -24,6 +26,14 @@ data class ItemDto(
 )
 data class UpsertItem(val farmId: UUID, val name: String, val category: String, val unit: String, val quantity: BigDecimal)
 data class MovementCmd(val itemId: UUID, val type: String, val quantity: BigDecimal, val reference: String?)
+data class MovementDto(
+    val id: UUID,
+    val itemId: UUID,
+    val type: String,
+    val quantity: BigDecimal,
+    val occurredAt: Instant,
+    val reference: String?,
+)
 
 @Service
 class InventoryService(
@@ -32,6 +42,12 @@ class InventoryService(
 ) {
     fun list(scope: AccessScope, farmId: UUID?) =
         items.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+
+    fun listMovements(scope: AccessScope, itemId: UUID): List<MovementDto> {
+        val item = items.findById(itemId).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
+        scope.requireFarmRead(item.farmId, "ITEM_NOT_FOUND", "Item not found")
+        return movements.findByItemIdOrderByOccurredAtAsc(itemId).capped().map { it.toDto() }
+    }
 
     @Transactional
     fun create(scope: AccessScope, cmd: UpsertItem): ItemDto {
@@ -106,9 +122,39 @@ class InventoryService(
                 }
             },
         )
+        seedMovements(rows.map { it.key })
+    }
+
+    private fun seedMovements(itemKeys: List<String>) {
+        val ids = itemKeys.flatMap { key -> (0..6).map { d -> DemoIds.uuid("move-$key-d$d") } }
+        val existing = movements.findAllById(ids).associateBy { it.id }
+        val today = Instant.now().truncatedTo(ChronoUnit.DAYS)
+        movements.saveAll(
+            itemKeys.flatMap { key ->
+                (0..6).map { d ->
+                    val id = DemoIds.uuid("move-$key-d$d")
+                    val occurredAt = today.minus((6 - d).toLong(), ChronoUnit.DAYS)
+                    val found = existing[id]
+                    if (found != null) {
+                        found.occurredAt = occurredAt
+                        found
+                    } else {
+                        MovementEntity(
+                            id,
+                            DemoIds.uuid(key),
+                            "CONSUME",
+                            BigDecimal(8 + d),
+                            occurredAt,
+                            "seed:consume:$key:d$d",
+                        )
+                    }
+                }
+            },
+        )
     }
 
     private fun ItemEntity.toDto() = ItemDto(id, farmId, name, category, unit, quantity, reserved)
+    private fun MovementEntity.toDto() = MovementDto(id, itemId, type, quantity, occurredAt, reference)
 }
 
 @Service

@@ -2,7 +2,9 @@ package com.precisionfarming.operation.application
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoFieldFarms
@@ -28,11 +30,13 @@ data class OperationDto(
     val id: UUID, val fieldId: UUID, val farmId: UUID, val type: String, val status: String,
     val plannedStart: Instant?, val plannedEnd: Instant?, val actualStart: Instant?, val actualEnd: Instant?,
     val machineId: UUID?, val pauseReason: String?, val itemId: UUID?, val itemQuantity: BigDecimal?,
+    val areaHa: BigDecimal?,
 )
 data class CreateOperation(
     val fieldId: UUID, val farmId: UUID, val type: String,
     val plannedStart: Instant?, val plannedEnd: Instant?,
     val machineId: UUID?, val itemId: UUID?, val itemQuantity: BigDecimal?,
+    val areaHa: BigDecimal? = null,
 )
 
 @Service
@@ -47,10 +51,31 @@ class OperationService(
     fun list(scope: AccessScope, farmId: UUID? = null) =
         repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
+    fun machineSummary(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): MachineWorkSummaryDto {
+        DemoMachineFarms.requireMachineRead(scope, machineId)
+        requireRange(from, to)
+        val ops = repo.findByMachineIdAndFarmIdIn(machineId, scope.resolveFarms(null))
+            .mapNotNull { op ->
+                val whenAt = op.actualStart ?: op.plannedStart ?: return@mapNotNull null
+                if (whenAt.isBefore(from) || whenAt.isAfter(to)) return@mapNotNull null
+                whenAt to WorkSample(op.status, op.areaHa, op.itemId, op.itemQuantity, op.actualStart, op.plannedStart)
+            }
+            .sortedByDescending { it.first }
+            .take(QueryLimits.MAX_LIST)
+            .map { it.second }
+        return OperationProgress.summarize(ops)
+    }
+
     fun get(scope: AccessScope, id: UUID): OperationDto {
         val e = repo.findById(id).orElseThrow { NotFoundException("OPERATION_NOT_FOUND", "Not found") }
-        scope.requireEntityFarm(e.farmId)
+        scope.requireFarmRead(e.farmId, "OPERATION_NOT_FOUND", "Not found")
         return e.toDto()
+    }
+
+    private fun requireRange(from: Instant, to: Instant) {
+        if (!to.isAfter(from) || java.time.Duration.between(from, to).toDays() > QueryLimits.MAX_TELEMETRY_DAYS) {
+            throw DomainException("OPERATION_RANGE_EXCEEDED", "Range exceeds ${QueryLimits.MAX_TELEMETRY_DAYS} days")
+        }
     }
 
     @Transactional
@@ -62,7 +87,7 @@ class OperationService(
         return repo.save(
             OperationEntity(
                 UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
-                cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity,
+                cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity, cmd.areaHa,
             ),
         ).toDto()
     }
@@ -210,7 +235,7 @@ class OperationService(
     fun seed() {
         data class Row(
             val key: String, val field: String, val farm: String, val type: String,
-            val status: String, val machine: String?, val item: String,
+            val status: String, val machine: String?, val item: String, val offsetDays: Long = 1,
         )
         val now = Instant.now()
         val rows = listOf(
@@ -234,29 +259,54 @@ class OperationService(
             Row("op-018", "field-019", "farm-007", "SPRAYING", "PAUSED", "machine-011", "item-015"),
             Row("op-019", "field-020", "farm-007", "PLANTING", "COMPLETED", null, "item-015"),
             Row("op-020", "field-021", "farm-008", "FERTILIZING", "IN_PROGRESS", "machine-012", "item-016"),
+            Row("op-021", "field-014", "farm-001", "HARVEST", "COMPLETED", "machine-003", "item-004", 6),
+            Row("op-022", "field-018", "farm-006", "SPRAYING", "IN_PROGRESS", "machine-014", "item-014", 1),
+            Row("op-023", "field-001", "farm-001", "SPRAYING", "COMPLETED", "machine-001", "item-001", 5),
+            Row("op-024", "field-002", "farm-001", "FERTILIZING", "COMPLETED", "machine-002", "item-002", 4),
+            Row("op-025", "field-015", "farm-002", "PLANTING", "COMPLETED", "machine-004", "item-003", 3),
+            Row("op-026", "field-006", "farm-003", "PLANTING", "IN_PROGRESS", "machine-005", "item-007", 0),
+            Row("op-027", "field-005", "farm-002", "SPRAYING", "PAUSED", "machine-006", "item-005", 2),
+            Row("op-028", "field-009", "farm-004", "FERTILIZING", "COMPLETED", "machine-007", "item-009", 6),
+            Row("op-029", "field-010", "farm-004", "HARVEST", "COMPLETED", "machine-008", "item-010", 2),
+            Row("op-030", "field-012", "farm-005", "FERTILIZING", "COMPLETED", "machine-009", "item-011", 4),
+            Row("op-031", "field-017", "farm-006", "PLANTING", "COMPLETED", "machine-010", "item-013", 5),
+            Row("op-032", "field-019", "farm-007", "SPRAYING", "IN_PROGRESS", "machine-011", "item-015", 1),
+            Row("op-033", "field-022", "farm-008", "INSPECTION", "COMPLETED", "machine-012", "item-016", 3),
+            Row("op-034", "field-008", "farm-003", "SPRAYING", "COMPLETED", "machine-013", "item-008", 2),
         )
         val existing = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).associateBy { it.id }
         repo.saveAll(
             rows.map { r ->
                 val id = DemoIds.uuid(r.key)
+                val area = FIELD_AREA[r.field]
                 val found = existing[id]
+                val plannedStart = now.minus(r.offsetDays.coerceAtLeast(1), ChronoUnit.DAYS)
+                val plannedEnd = now.plus(1, ChronoUnit.DAYS)
+                val actualStart = if (r.status != "PLANNED") now.minus(r.offsetDays, ChronoUnit.DAYS) else null
+                val actualEnd =
+                    if (r.status == "COMPLETED") now.minus(r.offsetDays, ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS)
+                    else null
                 if (found != null) {
                     found.fieldId = DemoIds.uuid(r.field)
                     found.farmId = DemoIds.uuid(r.farm)
                     found.type = r.type
                     found.itemId = DemoIds.uuid(r.item)
                     if (found.machineId == null) found.machineId = r.machine?.let { DemoIds.uuid(it) }
+                    found.areaHa = area
+                    found.plannedStart = plannedStart
+                    found.plannedEnd = plannedEnd
+                    found.actualStart = actualStart
+                    found.actualEnd = actualEnd
                     found
                 } else {
                     OperationEntity(
                         id, DemoIds.uuid(r.field), DemoIds.uuid(r.farm), r.type, r.status,
-                        now.minus(2, ChronoUnit.DAYS), now.plus(1, ChronoUnit.DAYS),
-                        if (r.status != "PLANNED") now.minus(1, ChronoUnit.DAYS) else null,
-                        if (r.status == "COMPLETED") now.minus(2, ChronoUnit.HOURS) else null,
+                        plannedStart, plannedEnd, actualStart, actualEnd,
                         r.machine?.let { DemoIds.uuid(it) },
                         if (r.status == "PAUSED") "RAIN" else null,
                         DemoIds.uuid(r.item),
                         BigDecimal("20"),
+                        area,
                     )
                 }
             },
@@ -264,8 +314,36 @@ class OperationService(
     }
 
     private fun OperationEntity.toDto() = OperationDto(
-        id, fieldId, farmId, type, status, plannedStart, plannedEnd, actualStart, actualEnd, machineId, pauseReason, itemId, itemQuantity,
+        id, fieldId, farmId, type, status, plannedStart, plannedEnd, actualStart, actualEnd,
+        machineId, pauseReason, itemId, itemQuantity, areaHa,
     )
+
+    private companion object {
+        val FIELD_AREA = mapOf(
+            "field-001" to BigDecimal("120.5"),
+            "field-002" to BigDecimal("95.0"),
+            "field-003" to BigDecimal("80.0"),
+            "field-004" to BigDecimal("210.0"),
+            "field-005" to BigDecimal("175.0"),
+            "field-006" to BigDecimal("320.0"),
+            "field-007" to BigDecimal("280.0"),
+            "field-008" to BigDecimal("190.0"),
+            "field-009" to BigDecimal("150.0"),
+            "field-010" to BigDecimal("140.0"),
+            "field-011" to BigDecimal("110.0"),
+            "field-012" to BigDecimal("95.0"),
+            "field-013" to BigDecimal("88.0"),
+            "field-014" to BigDecimal("70.0"),
+            "field-015" to BigDecimal("130.0"),
+            "field-016" to BigDecimal("102.0"),
+            "field-017" to BigDecimal("155.0"),
+            "field-018" to BigDecimal("140.0"),
+            "field-019" to BigDecimal("125.0"),
+            "field-020" to BigDecimal("118.0"),
+            "field-021" to BigDecimal("105.0"),
+            "field-022" to BigDecimal("98.0"),
+        )
+    }
 }
 
 @Service

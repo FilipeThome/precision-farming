@@ -45,6 +45,18 @@ export type Machine = {
   status: string
 }
 
+export type TelemetryPoint = {
+  id: string
+  machineId: string
+  observedAt: string
+  lat: number
+  lon: number
+  speedKmh: number
+  rpm: number
+  fuelPct: number
+  engineTempC: number
+}
+
 export type Operation = {
   id: string
   fieldId: string
@@ -59,6 +71,28 @@ export type Operation = {
   pauseReason: string | null
   itemId: string | null
   itemQuantity: number | null
+  areaHa: number | null
+}
+
+export type MachineMetrics = {
+  engineHours: number
+  lastObservedAt: string | null
+  days: Array<{ day: string; hours: number; speed: number; fuel: number }>
+}
+
+export type MachineWorkSummary = {
+  areaHa: number
+  days: Array<{ day: string; areaHa: number }>
+  inputs: Array<{ itemId: string; quantity: number }>
+}
+
+export type InventoryMovement = {
+  id: string
+  itemId: string
+  type: string
+  quantity: number
+  occurredAt: string
+  reference: string | null
 }
 
 export type Alert = {

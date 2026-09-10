@@ -85,7 +85,13 @@ data class TokenResponse(
 data class MeDto(val id: String, val name: String, val email: String, val role: String)
 
 @Serializable
-data class FarmDto(val id: String, val name: String, val location: String, val areaHa: Double? = null)
+data class FarmDto(
+    val id: String,
+    val name: String,
+    val location: String,
+    val areaHa: Double? = null,
+    val timezone: String? = null,
+)
 
 @Serializable
 data class FieldDto(
@@ -110,10 +116,33 @@ data class SeasonDto(
 )
 
 @Serializable
-data class MachineDto(val id: String, val name: String, val status: String, val type: String)
+data class MachineDto(
+    val id: String,
+    val name: String,
+    val status: String,
+    val type: String,
+    val farmId: String? = null,
+    val manufacturer: String? = null,
+    val model: String? = null,
+)
 
 @Serializable
-data class OperationDto(val id: String, val type: String, val status: String)
+data class OperationDto(
+    val id: String,
+    val type: String,
+    val status: String,
+    val fieldId: String? = null,
+    val farmId: String? = null,
+    val machineId: String? = null,
+    val plannedStart: String? = null,
+    val plannedEnd: String? = null,
+    val actualStart: String? = null,
+    val actualEnd: String? = null,
+    val pauseReason: String? = null,
+    val itemId: String? = null,
+    val itemQuantity: Double? = null,
+    val areaHa: Double? = null,
+)
 
 @Serializable
 data class PauseRequest(val reason: String)
@@ -125,10 +154,65 @@ data class AlertDto(
     val message: String? = null,
     val severity: String,
     val status: String,
+    val farmId: String? = null,
+    val type: String? = null,
+    val entityType: String? = null,
+    val entityId: String? = null,
+    val createdAt: String? = null,
 )
 
 @Serializable
-data class InsightDto(val id: String, val type: String, val score: Double, val model: String, val demo: Boolean = true)
+data class InsightDto(
+    val id: String,
+    val type: String,
+    val score: Double,
+    val model: String,
+    val demo: Boolean = true,
+    val confidence: Double? = null,
+    val explanation: List<String> = emptyList(),
+    val entityId: String? = null,
+    val horizonHours: Int? = null,
+    val modelVersion: String? = null,
+    val generatedAt: String? = null,
+)
+
+@Serializable
+data class MachineMetricsDayDto(
+    val day: String,
+    val hours: Double = 0.0,
+    val speed: Double = 0.0,
+    val fuel: Double = 0.0,
+)
+
+@Serializable
+data class MachineMetricsDto(
+    val engineHours: Double = 0.0,
+    val lastObservedAt: String? = null,
+    val days: List<MachineMetricsDayDto> = emptyList(),
+)
+
+@Serializable
+data class MachineWorkDayDto(val day: String, val areaHa: Double = 0.0)
+
+@Serializable
+data class MachineWorkInputDto(val itemId: String, val quantity: Double = 0.0)
+
+@Serializable
+data class MachineWorkSummaryDto(
+    val areaHa: Double = 0.0,
+    val days: List<MachineWorkDayDto> = emptyList(),
+    val inputs: List<MachineWorkInputDto> = emptyList(),
+)
+
+@Serializable
+data class InventoryMovementDto(
+    val id: String,
+    val itemId: String? = null,
+    val type: String? = null,
+    val quantity: Double? = null,
+    val occurredAt: String? = null,
+    val reference: String? = null,
+)
 
 @Serializable
 data class ScoutingDto(
@@ -537,6 +621,41 @@ suspend fun mapLayers(farmId: String? = null) =
 
 suspend fun inventory(farmId: String? = null) =
     api.get("/api/v1/inventory") { farmQuery(farmId) }.body<List<InventoryItemDto>>()
+
+suspend fun inventoryMovements(itemId: String) =
+    api.get("/api/v1/inventory/$itemId/movements").body<List<InventoryMovementDto>>()
+
+suspend fun machineMetrics(machineId: String) =
+    api.get("/api/v1/machines/$machineId/metrics").body<MachineMetricsDto>()
+
+suspend fun machineWorkSummary(machineId: String, from: String, to: String) =
+    api.get("/api/v1/operations/machine-summary") {
+        parameter("machineId", machineId)
+        parameter("from", from)
+        parameter("to", to)
+    }.body<MachineWorkSummaryDto>()
+
+fun rollingWeekIsoRange(): Pair<String, String> {
+    val to = java.time.Instant.now()
+    val from = to.minus(7, java.time.temporal.ChronoUnit.DAYS)
+    return from.toString() to to.toString()
+}
+
+fun formatWhen(iso: String?): String {
+    if (iso.isNullOrBlank()) return "—"
+    return iso.replace('T', ' ').take(16)
+}
+
+fun formatNumber(value: Double?, digits: Int = 1): String {
+    if (value == null || value.isNaN()) return "—"
+    val factor = when (digits) {
+        0 -> 1.0
+        1 -> 10.0
+        else -> 100.0
+    }
+    val rounded = kotlin.math.round(value * factor) / factor
+    return if (digits == 0) rounded.toInt().toString() else rounded.toString()
+}
 
 suspend fun harvestPlans(farmId: String? = null) =
     api.get("/api/v1/harvest/plans") { farmQuery(farmId) }.body<List<HarvestPlanDto>>()

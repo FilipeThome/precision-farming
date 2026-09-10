@@ -1,0 +1,153 @@
+20: Fake data determinístico para demo, testes e desenvolvimento.
+27: Persona
+61: Fake login deve permitir troca rápida entre personas.
+65: 6. Módulo: Farm & Land Management
+66: Feature
+67: MVP behavior
+82: Acceptance criteria
+89: 7. Módulo: GIS / Map
+105: Fake GIS dataset
+107: 8. Módulo: Crop Lifecycle
+118: 9. Módulo: Scouting
+131: 10. Módulo: Soil Intelligence
+144: 11. Módulo: Crop Protection
+159: 12. Módulo: Planting & Fertilization
+162: Seed variety.
+163: Seed lot.
+173: 13. Módulo: Irrigation & Water OS
+188: 14. Módulo: Weather Intelligence
+207: 15. Módulo: Fleet
+230: 16. Módulo: Telemetry
+241: 17. Módulo: Maintenance
+257: 18. Módulo: Inventory & Procurement
+258: Seed inventory.
+277: 19. Módulo: Operations
+290: 20. Operations Planning
+305: 21. Dispatch Board
+317: 22. Offline Mobile
+332: 23. Offline conflict rules
+347: 24. Harvest
+362: 25. Logistics
+375: 26. Storage
+389: 27. Finance & Economic Twin
+411: 28. Commodity Market
+431: 29. Scenario Engine
+441: 30. Traceability
+456: 31. ESG & Risk
+470: 32. Workforce & Safety
+483: 33. Remote Sensing — Satellite
+484: Fake satellite scene catalog.
+496: 34. Drones
+513: 35. Computer Vision
+515: Fake output
+533: Fake inference provider must emulate latency and failure.
+534: 36. Experiments / Trials
+547: 37. AI Platform
+549: MVP implementation
+568: 38. Prediction catalog
+586: 39. AI Copilot
+599: 40. AI Agents
+616: 41. Workflow Engine
+628: 42. Alert Center
+646: 43. Data Fabric
+653: Feature store.
+657: 44. Data Lineage
+668: 45. Data Quality Dashboard
+679: 46. Integration Platform
+680: Fake adapter
+705: 47. Integration Console
+707: Fake/real mode indicator.
+719: 48. Canonical Domain Model
+862: 49. Core relationships
+864: 50. Event catalog
+915: 51. Event envelope
+918: 52. REST API — functional surface
+1019: 53. Command APIs
+1027: 54. Fake Data Engine
+1032: 3
+1034: 8
+1036: 180
+1038: 12
+1040: 8
+1042: 120
+1044: 90
+1048: 35
+1050: 12 meses
+1068: 100
+1070: 40
+1072: 50.000
+1074: 12 meses
+1076: 20.000
+1079: 55. Fake data scenarios
+1097: 50% dos dispositivos offline por algumas horas
+1099: 56. Fake generator rules
+1112: Fake failures should be injectable.
+1113: Fake external APIs should support latency, timeout, rate-limit and malformed-data simulation.
+1114: 57. Demo farm
+1116: Fake value
+1128: 96
+1130: 62
+1132: 14
+1134: 10
+1136: 38
+1138: 8
+1140: 7
+1142: 2026/27
+1143: 58. Key demo fields
+1151: 82.4
+1156: 76.8
+1161: 91.2
+1166: 64.5
+1171: 105.7
+1174: 59. End-to-end demo scenario A — Weather-aware spraying
+1185: Fake telemetry confirms route and application.
+1191: 60. End-to-end demo scenario B — Predictive maintenance
+1193: Feature engine calculates anomaly score.
+1205: 61. End-to-end demo scenario C — Satellite anomaly to operation
+1206: Fake satellite scene is ingested.
+1220: 62. End-to-end demo scenario D — Harvest control tower
+1235: 63. End-to-end demo scenario E — Margin scenario
+1246: 64. Executive Dashboard KPIs
+1277: 65. Field Detail screen
+1293: 66. Machine Detail screen
+1307: 67. AI Insight card
+1310: 68. Non-functional requirements
+1312: MVP target
+1314: 99.5% for core API
+1315: API latency
+1345: 69. Architecture for MVP
+1347: 70. Deployment profiles
+1360: 71. Service/module boundaries
+1389: 72. Observability
+1398: Fake provider latency/error metrics.
+1403: 73. Security
+1410: Fake credentials clearly marked.
+1419: 74. Safety policy for simulated commands
+1427: 75. Testing strategy
+1450: 76. Acceptance test matrix
+1514: 77. Definition of Done
+1516: API implemented.
+1519: Fake provider implemented.
+1520: Seed data implemented.
+1529: Feature demonstrable end-to-end.
+1531: 78. Epics and implementation backlog
+1655: 79. User stories — core
+1677: 80. Extended user stories by domain
+1791: 81. Seeded alerts
+1823: 12 mobile records awaiting conflict resolution
+1828: 82. Seeded AI recommendations
+1858: 83. Simulator Lab UI
+1874: 84. Fake external provider behavior
+1879: 429
+1881: 500
+1897: 85. Reporting catalog
+1915: 86. Export formats
+1923: 87. Demo scripts
+1951: 88. MVP release gates
+1954: Fake seed can populate a clean environment.
+1964: 89. Implementation sequence
+2007: 90. Recommended coding-agent execution protocol
+2009: 91. Final product acceptance
+2012: 92. Relação com o documento-base
+2016: 93. Observação importante sobre 'MVP completo'
+2019: 94. Checklist final de implementação

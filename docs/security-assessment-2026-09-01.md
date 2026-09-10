@@ -33,13 +33,25 @@ Skill: `.cursor/skills/cybersecurity-team/SKILL.md`
 | Weak AuthZ-deny audit | **Fixed** — `RestExceptionHandler` warns on 401/403 / AccessDenied |
 | Market quotes unscoped stub | **Accepted** — authenticated global stub; documented on controller |
 
+## Hardening slice (2026-09-08)
+
+| Finding | Status |
+| --- | --- |
+| GET out-of-scope 403 existence oracle | **Fixed** — `requireFarmRead` / `requireMachineRead` return 404 on listed GETs; writes stay 403 |
+| Refresh rate limit shared gateway hop IP | **Fixed** — refresh keyed by user id only |
+| Auth `/internal/**` reachable if ports leaked | **Fixed** — loopback/RFC1918 + header secret |
+| tenantId unused | **Mitigated** — non-DemoTenant JWT is 401; no tenant columns (single-tenant MVP) |
+| Seed reset via gateway only hit auth | **Fixed** — RewritePath `/api/v1/dev/seed/reset/{service}` |
+| Login page rendered demo password | **Fixed** — hint shows email only |
+
 ## Remaining / accepted for MVP
 
-1. Persist user↔farm membership in auth DB (still role→demo map at login).
+1. Persist user↔farm membership in auth DB (login already reads `user_farms`; role→all-farms map is gone).
 2. SCA (OWASP Dependency-Check / OSV) in CI.
 3. iOS Keychain when KMP ios target lands.
 4. Demo credentials (`Precision@123`) local-only (`ALLOW_DEMO_SECRETS` / profile `local`).
-5. Known JWT/DB defaults in `demo.env` — local compose only; never expose.
+5. Known JWT/DB defaults in `demo.env` / `demo-auth.env` — local compose only; never reuse that keypair.
+6. Inventory seed CONSUME rows do not decrement stock (architect: do not call `move()`).
 
 ## Validation
 
