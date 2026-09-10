@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { useAckAlertMutation } from '@/features/alerts/queries'
 import type { Alert } from '@/shared/api/types'
 import { farmPhoto, machinePhoto } from '@/shared/demo/media'
+import { inspectHref } from '@/shared/lib/useFarmFromSearch'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { Button } from '@/shared/ui/Button'
@@ -21,10 +22,12 @@ export function AlertInspector({ alert }: Props) {
       : farmPhoto(alert.farmId)
   const machineLink =
     alert.entityType === 'MACHINE' && alert.entityId
-      ? `/machines?selected=${alert.entityId}`
+      ? inspectHref('/machines', alert.entityId, alert.farmId)
       : null
   const fieldLink =
-    alert.entityType === 'FIELD' && alert.entityId ? `/fields?selected=${alert.entityId}` : null
+    alert.entityType === 'FIELD' && alert.entityId
+      ? inspectHref('/fields', alert.entityId, alert.farmId)
+      : null
 
   return (
     <div className="flex flex-col gap-4">

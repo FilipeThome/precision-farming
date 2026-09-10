@@ -7,4 +7,8 @@ import androidx.compose.runtime.setValue
 /** Selected farm for list GETs. Null means all farms. */
 object FarmFilter {
     var farmId by mutableStateOf<String?>(null)
+
+    fun apply(id: String?) {
+        if (!id.isNullOrBlank()) farmId = id
+    }
 }

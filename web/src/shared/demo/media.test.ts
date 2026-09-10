@@ -4,6 +4,7 @@ import {
   cropPhoto,
   inventoryPhoto,
   irrigationPhoto,
+  machinePhoto,
   storagePhoto,
 } from '@/shared/demo/media'
 
@@ -28,6 +29,12 @@ describe('demo media', () => {
     expect(storagePhoto('SILO')).toBe('/demo/infra/silo.jpg')
     expect(storagePhoto('WAREHOUSE')).toBe('/demo/infra/warehouse.jpg')
     expect(storagePhoto('WAREHOUSE_NE')).toBe('/demo/infra/warehouse.jpg')
+  })
+
+  it('leaves machinePhoto empty so farm fallback can run', () => {
+    expect(machinePhoto(null)).toBeUndefined()
+    expect(machinePhoto(undefined)).toBeUndefined()
+    expect(machinePhoto('unknown-machine')).toBe('/demo/machines/machine-001.jpg')
   })
 
   it('maps crop names including Portuguese labels', () => {

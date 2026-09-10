@@ -15,10 +15,13 @@ class InternalNetsTest {
     }
 
     @Test
-    fun deniesPublicAndGarbage() {
+    fun deniesPublicGarbageAndHostnames() {
         assertFalse(InternalNets.allowed(null))
         assertFalse(InternalNets.allowed(""))
         assertFalse(InternalNets.allowed("8.8.8.8"))
         assertFalse(InternalNets.allowed("not-an-ip"))
+        assertFalse(InternalNets.allowed("localhost"))
+        assertFalse(InternalNets.allowed("evil.example"))
+        assertFalse(InternalNets.allowed("08.1.1.1"))
     }
 }

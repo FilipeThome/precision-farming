@@ -2,7 +2,10 @@ package com.precisionfarming.operation
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.operation.application.CreateOperation
 import com.precisionfarming.operation.application.OperationService
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.operation.infrastructure.OperationEntity
@@ -127,6 +130,93 @@ class OperationServiceTest {
             Instant.parse("2026-09-08T00:00:00Z"),
         )
         assertEquals(BigDecimal("10.0"), dto.areaHa)
+    }
+
+    @Test
+    fun machineSummaryUnknownMachineIsNotFound() {
+        val ex = assertThrows(NotFoundException::class.java) {
+            svc.machineSummary(
+                AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-001")), "OPERATOR"),
+                UUID.randomUUID(),
+                Instant.parse("2026-09-01T00:00:00Z"),
+                Instant.parse("2026-09-08T00:00:00Z"),
+            )
+        }
+        assertEquals("MACHINE_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun machineSummaryOutOfScopeIsNotFound() {
+        val machineId = DemoIds.uuid("machine-001")
+        val ex = assertThrows(NotFoundException::class.java) {
+            svc.machineSummary(
+                AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-002")), "OPERATOR"),
+                machineId,
+                Instant.parse("2026-09-01T00:00:00Z"),
+                Instant.parse("2026-09-08T00:00:00Z"),
+            )
+        }
+        assertEquals("MACHINE_NOT_FOUND", ex.code)
+    }
+
+    @Test
+    fun machineSummaryRejectsInvertedRange() {
+        val ex = assertThrows(DomainException::class.java) {
+            svc.machineSummary(
+                AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-001")), "OPERATOR"),
+                DemoIds.uuid("machine-001"),
+                Instant.parse("2026-09-08T00:00:00Z"),
+                Instant.parse("2026-09-01T00:00:00Z"),
+            )
+        }
+        assertEquals("OPERATION_RANGE_EXCEEDED", ex.code)
+    }
+
+    @Test
+    fun machineSummaryCountsEveryOpInRange() {
+        val machineId = DemoIds.uuid("machine-001")
+        val farmId = DemoIds.uuid("farm-001")
+        val from = Instant.parse("2026-09-01T00:00:00Z")
+        val to = Instant.parse("2026-09-08T00:00:00Z")
+        val ops = (0 until QueryLimits.MAX_LIST + 1).map { i ->
+            operation("COMPLETED").also {
+                it.farmId = farmId
+                it.machineId = machineId
+                it.actualStart = Instant.parse("2026-09-02T10:00:00Z").plusSeconds(i.toLong())
+                it.areaHa = BigDecimal("1.0")
+            }
+        }
+        every { repo.findByMachineIdAndFarmIdIn(machineId, setOf(farmId)) } returns ops
+        val dto = svc.machineSummary(
+            AccessScope(DemoTenant.ID, setOf(farmId), "OPERATOR"),
+            machineId,
+            from,
+            to,
+        )
+        assertEquals(BigDecimal("${QueryLimits.MAX_LIST + 1}.0"), dto.areaHa)
+    }
+
+    @Test
+    fun createRejectsNegativeArea() {
+        val farmId = DemoIds.uuid("farm-001")
+        val ex = assertThrows(DomainException::class.java) {
+            svc.create(
+                AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER"),
+                CreateOperation(
+                    DemoIds.uuid("field-001"),
+                    farmId,
+                    "PLANTING",
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    BigDecimal("-1"),
+                ),
+            )
+        }
+        assertEquals("OPERATION_AREA_INVALID", ex.code)
+        verify(exactly = 0) { repo.save(any()) }
     }
 
     @Test

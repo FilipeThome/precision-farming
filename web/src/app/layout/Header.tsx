@@ -9,11 +9,13 @@ import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { useAuthStore } from '@/shared/auth/store'
+import { useFarmFromSearch } from '@/shared/lib/useFarmFromSearch'
 import { useOnline } from '@/shared/lib/useOnline'
 import { Button } from '@/shared/ui/Button'
 import { useUiStore } from '@/shared/ui/uiStore'
 
 export function Header() {
+  useFarmFromSearch()
   const navigate = useNavigate()
   const name = useAuthStore((s) => s.name)
   const clearSession = useAuthStore((s) => s.clearSession)

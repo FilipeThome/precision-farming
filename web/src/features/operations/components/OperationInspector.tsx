@@ -8,14 +8,21 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
+import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
-type Props = { operation: Operation; farmId: string | null }
+type Commands = ReturnType<typeof useOperationCommands>
 
-export function OperationInspector({ operation, farmId }: Props) {
+type Props = {
+  operation: Operation
+  farmId: string | null
+  pauseReason: string
+  commands: Commands
+}
+
+export function OperationInspector({ operation, farmId, pauseReason, commands }: Props) {
   const machines = useMachinesQuery(farmId)
   const inventory = useInventoryQuery(farmId)
-  const commands = useOperationCommands()
   const { t } = useI18n()
   const { label, dateTime, number } = useFormat()
   const machine = (machines.data ?? []).find((item) => item.id === operation.machineId)
@@ -34,27 +41,32 @@ export function OperationInspector({ operation, farmId }: Props) {
         />
         <StatusBadge value={operation.status} />
       </div>
-      <InspectorKpis
-        items={[
-          { label: t('operations.kpi.planned'), value: dateTime(operation.plannedStart) },
-          { label: t('operations.kpi.actual'), value: dateTime(operation.actualStart) },
-          {
-            label: t('operations.kpi.machine'),
-            value: machine ? label(machine.id, machine.name) : '—',
-          },
-          { label: t('operations.kpi.inputs'), value: inputLabel },
-        ]}
-      />
+      <InspectorQueryState
+        isLoading={machines.isLoading || inventory.isLoading}
+        error={machines.error || inventory.error}
+        onRetry={() => {
+          void machines.refetch()
+          void inventory.refetch()
+        }}
+      >
+        <InspectorKpis
+          items={[
+            { label: t('operations.kpi.planned'), value: dateTime(operation.plannedStart) },
+            { label: t('operations.kpi.actual'), value: dateTime(operation.actualStart) },
+            {
+              label: t('operations.kpi.machine'),
+              value: machine ? label(machine.id, machine.name) : '—',
+            },
+            { label: t('operations.kpi.inputs'), value: inputLabel },
+          ]}
+        />
+      </InspectorQueryState>
       {operation.pauseReason ? (
         <p className="text-sm text-pf-muted">
           {t('operations.pauseMeta', { reason: label(operation.pauseReason) })}
         </p>
       ) : null}
-      <OperationActions
-        op={operation}
-        pauseReason={t('operations.pauseReasonDefault')}
-        commands={commands}
-      />
+      <OperationActions op={operation} pauseReason={pauseReason} commands={commands} />
     </div>
   )
 }

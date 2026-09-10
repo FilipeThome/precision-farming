@@ -8,6 +8,7 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
+import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 
 type Props = { farm: Farm }
 
@@ -29,15 +30,26 @@ export function FarmInspector({ farm }: Props) {
           <p className="text-xs text-pf-muted">{farm.timezone}</p>
         </div>
       </div>
-      <InspectorKpis
-        items={[
-          { label: t('farms.kpi.area'), value: `${number(Number(farm.areaHa), 1)} ha` },
-          { label: t('farms.kpi.fields'), value: number(fields.data?.length ?? 0, 0) },
-          { label: t('farms.kpi.ops'), value: number(operations.data?.length ?? 0, 0) },
-          { label: t('farms.kpi.alerts'), value: number(alerts.data?.length ?? 0, 0) },
-          { label: t('farms.kpi.pnl'), value: number(margin, 0) },
-        ]}
-      />
+      <InspectorQueryState
+        isLoading={fields.isLoading || operations.isLoading || alerts.isLoading || pnl.isLoading}
+        error={fields.error || operations.error || alerts.error || pnl.error}
+        onRetry={() => {
+          void fields.refetch()
+          void operations.refetch()
+          void alerts.refetch()
+          void pnl.refetch()
+        }}
+      >
+        <InspectorKpis
+          items={[
+            { label: t('farms.kpi.area'), value: `${number(Number(farm.areaHa), 1)} ha` },
+            { label: t('farms.kpi.fields'), value: number(fields.data?.length ?? 0, 0) },
+            { label: t('farms.kpi.ops'), value: number(operations.data?.length ?? 0, 0) },
+            { label: t('farms.kpi.alerts'), value: number(alerts.data?.length ?? 0, 0) },
+            { label: t('farms.kpi.pnl'), value: number(margin, 0) },
+          ]}
+        />
+      </InspectorQueryState>
     </div>
   )
 }
