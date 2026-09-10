@@ -127,21 +127,27 @@ class InventoryService(
 
     private fun seedMovements(itemKeys: List<String>) {
         val ids = itemKeys.flatMap { key -> (0..6).map { d -> DemoIds.uuid("move-$key-d$d") } }
-        val existing = movements.findAllById(ids).map { it.id }.toSet()
+        val existing = movements.findAllById(ids).associateBy { it.id }
         val today = Instant.now().truncatedTo(ChronoUnit.DAYS)
         movements.saveAll(
             itemKeys.flatMap { key ->
-                (0..6).mapNotNull { d ->
+                (0..6).map { d ->
                     val id = DemoIds.uuid("move-$key-d$d")
-                    if (id in existing) null
-                    else MovementEntity(
-                        id,
-                        DemoIds.uuid(key),
-                        "CONSUME",
-                        BigDecimal(8 + d),
-                        today.minus((6 - d).toLong(), ChronoUnit.DAYS),
-                        "seed:consume:$key:d$d",
-                    )
+                    val occurredAt = today.minus((6 - d).toLong(), ChronoUnit.DAYS)
+                    val found = existing[id]
+                    if (found != null) {
+                        found.occurredAt = occurredAt
+                        found
+                    } else {
+                        MovementEntity(
+                            id,
+                            DemoIds.uuid(key),
+                            "CONSUME",
+                            BigDecimal(8 + d),
+                            occurredAt,
+                            "seed:consume:$key:d$d",
+                        )
+                    }
                 }
             },
         )

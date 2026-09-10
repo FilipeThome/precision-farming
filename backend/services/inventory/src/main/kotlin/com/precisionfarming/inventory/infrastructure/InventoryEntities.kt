@@ -30,7 +30,7 @@ class MovementEntity(
     @Column(name = "item_id") val itemId: UUID,
     var type: String,
     var quantity: BigDecimal,
-    @Column(name = "occurred_at") val occurredAt: Instant,
+    @Column(name = "occurred_at") var occurredAt: Instant,
     var reference: String?,
 )
 

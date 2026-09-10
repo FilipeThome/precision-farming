@@ -1,6 +1,7 @@
 package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
+import com.precisionfarming.common.DemoIds
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
 import com.precisionfarming.inventory.infrastructure.ItemEntity
@@ -13,8 +14,11 @@ import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Optional
 import java.util.UUID
 
@@ -24,6 +28,32 @@ class InventoryServiceTest {
     private val svc = InventoryService(items, movements)
 
     private fun scopeFor(item: ItemEntity) = AccessScope(DemoTenant.ID, setOf(item.farmId), "OPERATOR")
+
+    @Test
+    fun seedRewritesExistingMovementTimestamps() {
+        val id = DemoIds.uuid("move-item-001-d0")
+        val existing = MovementEntity(
+            id,
+            DemoIds.uuid("item-001"),
+            "CONSUME",
+            BigDecimal("8"),
+            Instant.parse("2020-01-01T00:00:00Z"),
+            "seed:consume:item-001:d0",
+        )
+        every { items.findAllById(any<Iterable<UUID>>()) } returns emptyList()
+        every { items.saveAll(any<Iterable<ItemEntity>>()) } answers { firstArg() }
+        every { movements.findAllById(any<Iterable<UUID>>()) } returns listOf(existing)
+        lateinit var saved: List<MovementEntity>
+        every { movements.saveAll(any<Iterable<MovementEntity>>()) } answers {
+            firstArg<Iterable<MovementEntity>>().toList().also { saved = it }
+        }
+
+        svc.seed()
+
+        val updated = saved.first { it.id == id }
+        val weekAgo = Instant.now().truncatedTo(ChronoUnit.DAYS).minus(8, ChronoUnit.DAYS)
+        assertTrue(updated.occurredAt.isAfter(weekAgo))
+    }
 
     @Test
     fun consumeRejectsWhenQuantityInsufficient() {
