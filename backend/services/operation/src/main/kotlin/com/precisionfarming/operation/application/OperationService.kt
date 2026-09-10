@@ -280,6 +280,12 @@ class OperationService(
                 val id = DemoIds.uuid(r.key)
                 val area = FIELD_AREA[r.field]
                 val found = existing[id]
+                val plannedStart = now.minus(r.offsetDays.coerceAtLeast(1), ChronoUnit.DAYS)
+                val plannedEnd = now.plus(1, ChronoUnit.DAYS)
+                val actualStart = if (r.status != "PLANNED") now.minus(r.offsetDays, ChronoUnit.DAYS) else null
+                val actualEnd =
+                    if (r.status == "COMPLETED") now.minus(r.offsetDays, ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS)
+                    else null
                 if (found != null) {
                     found.fieldId = DemoIds.uuid(r.field)
                     found.farmId = DemoIds.uuid(r.farm)
@@ -287,13 +293,15 @@ class OperationService(
                     found.itemId = DemoIds.uuid(r.item)
                     if (found.machineId == null) found.machineId = r.machine?.let { DemoIds.uuid(it) }
                     found.areaHa = area
+                    found.plannedStart = plannedStart
+                    found.plannedEnd = plannedEnd
+                    found.actualStart = actualStart
+                    found.actualEnd = actualEnd
                     found
                 } else {
                     OperationEntity(
                         id, DemoIds.uuid(r.field), DemoIds.uuid(r.farm), r.type, r.status,
-                        now.minus(r.offsetDays.coerceAtLeast(1), ChronoUnit.DAYS), now.plus(1, ChronoUnit.DAYS),
-                        if (r.status != "PLANNED") now.minus(r.offsetDays, ChronoUnit.DAYS) else null,
-                        if (r.status == "COMPLETED") now.minus(r.offsetDays, ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS) else null,
+                        plannedStart, plannedEnd, actualStart, actualEnd,
                         r.machine?.let { DemoIds.uuid(it) },
                         if (r.status == "PAUSED") "RAIN" else null,
                         DemoIds.uuid(r.item),

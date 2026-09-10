@@ -16,6 +16,7 @@ import io.mockk.mockk
 import io.mockk.verify
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
@@ -23,6 +24,7 @@ import org.springframework.transaction.TransactionStatus
 import org.springframework.transaction.support.SimpleTransactionStatus
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Optional
 import java.util.UUID
 
@@ -125,6 +127,41 @@ class OperationServiceTest {
             Instant.parse("2026-09-08T00:00:00Z"),
         )
         assertEquals(BigDecimal("10.0"), dto.areaHa)
+    }
+
+    @Test
+    fun seedRewritesExistingOperationTimestamps() {
+        val id = DemoIds.uuid("op-001")
+        val stale = Instant.parse("2020-01-01T10:00:00Z")
+        val existing = OperationEntity(
+            id,
+            DemoIds.uuid("field-001"),
+            DemoIds.uuid("farm-001"),
+            "PLANTING",
+            "COMPLETED",
+            stale,
+            stale.plus(1, ChronoUnit.DAYS),
+            stale,
+            stale.plus(6, ChronoUnit.HOURS),
+            DemoIds.uuid("machine-001"),
+            null,
+            DemoIds.uuid("item-001"),
+            BigDecimal("20"),
+            BigDecimal("120.5"),
+        )
+        every { repo.findAllById(any<Iterable<UUID>>()) } returns listOf(existing)
+        lateinit var saved: List<OperationEntity>
+        every { repo.saveAll(any<Iterable<OperationEntity>>()) } answers {
+            firstArg<Iterable<OperationEntity>>().toList().also { saved = it }
+        }
+
+        svc.seed()
+
+        val updated = saved.first { it.id == id }
+        val weekAgo = Instant.now().minus(8, ChronoUnit.DAYS)
+        assertTrue(updated.plannedStart!!.isAfter(weekAgo))
+        assertTrue(updated.actualStart!!.isAfter(weekAgo))
+        assertTrue(updated.actualEnd!!.isAfter(weekAgo))
     }
 
     @Test

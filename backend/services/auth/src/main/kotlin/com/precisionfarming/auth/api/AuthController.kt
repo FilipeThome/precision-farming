@@ -51,6 +51,7 @@ class AuthController(
 
     @PostMapping("/refresh")
     fun refresh(@Valid @RequestBody body: RefreshRequest, request: HttpServletRequest): TokenResponse {
+        rateLimiter.check("refresh:${clientIp(request)}")
         val userId = authService.peekRefreshUserId(body.refreshToken)
         rateLimiter.check("refresh-user:$userId")
         return authService.refresh(RefreshCommand(body.refreshToken))
