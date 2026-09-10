@@ -1,6 +1,7 @@
 package com.precisionfarming.mobile
 
 import com.precisionfarming.mobile.data.AlertDto
+import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.HarvestPlanDto
 import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.data.OperationDto
@@ -156,5 +157,18 @@ class OpGatesTest {
         assertTrue(AlertDto("a2", "Storm", severity = "WARNING", status = "open").isOpen())
         assertFalse(AlertDto("a3", "Old", severity = "CRITICAL", status = "ACKED").isOpen())
         assertFalse(AlertDto("a4", "Done", severity = "INFO", status = "CLOSED").isOpen())
+    }
+}
+
+class FarmFilterTest {
+    @Test
+    fun applyIgnoresBlankAndSetsFarm() {
+        FarmFilter.farmId = null
+        FarmFilter.apply(null)
+        FarmFilter.apply("")
+        assertNull(FarmFilter.farmId)
+        FarmFilter.apply("farm-9")
+        assertEquals("farm-9", FarmFilter.farmId)
+        FarmFilter.farmId = null
     }
 }

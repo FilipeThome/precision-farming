@@ -12,10 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.precisionfarming.mobile.data.AlertDto
 import com.precisionfarming.mobile.data.FarmDto
 import com.precisionfarming.mobile.data.FieldDto
-import com.precisionfarming.mobile.data.FinancePnlDto
 import com.precisionfarming.mobile.data.HarvestPlanDto
 import com.precisionfarming.mobile.data.InsightDto
 import com.precisionfarming.mobile.data.InventoryItemDto
@@ -46,27 +44,41 @@ fun FarmInspector(farm: FarmDto, modifier: Modifier = Modifier) {
     var opCount by remember { mutableStateOf(0) }
     var alertCount by remember { mutableStateOf(0) }
     var margin by remember { mutableStateOf(0.0) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(farm.id) {
-        val farmFields = runCatching { fields(farm.id) }.getOrDefault(emptyList())
-        val ops = runCatching { operations(farm.id) }.getOrDefault(emptyList<OperationDto>())
-        val farmAlerts = runCatching { alerts(farm.id) }.getOrDefault(emptyList<AlertDto>())
-        val pnl = runCatching { financePnl(farm.id) }.getOrDefault(emptyList<FinancePnlDto>())
-        fieldCount = farmFields.size
-        opCount = ops.size
-        alertCount = farmAlerts.size
-        margin = pnl.sumOf { it.margin ?: 0.0 }
+        loading = true
+        error = null
+        val result = runCatching {
+            val farmFields = fields(farm.id)
+            val ops = operations(farm.id)
+            val farmAlerts = alerts(farm.id)
+            val pnl = financePnl(farm.id)
+            Triple(farmFields.size to ops.size, farmAlerts.size, pnl.sumOf { it.margin ?: 0.0 })
+        }
+        result.onSuccess { (counts, alertsSize, pnlMargin) ->
+            fieldCount = counts.first
+            opCount = counts.second
+            alertCount = alertsSize
+            margin = pnlMargin
+        }.onFailure { error = it.message ?: S.t("common.error") }
+        loading = false
     }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(listOfNotNull(farm.location, farm.timezone).joinToString(" · "))
-        InspectorKpis(
-            listOf(
-                InspectorKpiItem(S.t("farms.kpi.area"), farm.areaHa?.let { "${formatNumber(it)} ha" } ?: "—"),
-                InspectorKpiItem(S.t("farms.kpi.fields"), fieldCount.toString()),
-                InspectorKpiItem(S.t("farms.kpi.ops"), opCount.toString()),
-                InspectorKpiItem(S.t("farms.kpi.alerts"), alertCount.toString()),
-                InspectorKpiItem(S.t("farms.kpi.pnl"), formatNumber(margin)),
-            ),
-        )
+        when {
+            loading -> Text(S.t("common.loading"))
+            error != null -> Text("${S.t("common.error")}: $error")
+            else -> InspectorKpis(
+                listOf(
+                    InspectorKpiItem(S.t("farms.kpi.area"), farm.areaHa?.let { "${formatNumber(it)} ha" } ?: "—"),
+                    InspectorKpiItem(S.t("farms.kpi.fields"), fieldCount.toString()),
+                    InspectorKpiItem(S.t("farms.kpi.ops"), opCount.toString()),
+                    InspectorKpiItem(S.t("farms.kpi.alerts"), alertCount.toString()),
+                    InspectorKpiItem(S.t("farms.kpi.pnl"), formatNumber(margin)),
+                ),
+            )
+        }
     }
 }
 
@@ -75,26 +87,46 @@ fun FieldInspector(field: FieldDto, modifier: Modifier = Modifier) {
     var ops by remember { mutableStateOf<List<OperationDto>>(emptyList()) }
     var yields by remember { mutableStateOf<List<YieldRecordDto>>(emptyList()) }
     var rx by remember { mutableStateOf<List<PrescriptionDto>>(emptyList()) }
+    var loading by remember { mutableStateOf(true) }
+    var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(field.id, field.farmId) {
+        loading = true
+        error = null
         val farmId = field.farmId
-        ops = runCatching { operations(farmId) }.getOrDefault(emptyList()).filter { it.fieldId == field.id }
-        yields = runCatching { harvestYield(farmId) }.getOrDefault(emptyList())
-        rx = runCatching { prescriptions(farmId) }.getOrDefault(emptyList()).filter { it.fieldId == field.id }
+        val result = runCatching {
+            Triple(
+                operations(farmId).filter { it.fieldId == field.id },
+                harvestYield(farmId),
+                prescriptions(farmId).filter { it.fieldId == field.id },
+            )
+        }
+        result.onSuccess { (fieldOps, fieldYields, fieldRx) ->
+            ops = fieldOps
+            yields = fieldYields
+            rx = fieldRx
+        }.onFailure { error = it.message ?: S.t("common.error") }
+        loading = false
     }
     val actual = YieldMath.weightedYieldTHa(YieldMath.yieldsForField(yields, field.id))
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(listOfNotNull(DomainLabels.label(field.crop), field.variety).joinToString(" · "))
-        InspectorKpis(
-            listOf(
-                InspectorKpiItem(S.t("fields.kpi.crop"), DomainLabels.label(field.crop)),
-                InspectorKpiItem(S.t("fields.kpi.area"), field.areaHa?.let { "${formatNumber(it)} ha" } ?: "—"),
-                InspectorKpiItem(S.t("fields.kpi.ops"), ops.size.toString()),
-                InspectorKpiItem(S.t("fields.kpi.yield"), "${formatNumber(actual)} t/ha"),
-                InspectorKpiItem(S.t("fields.kpi.prescriptions"), rx.size.toString()),
-            ),
-        )
-        ops.takeLast(5).reversed().forEach { op ->
-            Text("${DomainLabels.label(op.type)} · ${DomainLabels.label(op.status)}")
+        when {
+            loading -> Text(S.t("common.loading"))
+            error != null -> Text("${S.t("common.error")}: $error")
+            else -> {
+                InspectorKpis(
+                    listOf(
+                        InspectorKpiItem(S.t("fields.kpi.crop"), DomainLabels.label(field.crop)),
+                        InspectorKpiItem(S.t("fields.kpi.area"), field.areaHa?.let { "${formatNumber(it)} ha" } ?: "—"),
+                        InspectorKpiItem(S.t("fields.kpi.ops"), ops.size.toString()),
+                        InspectorKpiItem(S.t("fields.kpi.yield"), "${formatNumber(actual)} t/ha"),
+                        InspectorKpiItem(S.t("fields.kpi.prescriptions"), rx.size.toString()),
+                    ),
+                )
+                ops.takeLast(5).reversed().forEach { op ->
+                    Text("${DomainLabels.label(op.type)} · ${DomainLabels.label(op.status)}")
+                }
+            }
         }
     }
 }

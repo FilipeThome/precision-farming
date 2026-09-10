@@ -9,3 +9,6 @@ object QueryLimits {
 
 fun <T> List<T>.capped(max: Int = QueryLimits.MAX_LIST): List<T> =
     if (size <= max) this else take(max)
+
+fun <T> List<T>.cappedNewest(max: Int = QueryLimits.MAX_LIST): List<T> =
+    if (size <= max) this else takeLast(max)

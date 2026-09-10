@@ -15,11 +15,13 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.AlertDto
+import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.data.OperationDto
 import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.S
+
 
 @Composable
 fun ControlTowerStrip(
@@ -42,7 +44,10 @@ fun ControlTowerStrip(
                 TowerChip(
                     title = DomainLabels.label(alert.title),
                     status = DomainLabels.label(alert.severity),
-                    onClick = { onOpen(InspectNav.href(InspectNav.ALERTS, selected = alert.id)) },
+                    onClick = {
+                        FarmFilter.apply(alert.farmId)
+                        onOpen(InspectNav.href(InspectNav.ALERTS, selected = alert.id))
+                    },
                 )
             }
         }
@@ -51,7 +56,10 @@ fun ControlTowerStrip(
                 TowerChip(
                     title = DomainLabels.label(machine.name),
                     status = DomainLabels.label(machine.status),
-                    onClick = { onOpen(InspectNav.href(InspectNav.MACHINES, selected = machine.id)) },
+                    onClick = {
+                        FarmFilter.apply(machine.farmId)
+                        onOpen(InspectNav.href(InspectNav.MACHINES, selected = machine.id))
+                    },
                 )
             }
         }
@@ -60,7 +68,10 @@ fun ControlTowerStrip(
                 TowerChip(
                     title = DomainLabels.label(op.type),
                     status = DomainLabels.label(op.status),
-                    onClick = { onOpen(InspectNav.href(InspectNav.OPS, selected = op.id)) },
+                    onClick = {
+                        FarmFilter.apply(op.farmId)
+                        onOpen(InspectNav.href(InspectNav.OPS, selected = op.id))
+                    },
                 )
             }
         }

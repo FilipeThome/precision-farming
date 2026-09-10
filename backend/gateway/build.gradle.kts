@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.jackson.kotlin)
     implementation(libs.kotlin.reflect)
     testImplementation(libs.kotlin.test)
+    testImplementation("org.springframework:spring-web")
 }
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootJar>("bootJar") {

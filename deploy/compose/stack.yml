@@ -1,7 +1,7 @@
 # Convenience app overlays with Compose profiles (infra stays in root docker-compose.yml).
 # Mobile is intentionally excluded.
 #
-# Core demo (gateway + auth + farm + reporting + web) — from repo root:
+# Core demo (gateway + auth + farm + fleet/ops needed by inspectors + reporting + web) — from repo root:
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
 #     --env-file deploy/compose/demo.env --profile core up -d --build
 #
@@ -81,7 +81,7 @@ services:
 
   asset:
     <<: *jvm
-    profiles: [asset, fleet, all]
+    profiles: [asset, fleet, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
@@ -100,7 +100,7 @@ services:
 
   telemetry:
     <<: *jvm
-    profiles: [telemetry, fleet, all]
+    profiles: [telemetry, fleet, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
@@ -138,7 +138,7 @@ services:
 
   operation:
     <<: *jvm
-    profiles: [operation, ops, all]
+    profiles: [operation, ops, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
@@ -160,7 +160,7 @@ services:
 
   inventory:
     <<: *jvm
-    profiles: [inventory, ops, all]
+    profiles: [inventory, ops, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
@@ -179,7 +179,7 @@ services:
 
   alert:
     <<: *jvm
-    profiles: [alert, ops, all]
+    profiles: [alert, ops, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm
@@ -369,7 +369,7 @@ services:
 
   finance:
     <<: *jvm
-    profiles: [finance, domains, all]
+    profiles: [finance, domains, core, all]
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.jvm

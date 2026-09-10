@@ -52,7 +52,7 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 
 | Profile | Services |
 | --- | --- |
-| `core` | auth, farm, gateway, web |
+| `core` | auth, farm, asset, telemetry, operation, inventory, alert, finance, reporting, gateway, web |
 | `fleet` | asset, telemetry |
 | `ops` | operation, inventory, alert |
 | `domains` | agronomy, irrigation, harvest, finance, compliance |

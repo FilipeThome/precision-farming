@@ -58,11 +58,8 @@ class OperationService(
             .mapNotNull { op ->
                 val whenAt = op.actualStart ?: op.plannedStart ?: return@mapNotNull null
                 if (whenAt.isBefore(from) || whenAt.isAfter(to)) return@mapNotNull null
-                whenAt to WorkSample(op.status, op.areaHa, op.itemId, op.itemQuantity, op.actualStart, op.plannedStart)
+                WorkSample(op.status, op.areaHa, op.itemId, op.itemQuantity, op.actualStart, op.plannedStart)
             }
-            .sortedByDescending { it.first }
-            .take(QueryLimits.MAX_LIST)
-            .map { it.second }
         return OperationProgress.summarize(ops)
     }
 
@@ -78,12 +75,20 @@ class OperationService(
         }
     }
 
+    private fun requireAreaHa(area: BigDecimal?) {
+        if (area == null) return
+        if (area.signum() <= 0 || area > MAX_AREA_HA) {
+            throw DomainException("OPERATION_AREA_INVALID", "areaHa must be positive and at most $MAX_AREA_HA")
+        }
+    }
+
     @Transactional
     fun create(scope: AccessScope, cmd: CreateOperation): OperationDto {
         scope.requireFarm(cmd.farmId)
         DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         cmd.machineId?.let { DemoMachineFarms.requireBelongsToFarm(it, cmd.farmId) }
         cmd.itemId?.let { DemoItemFarms.requireBelongsToFarm(it, cmd.farmId) }
+        requireAreaHa(cmd.areaHa)
         return repo.save(
             OperationEntity(
                 UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
@@ -319,6 +324,7 @@ class OperationService(
     )
 
     private companion object {
+        val MAX_AREA_HA = BigDecimal("100000")
         val FIELD_AREA = mapOf(
             "field-001" to BigDecimal("120.5"),
             "field-002" to BigDecimal("95.0"),
