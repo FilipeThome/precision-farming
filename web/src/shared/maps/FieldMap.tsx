@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 
 import type { Field, MapLayer } from '@/shared/api/types'
 import { fieldPolygons, fieldSetKey, fitBoundsOf } from '@/shared/maps/fieldMapModel'
+import type { FieldState } from '@/shared/maps/fieldStateColors'
 import { useI18n } from '@/shared/i18n/useI18n'
 
 type FieldMapProps = {
@@ -11,6 +12,10 @@ type FieldMapProps = {
   className?: string
   activeLayerKinds?: string[]
   layers?: MapLayer[]
+  /** When given, polygons are colored by operation state instead of crop/layer. */
+  fieldStates?: Record<string, FieldState>
+  /** Minimum height class of the map canvas. */
+  minHeightClass?: string
   onFieldClick?: (fieldId: string) => void
 }
 
@@ -29,6 +34,8 @@ export function FieldMap({
   className = 'h-[520px]',
   activeLayerKinds = [],
   layers = [],
+  fieldStates,
+  minHeightClass = 'min-h-[560px]',
   onFieldClick,
 }: FieldMapProps) {
   const { t } = useI18n()
@@ -71,7 +78,7 @@ export function FieldMap({
     if (!map || !group) return
 
     group.clearLayers()
-    const polygons = fieldPolygons(fields, activeLayerKinds, layers)
+    const polygons = fieldPolygons(fields, activeLayerKinds, layers, fieldStates)
     for (const poly of polygons) {
       for (const ring of poly.rings) {
         const latlngs = ring.map((p) => [p.lat, p.lng] as [number, number])
@@ -98,16 +105,16 @@ export function FieldMap({
       }
     }
     map.invalidateSize()
-  }, [fields, activeLayerKinds, layers, setKey])
+  }, [fields, activeLayerKinds, layers, fieldStates, setKey])
 
   return (
-    <div className={`w-full overflow-hidden rounded-[12px] ${className}`}>
+    <div className={`w-full overflow-hidden rounded-[14px] border border-ag-n-200 ${className}`}>
       {loadError ? (
-        <p className="mb-2 text-sm text-red-800" role="alert">
+        <p className="mb-2 text-sm text-ag-crit" role="alert">
           {t('map.loadError')}
         </p>
       ) : null}
-      <div ref={elRef} className="h-full min-h-[560px] w-full" role="application" aria-label={t('map.title')} />
+      <div ref={elRef} className={`h-full w-full ${minHeightClass}`} role="application" aria-label={t('map.title')} />
     </div>
   )
 }

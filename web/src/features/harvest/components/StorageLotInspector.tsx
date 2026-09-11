@@ -1,8 +1,7 @@
 import type { StorageLot } from '@/shared/api/types'
-import { cropPhoto, storagePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
@@ -15,7 +14,7 @@ export function StorageLotInspector({ lot }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={cropPhoto(lot.crop) || storagePhoto()} alt={label(lot.crop)} />
+        <EntityTile kind="crop" size="lg" label={label(lot.crop)} />
         <StatusBadge value={lot.quality} />
       </div>
       <InspectorKpis

@@ -1,5 +1,4 @@
 import type { StorageLot } from '@/shared/api/types'
-import { cropPhoto, storagePhoto } from '@/shared/demo/media'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -20,8 +19,7 @@ export function StorageLotsList({ items, selectedId, onSelect }: Props) {
           title={label(row.crop)}
           subtitle={`${number(Number(row.tons), 1)} t`}
           meta={dateTime(row.receivedAt)}
-          imageSrc={cropPhoto(row.crop) || storagePhoto()}
-          imageAlt={label(row.crop)}
+          kind="crop"
           selected={row.id === selectedId}
           onSelect={onSelect ? () => onSelect(row.id) : undefined}
         >

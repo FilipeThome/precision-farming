@@ -1,5 +1,4 @@
 import type { WeatherWindow } from '@/shared/api/types'
-import { weatherPhoto } from '@/shared/demo/media'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -18,8 +17,7 @@ export function WeatherWindowsList({ items }: Props) {
           title={label(row.windowType)}
           subtitle={row.notes ? label(row.notes) : undefined}
           meta={`${dateTime(row.startAt)} → ${dateTime(row.endAt)}`}
-          imageSrc={weatherPhoto()}
-          imageAlt={label(row.windowType)}
+          kind="weather"
         >
           <StatusBadge value={row.rating} />
         </EntityCard>

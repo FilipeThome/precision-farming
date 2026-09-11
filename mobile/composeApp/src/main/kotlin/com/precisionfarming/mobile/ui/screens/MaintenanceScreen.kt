@@ -25,6 +25,7 @@ import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun MaintenanceScreen(onBack: () -> Unit) {
@@ -44,8 +45,7 @@ fun MaintenanceScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("maintenance.title"))
+        ScreenHeader(S.t("maintenance.title"), onBack)
         msg?.let { Text(it) }
         when (val s = state) {
             is LoadState.Loading -> Text(S.t("common.loading"))

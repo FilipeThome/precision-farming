@@ -42,6 +42,7 @@ import com.precisionfarming.mobile.ui.components.toLoadState
 import com.precisionfarming.mobile.ui.inspectors.HarvestPlanInspector
 import com.precisionfarming.mobile.ui.inspectors.StorageLotInspector
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 private enum class HarvestTab { PLANS, YIELD, LOGISTICS, STORAGE }
 
@@ -103,8 +104,7 @@ fun HarvestScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("harvest.title"), style = MaterialTheme.typography.titleLarge)
+        ScreenHeader(S.t("harvest.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.plans"), S.t("tab.yield"), S.t("tab.logistics"), S.t("tab.storage")),
             selectedIndex = tab,

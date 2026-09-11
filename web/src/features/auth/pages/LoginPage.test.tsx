@@ -40,14 +40,37 @@ describe('LoginPage', () => {
     setSession.mockReset()
   })
 
-  it('renders email, password and demo hint', () => {
+  it('renders empty email and password fields without any prefilled hint', () => {
     renderLogin()
-    expect(screen.getByLabelText('E-mail')).toBeInTheDocument()
-    expect(screen.getByLabelText('Senha')).toBeInTheDocument()
+    expect(screen.getByLabelText('E-mail')).toHaveValue('')
     expect(screen.getByLabelText('Senha')).toHaveValue('')
     expect(screen.getByRole('button', { name: 'Entrar' })).toBeInTheDocument()
-    expect(screen.getByText(/manager@precisionfarming.demo/)).toBeInTheDocument()
+    expect(screen.queryByText(/precisionfarming.demo/)).not.toBeInTheDocument()
     expect(screen.queryByText(/Precision@123/)).not.toBeInTheDocument()
+  })
+
+  it('has no prefilled values, placeholders or hint text carrying credentials', () => {
+    const { container } = renderLogin()
+    const inputs = container.querySelectorAll('input')
+    expect(inputs.length).toBeGreaterThanOrEqual(2)
+    for (const input of inputs) {
+      expect(input.value).toBe('')
+      expect(input.defaultValue).toBe('')
+      expect(input.getAttribute('placeholder') ?? '').not.toMatch(/@|Precision/)
+    }
+    expect(screen.getByLabelText('Senha')).toHaveAttribute('type', 'password')
+    expect(container.textContent).not.toMatch(/@precisionfarming|demo|Demo/)
+  })
+
+  it('does not store a session when the login fails', async () => {
+    const user = userEvent.setup()
+    mutateAsync.mockRejectedValue(new Error('boom'))
+    renderLogin()
+    await user.type(screen.getByLabelText('E-mail'), 'a@b.co')
+    await user.type(screen.getByLabelText('Senha'), 'x')
+    await user.click(screen.getByRole('button', { name: 'Entrar' }))
+    expect(mutateAsync).toHaveBeenCalledTimes(1)
+    expect(setSession).not.toHaveBeenCalled()
   })
 
   it('submits credentials and stores the session', async () => {
@@ -61,6 +84,7 @@ describe('LoginPage', () => {
       email: 'manager@precisionfarming.demo',
     })
     renderLogin()
+    await user.type(screen.getByLabelText('E-mail'), 'manager@precisionfarming.demo')
     await user.type(screen.getByLabelText('Senha'), 'Precision@123')
     await user.click(screen.getByRole('button', { name: 'Entrar' }))
     expect(mutateAsync).toHaveBeenCalledWith({

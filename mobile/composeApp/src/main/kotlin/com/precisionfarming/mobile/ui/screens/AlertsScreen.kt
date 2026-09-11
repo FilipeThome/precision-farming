@@ -31,8 +31,12 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
+import com.precisionfarming.mobile.ui.components.FreshnessChip
 import com.precisionfarming.mobile.ui.components.LoadState
+import com.precisionfarming.mobile.ui.components.ScreenHeader
+import com.precisionfarming.mobile.ui.components.entityIcon
 import com.precisionfarming.mobile.ui.components.toLoadState
+import com.precisionfarming.mobile.ui.components.toneForStatus
 import com.precisionfarming.mobile.ui.inspectors.AlertInspector
 import kotlinx.coroutines.launch
 
@@ -62,7 +66,7 @@ fun AlertsScreen(
         Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item { Text(S.t("alerts.title"), style = MaterialTheme.typography.titleLarge) }
+        item { ScreenHeader(S.t("alerts.title")) }
         item {
             Row(
                 Modifier
@@ -91,7 +95,11 @@ fun AlertsScreen(
                         headline = DomainLabels.label(alert.title),
                         supporting = alert.message.orEmpty(),
                         status = "${DomainLabels.label(alert.severity)} · ${DomainLabels.label(alert.status)}",
+                        statusTone = toneForStatus(alert.severity),
+                        icon = entityIcon("ALERT"),
+                        iconTone = toneForStatus(alert.severity),
                         onClick = { onSelect(alert.id) },
+                        trailing = { FreshnessChip(alert.createdAt) },
                     )
                 }
             }

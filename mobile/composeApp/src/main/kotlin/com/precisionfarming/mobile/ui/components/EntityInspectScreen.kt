@@ -21,6 +21,7 @@ import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun <T> EntityInspectScreen(
@@ -56,10 +57,7 @@ fun <T> EntityInspectScreen(
         Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (onBack != null) {
-            item { TextButton(onClick = onBack) { Text(S.t("common.back")) } }
-        }
-        item { Text(title, style = MaterialTheme.typography.titleLarge) }
+        item { ScreenHeader(title, onBack) }
         item { header() }
         when (val s = state) {
             is LoadState.Loading -> item { Text(S.t("common.loading")) }

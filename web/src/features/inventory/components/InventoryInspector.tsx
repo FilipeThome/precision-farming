@@ -1,12 +1,11 @@
 import { useInventoryMovementsQuery } from '@/features/inventory/queries'
 import type { InventoryItem } from '@/shared/api/types'
-import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { useFormat } from '@/shared/lib/useFormat'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 
 type Props = { item: InventoryItem }
@@ -24,7 +23,7 @@ export function InventoryInspector({ item }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={inventoryPhoto(item.name, item.category)} alt={label(item.name)} />
+        <EntityTile kind="inventory" size="lg" label={label(item.name)} />
         <p className="text-sm text-pf-muted">{label(item.category)}</p>
       </div>
       <InspectorKpis

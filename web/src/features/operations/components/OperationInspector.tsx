@@ -3,10 +3,9 @@ import { useMachinesQuery } from '@/features/machines/queries'
 import { OperationActions } from '@/features/operations/components/OpsBoard'
 import { useOperationCommands } from '@/features/operations/queries'
 import type { Operation } from '@/shared/api/types'
-import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -35,10 +34,7 @@ export function OperationInspector({ operation, farmId, pauseReason, commands }:
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto
-          src={machinePhoto(operation.machineId) ?? farmPhoto(operation.farmId)}
-          alt={label(operation.type)}
-        />
+        <EntityTile kind="operation" size="lg" label={label(operation.type)} />
         <StatusBadge value={operation.status} />
       </div>
       <InspectorQueryState

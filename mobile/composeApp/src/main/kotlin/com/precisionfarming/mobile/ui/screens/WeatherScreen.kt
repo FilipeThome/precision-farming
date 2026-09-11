@@ -29,6 +29,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun WeatherScreen(onBack: () -> Unit) {
@@ -55,8 +56,7 @@ fun WeatherScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("weather.title"))
+        ScreenHeader(S.t("weather.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.forecast"), S.t("tab.windows")),
             selectedIndex = tab,

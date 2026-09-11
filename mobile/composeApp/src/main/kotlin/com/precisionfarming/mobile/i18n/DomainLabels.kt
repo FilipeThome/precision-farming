@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.i18n
 
+import com.precisionfarming.mobile.data.EntityNames
+
 object DomainLabels {
     fun label(raw: String?): String {
         val value = raw?.trim().orEmpty()
@@ -22,10 +24,8 @@ object DomainLabels {
             .replace(Regex("\\p{M}+"), "")
             .lowercase()
 
-    private fun entityName(id: String): String? {
-        val pair = FARMS[id] ?: FIELDS[id] ?: MACHINES[id] ?: return null
-        return if (LocaleStore.locale == AppLocale.EN_US) pair.second else pair.first
-    }
+    /** Names come only from entities the backend already returned (see [EntityNames]). */
+    private fun entityName(id: String): String? = EntityNames.nameOf(id)
 
     private fun humanize(value: String): String {
         val words = value.split('_', '-').filter { it.isNotBlank() }.map { it.lowercase() }
@@ -35,57 +35,6 @@ object DomainLabels {
 
     private val UUID_RE = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
     private val CODE_RE = Regex("^[A-Z]{2,}(_[A-Z0-9]+)*$")
-
-    private val FARMS = mapOf(
-        "bbc017bc-be38-34d4-95df-0b1f15162e1d" to ("Fazenda Boa Vista" to "Boa Vista Farm"),
-        "edee4185-700f-3eca-bda1-5c1e350f9bd7" to ("Fazenda Santa Helena" to "Santa Helena Farm"),
-        "7b78a074-4a05-3f91-aa71-a7e40a0ae887" to ("Fazenda Horizonte" to "Horizonte Farm"),
-        "c4874c61-ee80-3fd1-8178-07b1c8ba3789" to ("Fazenda Primavera" to "Primavera Farm"),
-        "ec0336f8-9c22-33f4-bbad-fd1648c8c6da" to ("Fazenda Campo Alegre" to "Campo Alegre Farm"),
-        "0ec22ad0-3142-311b-a3f5-e1e24e868fce" to ("Fazenda Vale Verde" to "Vale Verde Farm"),
-        "41b4ef3e-ecef-333b-8575-e693335b7980" to ("Fazenda Estrela do Sul" to "Estrela do Sul Farm"),
-        "2b78b23a-0578-32f7-b999-d8e672748b4a" to ("Fazenda Nova Esperança" to "Nova Esperança Farm"),
-    )
-    private val FIELDS = mapOf(
-        "0a88a941-7af8-3bc2-ae31-8d75c072b2f1" to ("Talhão 01" to "Field 01"),
-        "3efb5529-e736-3f3e-9a04-e281c0255225" to ("Talhão 02" to "Field 02"),
-        "8f2cc990-7a50-38ba-8fb4-0e2675be7a3f" to ("Talhão 03" to "Field 03"),
-        "4257e72d-24b3-32f8-9e7d-df5a8dfe5082" to ("Talhão Norte" to "North Field"),
-        "103c861e-dc68-3874-a3fb-13a4c4165121" to ("Talhão Sul" to "South Field"),
-        "732c2d4d-e3cb-3302-9d79-4c82a3bd240a" to ("Talhão A" to "Field A"),
-        "f3b691fd-b3c4-3d42-a936-5bf8f9168013" to ("Talhão B" to "Field B"),
-        "bd5d5765-efb3-3ae9-97da-2d43f025a5b6" to ("Talhão C" to "Field C"),
-        "4aacee0b-3a7c-3823-bd95-4f86bf857350" to ("Talhão Leste" to "East Field"),
-        "449184eb-ca59-32bd-ac65-1316f50af579" to ("Talhão Oeste" to "West Field"),
-        "71b09dff-0c53-3bf9-855c-e3e39a318a75" to ("Talhão Centro" to "Center Field"),
-        "606934a3-410c-32d7-b442-dbacf95d28e9" to ("Talhão 1" to "Field 1"),
-        "6169aebc-e956-36ca-ab0b-0316868f7cfb" to ("Talhão 2" to "Field 2"),
-        "f973f03c-cdc9-3bee-a2a5-9f62c4df18e2" to ("Talhão 04" to "Field 04"),
-        "9e876222-3f39-3190-ad8c-1c147b28f6e6" to ("Talhão Nordeste" to "Northeast Field"),
-        "65649ed1-3288-38ff-9221-fd72c55bfc70" to ("Talhão 3" to "Field 3"),
-        "35db3ff8-fcd4-3dc1-a94e-05cfc7f7573f" to ("Talhão VV-01" to "Field VV-01"),
-        "8d53bfe3-d56f-3aab-bd31-ea24fe5c00a0" to ("Talhão VV-02" to "Field VV-02"),
-        "3c659191-147b-33c6-b9cd-b3ba453ff56b" to ("Talhão ES-Norte" to "Field ES-North"),
-        "260f6dc7-43ea-36f4-9f62-697a85176143" to ("Talhão ES-Sul" to "Field ES-South"),
-        "bcdc44eb-b9c7-36ee-ab20-4057e50d9b39" to ("Talhão NE-01" to "Field NE-01"),
-        "df8b2220-938c-3d82-9391-cce9d326d9b5" to ("Talhão NE-02" to "Field NE-02"),
-    )
-    private val MACHINES = mapOf(
-        "1f297fd1-d21e-3bc1-8f2e-7cc1f58261b2" to ("Trator 01" to "Tractor 01"),
-        "9333e96c-f57d-35af-a819-98378ac30393" to ("Pulverizador 01" to "Sprayer 01"),
-        "a553ea50-0abf-35a0-96ea-132dd25b23e0" to ("Colheitadeira 01" to "Harvester 01"),
-        "df4e1ee3-5f7a-3391-9bf6-b285623603cf" to ("Trator 02" to "Tractor 02"),
-        "8c0daada-661f-33a6-8210-6cf71f4c9a12" to ("Plantadeira 01" to "Planter 01"),
-        "10f67c9c-309d-3088-8dfc-366b78097b51" to ("Pulverizador 02" to "Sprayer 02"),
-        "8207052a-6b9c-3f28-9d91-17431bedd5f6" to ("Trator 03" to "Tractor 03"),
-        "bd684837-1779-3648-b7e6-6dd979329f25" to ("Colheitadeira 02" to "Harvester 02"),
-        "1663096f-425b-3508-8c72-38492ca7af9d" to ("Trator 04" to "Tractor 04"),
-        "4a764502-e9d8-315e-a22b-afae790d1352" to ("Plantadeira 02" to "Planter 02"),
-        "b408224c-1bd9-3a7e-a9e6-b4970fe86693" to ("Pulverizador 03" to "Sprayer 03"),
-        "d4b460c4-37b3-321d-a601-535f9ecd8583" to ("Trator 05" to "Tractor 05"),
-        "9861d50d-527b-385c-b89b-b0674467015f" to ("Drone 01" to "Drone 01"),
-        "9b2296fa-d133-37db-be2f-be69dc802915" to ("Drone 02" to "Drone 02"),
-    )
 
     private val ALIASES = mapOf(
         "soja" to "SOY", "soy" to "SOY", "soybean" to "SOY",
