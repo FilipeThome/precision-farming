@@ -2,24 +2,29 @@ package com.precisionfarming.mobile.ui
 
 import android.net.Uri
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.automirrored.outlined.ListAlt
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.outlined.Map
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material.icons.outlined.WbSunny
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -45,11 +50,11 @@ import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.data.farms
 import com.precisionfarming.mobile.i18n.S
-import com.precisionfarming.mobile.ui.components.LocaleFlagButtons
+import com.precisionfarming.mobile.ui.components.LocalePill
+import com.precisionfarming.mobile.ui.components.OfflineStripFromRuntime
 import com.precisionfarming.mobile.ui.screens.AlertsScreen
 import com.precisionfarming.mobile.ui.screens.AgronomyScreen
 import com.precisionfarming.mobile.ui.screens.ComplianceScreen
-import com.precisionfarming.mobile.ui.screens.DashboardScreen
 import com.precisionfarming.mobile.ui.screens.FarmsScreen
 import com.precisionfarming.mobile.ui.screens.FieldsScreen
 import com.precisionfarming.mobile.ui.screens.FinanceScreen
@@ -63,13 +68,16 @@ import com.precisionfarming.mobile.ui.screens.MaintenanceScreen
 import com.precisionfarming.mobile.ui.screens.MapScreen
 import com.precisionfarming.mobile.ui.screens.MarketScreen
 import com.precisionfarming.mobile.ui.screens.MoreMenu
+import com.precisionfarming.mobile.ui.screens.OperationExecutionScreen
 import com.precisionfarming.mobile.ui.screens.OpsScreen
 import com.precisionfarming.mobile.ui.screens.ReportsScreen
 import com.precisionfarming.mobile.ui.screens.SeasonsScreen
 import com.precisionfarming.mobile.ui.screens.SettingsScreen
 import com.precisionfarming.mobile.ui.screens.SyncStatusScreen
+import com.precisionfarming.mobile.ui.screens.TodayScreen
 import com.precisionfarming.mobile.ui.screens.TraceabilityLotScreen
 import com.precisionfarming.mobile.ui.screens.WeatherScreen
+import com.precisionfarming.mobile.ui.theme.AgOsColors
 
 private data class Tab(val route: String, val labelKey: String, val icon: ImageVector)
 
@@ -102,10 +110,10 @@ private fun NavController.openInspect(href: String) {
 fun HomeShell(onLogout: () -> Unit) {
     val nav = rememberNavController()
     val tabs = listOf(
-        Tab(InspectNav.HOME, "nav.home", Icons.Filled.Home),
-        Tab(InspectNav.MAP, "nav.map", Icons.Filled.Place),
-        Tab(InspectNav.OPS, "nav.ops", Icons.AutoMirrored.Filled.List),
-        Tab(InspectNav.ALERTS, "nav.alerts", Icons.Filled.Notifications),
+        Tab(InspectNav.HOME, "nav.home", Icons.Outlined.WbSunny),
+        Tab(InspectNav.MAP, "nav.map", Icons.Outlined.Map),
+        Tab(InspectNav.OPS, "nav.ops", Icons.AutoMirrored.Outlined.ListAlt),
+        Tab(InspectNav.ALERTS, "nav.alerts", Icons.Outlined.Notifications),
         Tab(InspectNav.MORE, "nav.more", Icons.Filled.Menu),
     )
     val backStack by nav.currentBackStackEntryAsState()
@@ -126,57 +134,75 @@ fun HomeShell(onLogout: () -> Unit) {
     val farmLabel = farmList.firstOrNull { it.id == FarmFilter.farmId }?.name
         ?: S.t("farm.filter.all")
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = { Text(S.t("app.name")) },
-                actions = {
-                    Box {
-                        TextButton(
-                            onClick = {
-                                if (farmLoadFailed) farmLoadEpoch++
-                                farmMenu = true
-                            },
-                            modifier = Modifier
-                                .heightIn(min = 48.dp)
-                                .semantics { contentDescription = farmLabel },
-                        ) { Text(farmLabel) }
-                        DropdownMenu(expanded = farmMenu, onDismissRequest = { farmMenu = false }) {
-                            DropdownMenuItem(
-                                text = { Text(S.t("farm.filter.all")) },
+            Column {
+                OfflineStripFromRuntime()
+                TopAppBar(
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface,
+                    ),
+                    title = { Text(S.t("app.name"), style = MaterialTheme.typography.titleLarge) },
+                    actions = {
+                        Box {
+                            TextButton(
                                 onClick = {
-                                    FarmFilter.farmId = null
-                                    farmMenu = false
+                                    if (farmLoadFailed) farmLoadEpoch++
+                                    farmMenu = true
                                 },
-                            )
-                            farmList.forEach { farm ->
+                                modifier = Modifier
+                                    .heightIn(min = 48.dp)
+                                    .semantics { contentDescription = farmLabel },
+                            ) { Text(farmLabel) }
+                            DropdownMenu(expanded = farmMenu, onDismissRequest = { farmMenu = false }) {
                                 DropdownMenuItem(
-                                    text = { Text(farm.name) },
+                                    text = { Text(S.t("farm.filter.all")) },
                                     onClick = {
-                                        FarmFilter.farmId = farm.id
+                                        FarmFilter.farmId = null
                                         farmMenu = false
                                     },
                                 )
-                            }
-                            if (farmLoadFailed) {
-                                DropdownMenuItem(
-                                    text = { Text(S.t("common.refresh")) },
-                                    onClick = {
-                                        farmLoadEpoch++
-                                        farmMenu = false
-                                    },
-                                )
+                                farmList.forEach { farm ->
+                                    DropdownMenuItem(
+                                        text = { Text(farm.name) },
+                                        onClick = {
+                                            FarmFilter.farmId = farm.id
+                                            farmMenu = false
+                                        },
+                                    )
+                                }
+                                if (farmLoadFailed) {
+                                    DropdownMenuItem(
+                                        text = { Text(S.t("common.refresh")) },
+                                        onClick = {
+                                            farmLoadEpoch++
+                                            farmMenu = false
+                                        },
+                                    )
+                                }
                             }
                         }
-                    }
-                    LocaleFlagButtons()
-                },
-            )
+                        LocalePill(modifier = Modifier.padding(end = 8.dp))
+                    },
+                )
+            }
         },
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = NavigationBarDefaults.Elevation,
+            ) {
                 tabs.forEach { tab ->
                     val label = S.t(tab.labelKey)
                     NavigationBarItem(
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = AgOsColors.t700,
+                            selectedTextColor = AgOsColors.t700,
+                            indicatorColor = AgOsColors.t100,
+                            unselectedIconColor = AgOsColors.n600,
+                            unselectedTextColor = AgOsColors.n600,
+                        ),
                         selected = InspectNav.tabSelected(currentRoute, tab.route),
                         onClick = {
                             nav.navigate(if (tab.route == InspectNav.MORE) InspectNav.MORE else InspectNav.href(tab.route)) {
@@ -203,15 +229,24 @@ fun HomeShell(onLogout: () -> Unit) {
         fun clearSelected(base: String, severity: String? = null) {
             nav.openInspect(InspectNav.href(base, selected = null, severity = severity))
         }
+        val openRun: (String) -> Unit = { id -> nav.navigate(InspectNav.opsRun(id)) { launchSingleTop = true } }
         NavHost(nav, startDestination = InspectNav.HOME, modifier = Modifier.padding(padding)) {
-            composable(InspectNav.HOME) { DashboardScreen(onOpen = { nav.openInspect(it) }) }
+            composable(InspectNav.HOME) { TodayScreen(onOpen = { nav.openInspect(it) }, onOpenRun = openRun) }
             composable(InspectNav.MAP) { MapScreen() }
             composable(InspectNav.pattern(InspectNav.OPS), arguments = listOf(selectedArg)) { entry ->
                 OpsScreen(
                     selectedId = selectedOf(entry),
                     onSelect = { setSelected(InspectNav.OPS, it) },
                     onClearSelected = { clearSelected(InspectNav.OPS) },
+                    onOpenRun = openRun,
                 )
+            }
+            composable(
+                InspectNav.OPS_RUN,
+                arguments = listOf(navArgument(InspectNav.ARG_ID) { type = NavType.StringType }),
+            ) { entry ->
+                val id = Uri.decode(entry.arguments?.getString(InspectNav.ARG_ID).orEmpty())
+                OperationExecutionScreen(operationId = id, onBack = back)
             }
             composable(
                 InspectNav.pattern(InspectNav.ALERTS),
@@ -280,7 +315,7 @@ fun HomeShell(onLogout: () -> Unit) {
             composable("mais/reports") { ReportsScreen(onBack = back) }
             composable("mais/integrations") { IntegrationsScreen(onBack = back) }
             composable("mais/settings") { SettingsScreen(onBack = back, onLogout = onLogout) }
-            composable("mais/sync") { SyncStatusScreen(onBack = back) }
+            composable(InspectNav.SYNC) { SyncStatusScreen(onBack = back) }
         }
     }
 }

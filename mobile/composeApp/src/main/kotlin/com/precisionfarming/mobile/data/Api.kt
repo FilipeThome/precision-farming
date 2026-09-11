@@ -49,6 +49,10 @@ fun HttpRequestBuilder.farmQuery(farmId: String?) {
     if (!farmId.isNullOrBlank()) parameter("farmId", farmId)
 }
 
+private fun HttpRequestBuilder.idempotency(clientOperationId: String?) {
+    if (!clientOperationId.isNullOrBlank()) header("Idempotency-Key", clientOperationId)
+}
+
 val api = HttpClient(OkHttp) {
     expectSuccess = true
     install(ContentNegotiation) {
@@ -167,7 +171,7 @@ data class InsightDto(
     val type: String,
     val score: Double,
     val model: String,
-    val demo: Boolean = true,
+    val demo: Boolean? = null,
     val confidence: Double? = null,
     val explanation: List<String> = emptyList(),
     val entityId: String? = null,
@@ -537,6 +541,17 @@ data class SyncPullResponse(
     val deviceId: String? = null,
 )
 
+@Serializable
+data class SyncCommandDto(
+    val clientOperationId: String,
+    val type: String,
+    val createdAt: String,
+    val payload: Map<String, String> = emptyMap(),
+)
+
+@Serializable
+data class SyncPushRequest(val deviceId: String, val commands: List<SyncCommandDto>)
+
 suspend fun login(email: String, password: String): TokenResponse {
     Session.clear()
     TokenStore.clear()
@@ -551,16 +566,17 @@ suspend fun login(email: String, password: String): TokenResponse {
 
 suspend fun me() = api.get("/api/v1/auth/me").body<MeDto>()
 
-suspend fun farms() = api.get("/api/v1/farms").body<List<FarmDto>>()
+suspend fun farms() =
+    api.get("/api/v1/farms").body<List<FarmDto>>().also(EntityNames::registerFarms)
 
 suspend fun fields(farmId: String? = null) =
-    api.get("/api/v1/fields") { farmQuery(farmId) }.body<List<FieldDto>>()
+    api.get("/api/v1/fields") { farmQuery(farmId) }.body<List<FieldDto>>().also(EntityNames::registerFields)
 
 suspend fun seasons(farmId: String? = null) =
     api.get("/api/v1/seasons") { farmQuery(farmId) }.body<List<SeasonDto>>()
 
 suspend fun machines(farmId: String? = null) =
-    api.get("/api/v1/machines") { farmQuery(farmId) }.body<List<MachineDto>>()
+    api.get("/api/v1/machines") { farmQuery(farmId) }.body<List<MachineDto>>().also(EntityNames::registerMachines)
 
 suspend fun operations(farmId: String? = null) =
     api.get("/api/v1/operations") { farmQuery(farmId) }.body<List<OperationDto>>()
@@ -571,14 +587,19 @@ suspend fun alerts(farmId: String? = null) =
 suspend fun insights(farmId: String? = null) =
     api.get("/api/v1/ai/insights") { farmQuery(farmId) }.body<List<InsightDto>>()
 
-suspend fun startOp(id: String) = api.post("/api/v1/operations/$id/start")
-
-suspend fun pauseOp(id: String, reason: String) = api.post("/api/v1/operations/$id/pause") {
-    contentType(ContentType.Application.Json)
-    setBody(PauseRequest(reason))
+suspend fun startOp(id: String, clientOperationId: String? = null) = api.post("/api/v1/operations/$id/start") {
+    idempotency(clientOperationId)
 }
 
-suspend fun completeOp(id: String) = api.post("/api/v1/operations/$id/complete")
+suspend fun pauseOp(id: String, reason: String, clientOperationId: String? = null) = api.post("/api/v1/operations/$id/pause") {
+    contentType(ContentType.Application.Json)
+    setBody(PauseRequest(reason))
+    idempotency(clientOperationId)
+}
+
+suspend fun completeOp(id: String, clientOperationId: String? = null) = api.post("/api/v1/operations/$id/complete") {
+    idempotency(clientOperationId)
+}
 
 suspend fun ackAlert(id: String) = api.post("/api/v1/alerts/$id/ack")
 
@@ -712,15 +733,22 @@ suspend fun reportOperationsPdf(farmId: String? = null): ByteArray =
 suspend fun reportInventoryPdf(farmId: String? = null): ByteArray =
     api.get("/api/v1/reports/inventory.pdf") { farmQuery(farmId) }.bodyAsBytes()
 
-/** Soft-callable sync pull stub. Prefer [Session.userId]:demo when bound. */
 suspend fun syncPull(deviceId: String, cursor: String? = null): SyncPullResponse =
     api.post("/api/v1/sync/pull") {
         contentType(ContentType.Application.Json)
         setBody(SyncPullRequest(deviceId = deviceId, cursor = cursor))
     }.body()
 
+/** Audit-only: the backend stores the commands; state changes go through the operation endpoints. */
+suspend fun syncPush(deviceId: String, commands: List<SyncCommandDto>) =
+    api.post("/api/v1/sync/push") {
+        contentType(ContentType.Application.Json)
+        setBody(SyncPushRequest(deviceId = deviceId, commands = commands))
+    }
+
+/** Device binding for sync: one logical device per signed-in user on this platform. */
 fun syncDeviceId(): String {
     val userId = Session.userId
     if (userId.isNullOrBlank()) error("Missing userId for sync device binding — sign in again")
-    return "$userId:demo"
+    return "$userId:android"
 }

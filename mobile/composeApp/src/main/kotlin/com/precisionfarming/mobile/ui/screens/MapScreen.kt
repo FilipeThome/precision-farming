@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.LoadedList
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
 
@@ -43,9 +45,9 @@ fun MapScreen() {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(S.t("map.title"))
-        Text(S.t("map.noKey"))
-        Text(S.t("map.layers"))
+        ScreenHeader(S.t("map.title"))
+        Text(S.t("map.noKey"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(S.t("map.layers"), style = MaterialTheme.typography.titleMedium)
         LoadedList(state) { layer ->
             listOfNotNull(layer.name, layer.kind, layer.status).joinToString(" · ").ifBlank { layer.id }
         }

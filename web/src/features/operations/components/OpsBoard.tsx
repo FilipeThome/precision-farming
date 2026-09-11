@@ -1,11 +1,10 @@
 import type { Operation } from '@/shared/api/types'
-import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import type { MessageKey } from '@/shared/i18n/useI18n'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
 import { OPS_STATUSES, type OpsStatus } from './OpsStatusFilters'
@@ -99,11 +98,7 @@ function OpsRow({
         aria-pressed={selected}
         onClick={() => onSelect?.(op.id)}
       >
-        <EntityPhoto
-          variant={layout === 'list' ? 'thumb' : undefined}
-          src={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
-          alt={label(op.type)}
-        />
+        <EntityTile kind="operation" size={layout === 'list' ? 'sm' : 'md'} label={label(op.type)} />
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h2 className="font-semibold text-pf-green">{label(op.type)}</h2>

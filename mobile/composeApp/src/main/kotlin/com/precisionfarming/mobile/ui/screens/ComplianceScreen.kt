@@ -29,6 +29,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun ComplianceScreen(onBack: () -> Unit, onOpenLot: (String) -> Unit) {
@@ -55,8 +56,7 @@ fun ComplianceScreen(onBack: () -> Unit, onOpenLot: (String) -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("compliance.title"))
+        ScreenHeader(S.t("compliance.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.traceability"), S.t("tab.esg")),
             selectedIndex = tab,

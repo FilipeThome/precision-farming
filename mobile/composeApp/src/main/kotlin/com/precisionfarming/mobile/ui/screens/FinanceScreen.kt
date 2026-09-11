@@ -33,6 +33,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 private enum class FinanceTab { COSTS, PNL, BUDGET, CASHFLOW }
 
@@ -75,8 +76,7 @@ fun FinanceScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("finance.title"))
+        ScreenHeader(S.t("finance.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.costs"), S.t("tab.pnl"), S.t("tab.budget"), S.t("tab.cashflow")),
             selectedIndex = tab,
@@ -91,9 +91,9 @@ fun FinanceScreen(onBack: () -> Unit) {
             FinanceTab.PNL -> LoadedList(pnl) { p ->
                 listOfNotNull(
                     p.period,
-                    p.revenue?.let { "${S.t("dashboard.pnl.revenue")} $it" },
-                    p.cost?.let { "${S.t("dashboard.pnl.cost")} $it" },
-                    p.margin?.let { "${S.t("dashboard.pnl.margin")} $it" },
+                    p.revenue?.let { "${S.t("finance.pnl.revenue")} $it" },
+                    p.cost?.let { "${S.t("finance.pnl.cost")} $it" },
+                    p.margin?.let { "${S.t("finance.pnl.margin")} $it" },
                     p.currency,
                 ).joinToString(" · ").ifBlank { p.id ?: "—" }
             }

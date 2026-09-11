@@ -25,6 +25,8 @@ fun InsightsScreen(
         idOf = { it.id },
         headline = { DomainLabels.label(it.type) },
         supporting = { "${it.model} · ${it.score}" },
+        // Backend-provided flag: badge only when the API says the insight is a demo one.
+        statusOf = { if (it.demo == true) DomainLabels.label("DEMO") else null },
         inspector = { InsightInspector(it) },
     )
 }

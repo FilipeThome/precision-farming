@@ -1,6 +1,5 @@
 import { MachineInspector } from '@/features/machines/components/MachineInspector'
 import { useMachinesQuery } from '@/features/machines/queries'
-import { machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -40,8 +39,8 @@ export function MachinesPage() {
               key={machine.id}
               title={label(machine.id, machine.name)}
               subtitle={`${label(machine.type)} · ${machine.manufacturer} ${machine.model}`}
-              imageSrc={machinePhoto(machine.id, machine.type)}
-              imageAlt={label(machine.id, machine.name)}
+              kind="machine"
+              machineType={machine.type}
               selected={machine.id === selectedId}
               onSelect={() => setSelectedId(machine.id)}
             >

@@ -2,13 +2,12 @@ import { useInventoryQuery } from '@/features/inventory/queries'
 import { useMachineMetricsQuery } from '@/features/machines/queries'
 import { useMachineWorkSummaryQuery } from '@/features/operations/queries'
 import type { Machine } from '@/shared/api/types'
-import { machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { useFormat } from '@/shared/lib/useFormat'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock, LineChartBlock } from '@/shared/ui/charts'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { FreshnessChip, InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
@@ -44,7 +43,7 @@ export function MachineInspector({ machine, farmId }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={machinePhoto(machine.id, machine.type)} alt={label(machine.id, machine.name)} />
+        <EntityTile kind="machine" machineType={machine.type} size="lg" label={label(machine.id, machine.name)} />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge value={machine.status} />

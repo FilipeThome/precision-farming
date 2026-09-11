@@ -3,10 +3,9 @@ import { weightedYieldTHa, yieldsForField } from '@/features/harvest/yieldMath'
 import { useYieldQuery } from '@/features/harvest/queries'
 import { useOperationsQuery } from '@/features/operations/queries'
 import type { Field } from '@/shared/api/types'
-import { fieldPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -31,10 +30,7 @@ export function FieldInspector({ field }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto
-          src={fieldPhoto(field.id, field.crop, field.farmId)}
-          alt={label(field.id, field.name)}
-        />
+        <EntityTile kind="field" size="lg" label={label(field.id, field.name)} />
         <div>
           <p className="text-sm text-pf-muted">
             {label(field.crop)}

@@ -1,7 +1,6 @@
 import { InventoryInspector } from '@/features/inventory/components/InventoryInspector'
 import { useInventoryQuery } from '@/features/inventory/queries'
 import { inventoryStockBars } from '@/shared/charts/adapters'
-import { inventoryPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -55,8 +54,7 @@ export function InventoryPage() {
               title={label(item.name)}
               subtitle={label(item.category)}
               meta={`${number(Number(item.quantity), 1)} ${item.unit} · ${t('charts.reserved')} ${number(Number(item.reserved), 1)}`}
-              imageSrc={inventoryPhoto(item.name, item.category)}
-              imageAlt={label(item.name)}
+              kind="inventory"
               selected={item.id === selectedId}
               onSelect={() => setSelectedId(item.id)}
             />

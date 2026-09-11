@@ -3,10 +3,9 @@ import { useFieldsQuery } from '@/features/fields/queries'
 import { useFinancePnlQuery } from '@/features/finance/queries'
 import { useOperationsQuery } from '@/features/operations/queries'
 import type { Farm } from '@/shared/api/types'
-import { farmPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 
@@ -24,7 +23,7 @@ export function FarmInspector({ farm }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={farmPhoto(farm.id)} alt={label(farm.id, farm.name)} />
+        <EntityTile kind="farm" size="lg" label={label(farm.id, farm.name)} />
         <div>
           <p className="text-sm text-pf-muted">{farm.location}</p>
           <p className="text-xs text-pf-muted">{farm.timezone}</p>

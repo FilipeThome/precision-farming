@@ -19,6 +19,24 @@ export async function fetchReportsCatalog(): Promise<ReportCatalogItem[]> {
   return apiGet<ReportCatalogItem[]>('/api/v1/reports')
 }
 
+/** Real gateway paths used when the catalog endpoint is down — not demo files. */
+export const GATEWAY_REPORTS: ReportCatalogItem[] = [
+  {
+    kind: 'operations',
+    title: 'operations',
+    format: 'PDF',
+    filename: 'operations.pdf',
+    path: '/api/v1/reports/operations.pdf',
+  },
+  {
+    kind: 'inventory',
+    title: 'inventory',
+    format: 'PDF',
+    filename: 'inventory.pdf',
+    path: '/api/v1/reports/inventory.pdf',
+  },
+]
+
 export function reportDownloadPath(path: string, farmId?: string | null): string {
   if (!path.startsWith('/api/v1/reports/')) {
     throw new Error('Invalid report download path')

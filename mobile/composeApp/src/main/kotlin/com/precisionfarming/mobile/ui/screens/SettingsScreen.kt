@@ -20,10 +20,12 @@ import com.precisionfarming.mobile.data.MeDto
 import com.precisionfarming.mobile.data.Session
 import com.precisionfarming.mobile.data.TokenStore
 import com.precisionfarming.mobile.data.me
+import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.LocaleFlagButtons
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 private sealed class MeState {
     data object Loading : MeState()
@@ -46,8 +48,7 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit) {
     }
     LaunchedEffect(LocaleStore.locale) { reload() }
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("settings.title"))
+        ScreenHeader(S.t("settings.title"), onBack)
         when (val s = state) {
             is MeState.Loading -> Text(S.t("common.loading"))
             is MeState.Err -> Text("${S.t("common.error")}: ${s.message}")
@@ -61,6 +62,7 @@ fun SettingsScreen(onBack: () -> Unit, onLogout: () -> Unit) {
         LocaleFlagButtons()
         TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) }
         Button(onClick = {
+            OfflineRuntime.onLogout()
             TokenStore.clear()
             Session.clear()
             FarmFilter.farmId = null

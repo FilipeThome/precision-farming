@@ -1,4 +1,3 @@
-import { cropPhoto, farmPhoto } from '@/shared/demo/media'
 import { useSeasonsQuery } from '@/features/seasons/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
@@ -36,8 +35,7 @@ export function SeasonsPage() {
               title={label(season.name, season.id)}
               subtitle={season.crop ? label(season.crop) : undefined}
               meta={`${date(season.startDate)} – ${date(season.endDate)}`}
-              imageSrc={season.crop ? cropPhoto(season.crop) : farmPhoto(season.farmId)}
-              imageAlt={label(season.name, season.crop)}
+              kind="season"
             >
               {season.status ? <StatusBadge value={season.status} /> : null}
             </EntityCard>

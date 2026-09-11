@@ -30,12 +30,8 @@ describe('domain labels', () => {
     expect(domainLabel('pt-BR', 'SOY')).toBe('Soja')
   })
 
-  it('resolves demo farm UUIDs to localized names', () => {
-    expect(domainLabel('pt-BR', 'bbc017bc-be38-34d4-95df-0b1f15162e1d')).toBe('Fazenda Boa Vista')
-    expect(domainLabel('en-US', 'bbc017bc-be38-34d4-95df-0b1f15162e1d')).toBe('Boa Vista Farm')
-  })
-
-  it('falls unknown UUIDs back to a short id instead of a generic word', () => {
+  it('never invents names for uuids: falls back to a short, distinct id', () => {
+    expect(domainLabel('pt-BR', 'bbc017bc-be38-34d4-95df-0b1f15162e1d')).toBe('bbc017bc')
     expect(domainLabel('en-US', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')).toBe('aaaaaaaa')
     expect(domainLabel('pt-BR', 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb')).toBe('bbbbbbbb')
     expect(domainLabel('en-US', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa')).not.toBe(
@@ -43,19 +39,12 @@ describe('domain labels', () => {
     )
   })
 
-  it('keeps field-015 distinct from field-009', () => {
-    expect(domainLabel('pt-BR', '4aacee0b-3a7c-3823-bd95-4f86bf857350')).toBe('Talhão Leste')
-    expect(domainLabel('pt-BR', '9e876222-3f39-3190-ad8c-1c147b28f6e6')).toBe('Talhão Nordeste')
-  })
-
-  it('covers seeded maintenance and irrigation codes', () => {
+  it('covers maintenance and irrigation codes', () => {
     expect(domainLabel('pt-BR', 'FILTER_CHANGE')).toBe('Troca de filtros')
     expect(domainLabel('en-US', 'PIVOT_NORTH')).toBe('North Pivot')
     expect(domainLabel('pt-BR', 'WATER_DEFICIT')).toBe('Déficit hídrico estimado')
     expect(domainLabel('en-US', 'HYDRAULIC_OIL')).toBe('Hydraulic oil')
     expect(domainLabel('pt-BR', 'DRONE')).toBe('Drone')
-    expect(domainLabel('pt-BR', '9861d50d-527b-385c-b89b-b0674467015f')).toBe('Drone 01')
-    expect(domainLabel('pt-BR', '9b2296fa-d133-37db-be2f-be69dc802915')).toBe('Drone 02')
     expect(domainLabel('pt-BR', 'IDLE')).toBe('Ocioso')
     expect(domainLabel('en-US', 'DemoJohnDeere')).toBe('DemoJohnDeere')
     expect(domainLabel('en-US', 'listMachines')).toBe('listMachines')

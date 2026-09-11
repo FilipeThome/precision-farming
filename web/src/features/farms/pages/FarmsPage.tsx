@@ -1,6 +1,5 @@
 import { FarmInspector } from '@/features/farms/components/FarmInspector'
 import { useFarmsQuery } from '@/features/farms/queries'
-import { farmPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -38,8 +37,7 @@ export function FarmsPage() {
               title={label(farm.id, farm.name)}
               subtitle={farm.location}
               meta={`${number(Number(farm.areaHa), 1)} ha · ${farm.timezone}`}
-              imageSrc={farmPhoto(farm.id)}
-              imageAlt={label(farm.id, farm.name)}
+              kind="farm"
               selected={farm.id === selectedId}
               onSelect={() => setSelectedId(farm.id)}
             />

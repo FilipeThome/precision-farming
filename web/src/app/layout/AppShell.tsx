@@ -5,8 +5,8 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { useOnline } from '@/shared/lib/useOnline'
 import { ErrorBoundary } from '@/shared/ui/ErrorBoundary'
 
-import { Header } from './Header'
-import { Sidebar } from './Sidebar'
+import { Rail } from './Rail'
+import { Topbar } from './Topbar'
 
 export function AppShell() {
   const online = useOnline()
@@ -14,16 +14,16 @@ export function AppShell() {
   useIdleSessionTimeout()
 
   return (
-    <div className="flex h-screen overflow-hidden bg-pf-bg">
-      <Sidebar />
+    <div className="flex h-screen overflow-hidden bg-ag-n-50">
+      <Rail />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Header />
+        <Topbar />
         {!online ? (
-          <div className="bg-amber-100 px-4 py-2 text-sm text-amber-950" role="status">
+          <div className="bg-ag-n-800 px-5 py-1.5 text-xs font-medium text-[#e8e6df]" role="status">
             {t('chrome.offlineBanner')}
           </div>
         ) : null}
-        <main className="min-h-0 flex-1 overflow-y-auto p-6">
+        <main className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <ErrorBoundary>
             <Outlet />
           </ErrorBoundary>

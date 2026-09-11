@@ -21,6 +21,7 @@ import com.precisionfarming.mobile.data.reportOperationsPdf
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.FileShare
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun ReportsScreen(onBack: () -> Unit) {
@@ -38,8 +39,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         }
     }
     Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("reports.title"))
+        ScreenHeader(S.t("reports.title"), onBack)
         error?.let { Text(it) }
         Button(
             enabled = pending == null,

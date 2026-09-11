@@ -1,10 +1,9 @@
 import { weightedYieldTHa, yieldsForPlan } from '@/features/harvest/yieldMath'
 import { useYieldQuery } from '@/features/harvest/queries'
 import type { HarvestPlan } from '@/shared/api/types'
-import { cropPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
@@ -21,7 +20,7 @@ export function HarvestPlanInspector({ plan, farmId }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={cropPhoto(plan.crop)} alt={label(plan.crop)} />
+        <EntityTile kind="crop" size="lg" label={label(plan.crop)} />
         {plan.status ? <StatusBadge value={plan.status} /> : null}
       </div>
       <p className="text-xs text-pf-muted">{dateTime(plan.plannedStart)}</p>
