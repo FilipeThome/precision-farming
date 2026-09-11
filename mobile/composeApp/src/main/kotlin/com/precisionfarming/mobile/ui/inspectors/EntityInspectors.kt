@@ -87,24 +87,23 @@ fun FieldInspector(field: FieldDto, modifier: Modifier = Modifier) {
     var ops by remember { mutableStateOf<List<OperationDto>>(emptyList()) }
     var yields by remember { mutableStateOf<List<YieldRecordDto>>(emptyList()) }
     var rx by remember { mutableStateOf<List<PrescriptionDto>>(emptyList()) }
+    var yieldReady by remember { mutableStateOf(false) }
+    var rxReady by remember { mutableStateOf(false) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
     LaunchedEffect(field.id, field.farmId) {
         loading = true
         error = null
+        yieldReady = false
+        rxReady = false
         val farmId = field.farmId
-        val result = runCatching {
-            Triple(
-                operations(farmId).filter { it.fieldId == field.id },
-                harvestYield(farmId),
-                prescriptions(farmId).filter { it.fieldId == field.id },
-            )
-        }
-        result.onSuccess { (fieldOps, fieldYields, fieldRx) ->
-            ops = fieldOps
-            yields = fieldYields
-            rx = fieldRx
-        }.onFailure { error = it.message ?: S.t("common.error") }
+        runCatching { operations(farmId).filter { it.fieldId == field.id } }
+            .onSuccess { ops = it }
+            .onFailure { error = it.message ?: S.t("common.error") }
+        runCatching { harvestYield(farmId) }
+            .onSuccess { yields = it; yieldReady = true }
+        runCatching { prescriptions(farmId).filter { it.fieldId == field.id } }
+            .onSuccess { rx = it; rxReady = true }
         loading = false
     }
     val actual = YieldMath.weightedYieldTHa(YieldMath.yieldsForField(yields, field.id))
@@ -119,8 +118,14 @@ fun FieldInspector(field: FieldDto, modifier: Modifier = Modifier) {
                         InspectorKpiItem(S.t("fields.kpi.crop"), DomainLabels.label(field.crop)),
                         InspectorKpiItem(S.t("fields.kpi.area"), field.areaHa?.let { "${formatNumber(it)} ha" } ?: "—"),
                         InspectorKpiItem(S.t("fields.kpi.ops"), ops.size.toString()),
-                        InspectorKpiItem(S.t("fields.kpi.yield"), "${formatNumber(actual)} t/ha"),
-                        InspectorKpiItem(S.t("fields.kpi.prescriptions"), rx.size.toString()),
+                        InspectorKpiItem(
+                            S.t("fields.kpi.yield"),
+                            if (yieldReady) "${formatNumber(actual)} t/ha" else "—",
+                        ),
+                        InspectorKpiItem(
+                            S.t("fields.kpi.prescriptions"),
+                            if (rxReady) rx.size.toString() else "—",
+                        ),
                     ),
                 )
                 ops.takeLast(5).reversed().forEach { op ->
