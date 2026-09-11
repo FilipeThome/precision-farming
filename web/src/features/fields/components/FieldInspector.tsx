@@ -21,8 +21,12 @@ export function FieldInspector({ field }: Props) {
   const { number, label } = useFormat()
 
   const fieldOps = (operations.data ?? []).filter((op) => op.fieldId === field.id)
-  const fieldRx = (prescriptions.data ?? []).filter((rx) => rx.fieldId === field.id)
-  const fieldYield = weightedYieldTHa(yieldsForField(yields.data ?? [], field.id))
+  const fieldRx = prescriptions.isSuccess
+    ? (prescriptions.data ?? []).filter((rx) => rx.fieldId === field.id)
+    : null
+  const fieldYield = yields.isSuccess
+    ? weightedYieldTHa(yieldsForField(yields.data ?? [], field.id))
+    : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -39,21 +43,25 @@ export function FieldInspector({ field }: Props) {
         </div>
       </div>
       <InspectorQueryState
-        isLoading={operations.isLoading || prescriptions.isLoading || yields.isLoading}
-        error={operations.error || prescriptions.error || yields.error}
-        onRetry={() => {
-          void operations.refetch()
-          void prescriptions.refetch()
-          void yields.refetch()
-        }}
+        isLoading={operations.isLoading}
+        error={operations.error}
+        onRetry={() => void operations.refetch()}
       >
         <InspectorKpis
           items={[
             { label: t('fields.kpi.crop'), value: label(field.crop) },
             { label: t('fields.kpi.area'), value: `${number(Number(field.areaHa), 1)} ha` },
             { label: t('fields.kpi.ops'), value: number(fieldOps.length, 0) },
-            { label: t('fields.kpi.yield'), value: `${number(fieldYield, 1)} t/ha` },
-            { label: t('fields.kpi.prescriptions'), value: number(fieldRx.length, 0) },
+            {
+              label: t('fields.kpi.yield'),
+              value: fieldYield == null ? '—' : `${number(fieldYield, 1)} t/ha`,
+              hint: yields.isError ? t('common.loadError') : undefined,
+            },
+            {
+              label: t('fields.kpi.prescriptions'),
+              value: fieldRx == null ? '—' : number(fieldRx.length, 0),
+              hint: prescriptions.isError ? t('common.loadError') : undefined,
+            },
           ]}
         />
         {fieldOps.slice(0, 5).map((op) => (

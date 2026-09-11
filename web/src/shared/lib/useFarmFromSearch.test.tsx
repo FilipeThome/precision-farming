@@ -16,7 +16,8 @@ describe('useFarmFromSearch', () => {
     useUiStore.getState().setFarmId(null)
   })
 
-  it('copies farm query into the UI store', () => {
+  it('applies farm on the first render over a persisted filter', () => {
+    useUiStore.getState().setFarmId('farm-old')
     render(
       <MemoryRouter initialEntries={['/operations?selected=op-1&farm=farm-9']}>
         <Probe />
