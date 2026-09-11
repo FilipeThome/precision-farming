@@ -3,6 +3,8 @@ package com.precisionfarming.common
 import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.common.capped
+import com.precisionfarming.common.cappedNewest
 import com.precisionfarming.common.concurrency.VirtualJobs
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertSame
@@ -59,5 +61,6 @@ class ConcurrencyAndIdTest {
         val items = (1..QueryLimits.MAX_LIST + 10).toList()
         assertEquals(QueryLimits.MAX_LIST, items.capped().size)
         assertEquals(listOf(1, 2, 3), listOf(1, 2, 3).capped())
+        assertEquals((11..QueryLimits.MAX_LIST + 10).toList(), items.cappedNewest())
     }
 }

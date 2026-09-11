@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.AlertDto
+import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.data.ackAlert
 import com.precisionfarming.mobile.data.formatWhen
@@ -42,7 +43,10 @@ fun AlertInspector(
         }
         if (alert.entityType.equals("MACHINE", ignoreCase = true) && !alert.entityId.isNullOrBlank()) {
             TextButton(
-                onClick = { onOpen(InspectNav.href(InspectNav.MACHINES, selected = alert.entityId)) },
+                onClick = {
+                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId = alert.farmId
+                    onOpen(InspectNav.href(InspectNav.MACHINES, selected = alert.entityId))
+                },
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(S.t("alerts.jumpMachine"))
@@ -50,7 +54,10 @@ fun AlertInspector(
         }
         if (alert.entityType.equals("FIELD", ignoreCase = true) && !alert.entityId.isNullOrBlank()) {
             TextButton(
-                onClick = { onOpen(InspectNav.href(InspectNav.FIELDS, selected = alert.entityId)) },
+                onClick = {
+                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId = alert.farmId
+                    onOpen(InspectNav.href(InspectNav.FIELDS, selected = alert.entityId))
+                },
                 modifier = Modifier.heightIn(min = 48.dp),
             ) {
                 Text(S.t("alerts.jumpField"))

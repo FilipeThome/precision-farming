@@ -4,6 +4,7 @@ import { Link } from 'react-router'
 import type { Alert, Machine, Operation } from '@/shared/api/types'
 import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { inspectHref } from '@/shared/lib/useFarmFromSearch'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -40,7 +41,7 @@ export function ControlTowerStrip({ alerts, machines, operations }: Props) {
         {openAlerts.map((alert) => (
           <TowerChip
             key={alert.id}
-            to={`/alerts?selected=${alert.id}`}
+            to={inspectHref('/alerts', alert.id, alert.farmId)}
             photo={
               alert.entityType === 'MACHINE' && alert.entityId
                 ? machinePhoto(alert.entityId)
@@ -55,7 +56,7 @@ export function ControlTowerStrip({ alerts, machines, operations }: Props) {
         {fleet.map((machine) => (
           <TowerChip
             key={machine.id}
-            to={`/machines?selected=${machine.id}`}
+            to={inspectHref('/machines', machine.id, machine.farmId)}
             photo={machinePhoto(machine.id, machine.type)}
             title={label(machine.id, machine.name)}
             status={machine.status}
@@ -66,7 +67,7 @@ export function ControlTowerStrip({ alerts, machines, operations }: Props) {
         {running.map((op) => (
           <TowerChip
             key={op.id}
-            to={`/operations?selected=${op.id}`}
+            to={inspectHref('/operations', op.id, op.farmId)}
             photo={machinePhoto(op.machineId) ?? farmPhoto(op.farmId)}
             title={label(op.type)}
             status={op.status}

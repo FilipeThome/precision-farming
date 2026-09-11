@@ -11,7 +11,10 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException
+import org.springframework.web.servlet.resource.NoResourceFoundException
 
 @RestControllerAdvice
 class RestExceptionHandler {
@@ -67,6 +70,23 @@ class RestExceptionHandler {
             ),
         )
 
+    @ExceptionHandler(NoResourceFoundException::class)
+    fun missingResource(ex: NoResourceFoundException, request: HttpServletRequest): ResponseEntity<ApiError> =
+        notFound(request, "NOT_FOUND", "Not found")
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException::class)
+    fun typeMismatch(ex: MethodArgumentTypeMismatchException, request: HttpServletRequest): ResponseEntity<ApiError> {
+        if (isPathVariable(ex)) return notFound(request, "NOT_FOUND", "Not found")
+        return ResponseEntity.badRequest().body(
+            ApiError(
+                status = 400,
+                code = "VALIDATION_ERROR",
+                message = "Invalid ${ex.name}",
+                correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
+            ),
+        )
+    }
+
     @ExceptionHandler(Exception::class)
     fun other(ex: Exception): ResponseEntity<ApiError> {
         log.error("Unhandled error", ex)
@@ -79,4 +99,20 @@ class RestExceptionHandler {
             ),
         )
     }
+
+    private fun isPathVariable(ex: MethodArgumentTypeMismatchException): Boolean {
+        val param = ex.parameter
+        if (param != null) return param.hasParameterAnnotation(PathVariable::class.java)
+        return ex.name == "id"
+    }
+
+    private fun notFound(request: HttpServletRequest, code: String, message: String): ResponseEntity<ApiError> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            ApiError(
+                status = 404,
+                code = code,
+                message = message,
+                correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
+            ),
+        )
 }

@@ -122,7 +122,14 @@ export function OperationsPage() {
         subtitle={selected ? undefined : t('inspector.notFoundHint')}
         onClose={() => setSelectedId(null)}
       >
-        {selected ? <OperationInspector operation={selected} farmId={farmId} /> : null}
+        {selected ? (
+          <OperationInspector
+            operation={selected}
+            farmId={farmId}
+            pauseReason={pauseReason}
+            commands={commands}
+          />
+        ) : null}
       </DetailDrawer>
     </section>
   )

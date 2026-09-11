@@ -2,6 +2,7 @@ package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
 import com.precisionfarming.inventory.infrastructure.ItemEntity
@@ -97,6 +98,27 @@ class InventoryServiceTest {
         val dto = svc.listMovements(scopeFor(item), item.id)
         assertEquals(1, dto.size)
         assertEquals(BigDecimal("8"), dto.single().quantity)
+    }
+
+    @Test
+    fun listMovementsKeepsNewestWhenCapped() {
+        val item = item(quantity = "10", reserved = "0")
+        val rows = (0 until QueryLimits.MAX_LIST + 5).map { i ->
+            MovementEntity(
+                UUID.randomUUID(),
+                item.id,
+                "CONSUME",
+                BigDecimal(i),
+                Instant.parse("2026-01-01T00:00:00Z").plus(i.toLong(), ChronoUnit.DAYS),
+                "row-$i",
+            )
+        }
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.findByItemIdOrderByOccurredAtAsc(item.id) } returns rows
+        val dto = svc.listMovements(scopeFor(item), item.id)
+        assertEquals(QueryLimits.MAX_LIST, dto.size)
+        assertEquals(BigDecimal(5), dto.first().quantity)
+        assertEquals(BigDecimal(QueryLimits.MAX_LIST + 4), dto.last().quantity)
     }
 
     @Test
