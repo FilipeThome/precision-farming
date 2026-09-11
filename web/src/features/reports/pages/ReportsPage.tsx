@@ -86,11 +86,7 @@ export function ReportsPage() {
                     </a>
                   ) : null}
                 </div>
-                <Button
-                  variant={item.kind === 'inventory' ? 'secondary' : 'primary'}
-                  disabled={pending !== null}
-                  onClick={() => void download(item)}
-                >
+                <Button className="shrink-0" disabled={pending !== null} onClick={() => void download(item)}>
                   <Download className="h-4 w-4" aria-hidden />
                   {pending === item.kind ? t('reports.downloading') : t('reports.download')}
                 </Button>

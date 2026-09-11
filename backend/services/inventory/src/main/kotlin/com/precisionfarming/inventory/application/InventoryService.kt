@@ -1,7 +1,7 @@
 package com.precisionfarming.inventory.application
 
 import com.precisionfarming.common.ConflictException
-import com.precisionfarming.common.capped
+import com.precisionfarming.common.cappedNewest
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
@@ -46,7 +46,7 @@ class InventoryService(
     fun listMovements(scope: AccessScope, itemId: UUID): List<MovementDto> {
         val item = items.findById(itemId).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
         scope.requireFarmRead(item.farmId, "ITEM_NOT_FOUND", "Item not found")
-        return movements.findByItemIdOrderByOccurredAtAsc(itemId).capped().map { it.toDto() }
+        return movements.findByItemIdOrderByOccurredAtAsc(itemId).cappedNewest().map { it.toDto() }
     }
 
     @Transactional

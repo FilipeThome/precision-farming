@@ -100,6 +100,7 @@ export function farmPhoto(farmId?: string | null): string | undefined {
 export function machinePhoto(machineId?: string | null, type?: string | null): string | undefined {
   if (machineId && MACHINE_PHOTOS[machineId]) return MACHINE_PHOTOS[machineId]
   if (type && TYPE_FALLBACK[type]) return TYPE_FALLBACK[type]
+  if (!machineId) return undefined
   return '/demo/machines/machine-001.jpg'
 }
 

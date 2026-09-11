@@ -8,6 +8,7 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityPhoto } from '@/shared/ui/EntityPhoto'
 import { InspectorKpis } from '@/shared/ui/InspectorKpis'
+import { InspectorQueryState } from '@/shared/ui/InspectorQueryState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
 type Props = { field: Field }
@@ -20,8 +21,12 @@ export function FieldInspector({ field }: Props) {
   const { number, label } = useFormat()
 
   const fieldOps = (operations.data ?? []).filter((op) => op.fieldId === field.id)
-  const fieldRx = (prescriptions.data ?? []).filter((rx) => rx.fieldId === field.id)
-  const fieldYield = weightedYieldTHa(yieldsForField(yields.data ?? [], field.id))
+  const fieldRx = prescriptions.isSuccess
+    ? (prescriptions.data ?? []).filter((rx) => rx.fieldId === field.id)
+    : null
+  const fieldYield = yields.isSuccess
+    ? weightedYieldTHa(yieldsForField(yields.data ?? [], field.id))
+    : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -37,21 +42,35 @@ export function FieldInspector({ field }: Props) {
           </p>
         </div>
       </div>
-      <InspectorKpis
-        items={[
-          { label: t('fields.kpi.crop'), value: label(field.crop) },
-          { label: t('fields.kpi.area'), value: `${number(Number(field.areaHa), 1)} ha` },
-          { label: t('fields.kpi.ops'), value: number(fieldOps.length, 0) },
-          { label: t('fields.kpi.yield'), value: `${number(fieldYield, 1)} t/ha` },
-          { label: t('fields.kpi.prescriptions'), value: number(fieldRx.length, 0) },
-        ]}
-      />
-      {fieldOps.slice(0, 5).map((op) => (
-        <div key={op.id} className="flex items-center justify-between gap-2 text-sm">
-          <span className="text-pf-green">{label(op.type)}</span>
-          <StatusBadge value={op.status} />
-        </div>
-      ))}
+      <InspectorQueryState
+        isLoading={operations.isLoading}
+        error={operations.error}
+        onRetry={() => void operations.refetch()}
+      >
+        <InspectorKpis
+          items={[
+            { label: t('fields.kpi.crop'), value: label(field.crop) },
+            { label: t('fields.kpi.area'), value: `${number(Number(field.areaHa), 1)} ha` },
+            { label: t('fields.kpi.ops'), value: number(fieldOps.length, 0) },
+            {
+              label: t('fields.kpi.yield'),
+              value: fieldYield == null ? '—' : `${number(fieldYield, 1)} t/ha`,
+              hint: yields.isError ? t('common.loadError') : undefined,
+            },
+            {
+              label: t('fields.kpi.prescriptions'),
+              value: fieldRx == null ? '—' : number(fieldRx.length, 0),
+              hint: prescriptions.isError ? t('common.loadError') : undefined,
+            },
+          ]}
+        />
+        {fieldOps.slice(0, 5).map((op) => (
+          <div key={op.id} className="flex items-center justify-between gap-2 text-sm">
+            <span className="text-pf-green">{label(op.type)}</span>
+            <StatusBadge value={op.status} />
+          </div>
+        ))}
+      </InspectorQueryState>
     </div>
   )
 }

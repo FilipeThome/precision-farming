@@ -32,7 +32,7 @@ spring:
         - id: telemetry
           uri: ${TELEMETRY_URL:http://localhost:8084}
           predicates:
-            - Path=/api/v1/machines/*/telemetry,/api/v1/machines/*/track,/api/v1/machines/*/metrics
+            - Path=/api/v1/machines/{machineId}/telemetry,/api/v1/machines/{machineId}/track,/api/v1/machines/{machineId}/metrics
         - id: maintenance
           uri: ${ASSET_URL:http://localhost:8083}
           predicates:
