@@ -1,10 +1,10 @@
 import { type FormEvent, useState } from 'react'
 import { useNavigate } from 'react-router'
-import { Sprout } from 'lucide-react'
 
 import { useLoginMutation } from '@/features/auth/queries'
 import { ApiError } from '@/shared/api/client'
 import { useAuthStore } from '@/shared/auth/store'
+import { BrandLogo } from '@/shared/brand/BrandLogo'
 import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from '@/shared/ui/Button'
@@ -40,10 +40,8 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-ag-n-50 p-6">
       <Card className="w-full max-w-md p-8">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 text-ag-g-800">
-            <span className="rounded-[12px] bg-ag-g-800 p-2 text-white">
-              <Sprout className="h-6 w-6" aria-hidden />
-            </span>
+          <div className="flex min-w-0 items-center gap-3 text-ag-g-800">
+            <BrandLogo variant="mark" decorative className="h-10 w-10 shrink-0" />
             <div>
               <h1 className="font-display text-xl font-bold">{t('chrome.brand')}</h1>
               <p className="text-sm text-pf-muted">{t('login.subtitle')}</p>

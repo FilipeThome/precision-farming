@@ -29,7 +29,6 @@ export const ptBR = {
   'chrome.offlineBanner': 'Você está offline. Os dados podem estar desatualizados.',
   'chrome.loading': 'Carregando…',
   'chrome.brand': 'Precision Farming',
-  'chrome.mark': 'Ag',
 
   'locale.ptBR': 'Português (Brasil)',
   'locale.enUS': 'English (United States)',
