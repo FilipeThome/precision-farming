@@ -24,6 +24,8 @@ data class QueuedCommand(
     val nextAttemptAt: String? = null,
     /** Session that captured the command. Replay is refused for any other user. */
     val userId: String? = null,
+    /** Status the command was issued from, so projection can tell a stale GET from a later move. */
+    val fromStatus: String? = null,
 ) {
     val isOpen: Boolean get() = state == SyncState.PENDING || state == SyncState.SYNCING
 }
@@ -46,7 +48,8 @@ data class QueueState(
 
     /**
      * Status implied by the latest SYNCED command. Used so Start/Pause/Complete stay gated after
-     * sync succeeds and before the next GET reflects the server.
+     * sync succeeds and before the next GET reflects the server. A later server status that is not
+     * the command's source state still wins (another operator paused after a start from PLANNED).
      */
     fun projectedStatus(operationId: String, serverStatus: String): String {
         val lastSynced = items
@@ -58,21 +61,22 @@ data class QueueState(
             OpCommandType.PAUSE -> "PAUSED"
             OpCommandType.COMPLETE -> "COMPLETED"
         }
-        return if (serverOutranks(serverStatus, projected)) serverStatus else projected
+        val server = serverStatus.uppercase()
+        if (server == projected.uppercase() || server in setOf("COMPLETED", "COMPLETING")) return serverStatus
+        val stale = staleSources(lastSynced.type, lastSynced.fromStatus)
+        return if (server in stale) projected else serverStatus
     }
 }
 
-private fun serverOutranks(server: String, projected: String): Boolean {
-    fun rank(value: String): Int = when (value.uppercase()) {
-        "COMPLETED", "COMPLETING" -> 4
-        "PAUSED" -> 3
-        "IN_PROGRESS", "STARTING" -> 2
-        "PLANNED" -> 1
-        else -> 0
+private fun staleSources(type: OpCommandType, fromStatus: String?): Set<String> {
+    val from = fromStatus?.uppercase()
+    return when (type) {
+        OpCommandType.START -> when (from) {
+            "PAUSED" -> setOf("PAUSED", "STARTING")
+            "PLANNED" -> setOf("PLANNED", "STARTING")
+            else -> setOf("PLANNED", "PAUSED", "STARTING")
+        }
+        OpCommandType.PAUSE -> setOf("IN_PROGRESS", "STARTING")
+        OpCommandType.COMPLETE -> setOf("IN_PROGRESS", "PAUSED", "COMPLETING")
     }
-    val serverRank = rank(server)
-    val projectedRank = rank(projected)
-    if (serverRank > projectedRank) return true
-    if (serverRank < projectedRank) return false
-    return server.equals(projected, ignoreCase = true)
 }

@@ -169,7 +169,7 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
                         zone = zone,
                         pending = queue.openFor(next.id) != null,
                         onPrimary = {
-                            if (next.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id))
+                            if (next.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id, next.status))
                             onOpenRun(next.id)
                         },
                         onOpen = { onOpenRun(next.id) },
