@@ -200,7 +200,7 @@ export const enUS: Record<MessageKey, string> = {
   'fields.emptyTitle': 'No fields found',
   'fields.emptyDescription': 'Adjust the farm filter or register fields in the backend.',
   'map.title': 'Map',
-  'map.description': 'Satellite view of the selected farm fields. Toggle NDVI, soil, and yield overlays.',
+  'map.description': 'Satellite view of the selected farm fields, colored by operation status.',
   'map.layers.title': 'Layers',
   'map.layers.empty': 'No layers available',
   'map.layers.legend': 'Active layers (polygon style — no GeoTIFF tiles)',

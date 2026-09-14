@@ -198,7 +198,7 @@ export const ptBR = {
   'fields.emptyTitle': 'Nenhum talhão encontrado',
   'fields.emptyDescription': 'Ajuste o filtro de fazenda ou cadastre talhões no backend.',
   'map.title': 'Mapa',
-  'map.description': 'Vista de satélite dos talhões da fazenda selecionada. Alterne NDVI, solo e produtividade.',
+  'map.description': 'Vista de satélite dos talhões da fazenda selecionada, coloridos pelo status da operação.',
   'map.layers.title': 'Camadas',
   'map.layers.empty': 'Nenhuma camada disponível',
   'map.layers.legend': 'Camadas ativas (estilo dos polígonos — sem mosaico GeoTIFF)',
