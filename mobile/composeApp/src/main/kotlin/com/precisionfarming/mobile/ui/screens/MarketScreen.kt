@@ -31,6 +31,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 private enum class MarketTab { QUOTES, CONTRACTS, EXPOSURE }
 
@@ -68,8 +69,7 @@ fun MarketScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("market.title"))
+        ScreenHeader(S.t("market.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.quotes"), S.t("tab.contracts"), S.t("tab.exposure")),
             selectedIndex = tab,

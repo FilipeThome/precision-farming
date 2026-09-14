@@ -1,77 +1,50 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 
+import { FieldStatusMap } from '@/features/dashboard/components/FieldStatusMap'
+import { fieldStates as deriveFieldStates } from '@/features/dashboard/model/fieldStatus'
 import { FieldInspector } from '@/features/fields/components/FieldInspector'
-import { MapLayerToggles } from '@/features/map/components/MapLayerToggles'
-import { useMapLayersQuery } from '@/features/map/queries'
 import { useFieldsQuery } from '@/features/fields/queries'
+import { useOperationsQuery } from '@/features/operations/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { useSelectedId } from '@/shared/lib/useSelectedId'
-import { FieldMap } from '@/shared/maps/FieldMap'
 import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { PageHeader } from '@/shared/ui/PageHeader'
-import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
 
 export function MapPage() {
   const farmId = useUiStore((s) => s.farmId)
   const fields = useFieldsQuery(farmId)
-  const layers = useMapLayersQuery(farmId)
-  const [enabledKinds, setEnabledKinds] = useState<Set<string>>(new Set())
-  const err = queryError(fields.error || layers.error)
+  const operations = useOperationsQuery(farmId)
   const { t } = useI18n()
   const { label } = useFormat()
   const { selectedId, setSelectedId } = useSelectedId()
   const selected = (fields.data ?? []).find((field) => field.id === selectedId)
+  const loadError = queryError(fields.error ?? operations.error)
 
-  useEffect(() => {
-    const kinds = layers.data?.map((layer) => layer.kind) ?? []
-    if (kinds.length === 0) return
-    setEnabledKinds((prev) => (prev.size === 0 ? new Set(kinds) : prev))
-  }, [layers.data])
-
-  function toggleKind(kind: string) {
-    setEnabledKinds((prev) => {
-      const next = new Set(prev)
-      if (next.has(kind)) next.delete(kind)
-      else next.add(kind)
-      return next
-    })
-  }
-
-  const activeLayerKinds = useMemo(() => [...enabledKinds], [enabledKinds])
-  const loading = fields.isLoading || layers.isLoading
-  const isError = fields.isError || layers.isError
+  const states = useMemo(
+    () => deriveFieldStates(fields.data ?? [], operations.data ?? []),
+    [fields.data, operations.data],
+  )
 
   return (
-    <section className="flex h-full flex-col">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden">
       <PageHeader title={t('map.title')} description={t('map.description')} />
-      <QueryPageState
-        isLoading={loading}
-        isError={isError}
-        errorMessage={err.message}
-        correlationId={err.correlationId}
-        isEmpty={false}
-        emptyTitle={t('fields.emptyTitle')}
+      <FieldStatusMap
+        fields={fields.data ?? []}
+        fieldStates={states}
+        isLoading={fields.isLoading || operations.isLoading}
+        isError={fields.isError || operations.isError}
+        errorMessage={loadError.message}
+        correlationId={loadError.correlationId}
         onRetry={() => {
           void fields.refetch()
-          void layers.refetch()
+          void operations.refetch()
         }}
-      >
-        <MapLayerToggles
-          layers={layers.data ?? []}
-          enabledKinds={enabledKinds}
-          onToggle={toggleKind}
-        />
-        <FieldMap
-          fields={fields.data ?? []}
-          layers={layers.data ?? []}
-          activeLayerKinds={activeLayerKinds}
-          onFieldClick={setSelectedId}
-          className="min-h-[560px] flex-1"
-        />
-      </QueryPageState>
+        onFieldClick={setSelectedId}
+        minHeightClass="min-h-[320px] h-full"
+      />
       <DetailDrawer
         open={Boolean(selectedId)}
         title={selected ? label(selected.id, selected.name) : t('inspector.notFound')}

@@ -19,6 +19,7 @@ import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun ApiListScreen(
@@ -39,10 +40,7 @@ fun ApiListScreen(
         Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (onBack != null) {
-            item { TextButton(onClick = onBack) { Text(S.t("common.back")) } }
-        }
-        item { Text(title) }
+        item { ScreenHeader(title, onBack) }
         when (val s = state) {
             is LoadState.Loading -> item { Text(S.t("common.loading")) }
             is LoadState.Err -> item { Text("${S.t("common.error")}: ${s.message}") }

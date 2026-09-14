@@ -1,7 +1,6 @@
 import { DispatchLoadButton } from '@/features/harvest/components/DispatchLoadButton'
 import { StorageLotsList } from '@/features/harvest/components/StorageLotsList'
 import type { HarvestPlan, LogisticsLoad, StorageLot, StorageUnit, YieldRecord } from '@/shared/api/types'
-import { cropPhoto, fieldPhoto, logisticsPhoto, storagePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
@@ -28,8 +27,7 @@ export function HarvestPlanGrid({
               : undefined
           }
           meta={dateTime(row.plannedStart)}
-          imageSrc={cropPhoto(row.crop)}
-          imageAlt={label(row.crop)}
+          kind="crop"
           selected={row.id === selectedId}
           onSelect={() => onSelect?.(row.id)}
         >
@@ -59,8 +57,7 @@ export function HarvestYieldGrid({ items }: { items: YieldRecord[] }) {
               ? `${number(Number(row.moisturePct), 1)}% · ${dateTime(row.recordedAt)}`
               : dateTime(row.recordedAt)
           }
-          imageSrc={fieldPhoto(row.fieldId, undefined, row.farmId)}
-          imageAlt={label(row.fieldId)}
+          kind="field"
         />
       ))}
     </div>
@@ -80,8 +77,7 @@ export function HarvestLogisticsGrid({ items }: { items: LogisticsLoad[] }) {
             row.truckPlate ? t('harvest.logistics.truck', { plate: row.truckPlate }) : undefined
           }
           meta={dateTime(row.dispatchedAt)}
-          imageSrc={logisticsPhoto()}
-          imageAlt={label(row.destination)}
+          kind="truck"
         >
           {row.status ? <StatusBadge value={row.status} /> : null}
           {row.status === 'QUEUED' ? <DispatchLoadButton loadId={row.id} /> : null}
@@ -108,8 +104,7 @@ export function HarvestStorageGrid({ items }: { items: StorageUnit[] }) {
                 })
               : label(row.type)
           }
-          imageSrc={storagePhoto(row.type)}
-          imageAlt={label(row.name, row.type)}
+          kind="storage"
         />
       ))}
     </div>

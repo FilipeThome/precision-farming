@@ -4,7 +4,6 @@ import {
   useIrrigationAssetsQuery,
   useIrrigationRecommendationsQuery,
 } from '@/features/irrigation/queries'
-import { irrigationPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -65,8 +64,7 @@ export function IrrigationPage() {
                   key={row.id}
                   title={label(row.name, row.id)}
                   subtitle={label(row.type)}
-                  imageSrc={irrigationPhoto(row.type)}
-                  imageAlt={label(row.name, row.type)}
+                  kind="irrigation"
                 >
                   {row.status ? <StatusBadge value={row.status} /> : null}
                 </EntityCard>
@@ -79,8 +77,7 @@ export function IrrigationPage() {
                     row.volumeMm != null ? `${number(Number(row.volumeMm), 1)} mm` : undefined
                   }
                   meta={`${label(row.priority)} · ${dateTime(row.recommendedAt)}`}
-                  imageSrc={irrigationPhoto()}
-                  imageAlt={label(row.reason)}
+                  kind="irrigation"
                 />
               ))}
         </div>

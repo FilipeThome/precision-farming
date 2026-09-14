@@ -8,7 +8,7 @@ export function LocaleToggle() {
     <div className="inline-flex items-center gap-1" role="group" aria-label={t('locale.ptBR')}>
       <Button
         variant="ghost"
-        className={`px-2 py-1 text-lg leading-none ${locale === 'pt-BR' ? 'bg-white/60 ring-1 ring-pf-border' : ''}`}
+        className={`min-h-11 min-w-11 px-2 text-lg leading-none ${locale === 'pt-BR' ? 'bg-white/60 ring-1 ring-pf-border' : ''}`}
         aria-pressed={locale === 'pt-BR'}
         aria-label={t('locale.ptBR')}
         onClick={() => setLocale('pt-BR')}
@@ -17,7 +17,7 @@ export function LocaleToggle() {
       </Button>
       <Button
         variant="ghost"
-        className={`px-2 py-1 text-lg leading-none ${locale === 'en-US' ? 'bg-white/60 ring-1 ring-pf-border' : ''}`}
+        className={`min-h-11 min-w-11 px-2 text-lg leading-none ${locale === 'en-US' ? 'bg-white/60 ring-1 ring-pf-border' : ''}`}
         aria-pressed={locale === 'en-US'}
         aria-label={t('locale.enUS')}
         onClick={() => setLocale('en-US')}

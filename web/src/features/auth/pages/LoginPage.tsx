@@ -10,15 +10,12 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 
-const DEMO_HINT = import.meta.env.VITE_DEMO_LOGIN_HINT === 'true'
-const DEMO_EMAIL = 'manager@precisionfarming.demo'
-
 export function LoginPage() {
   const navigate = useNavigate()
   const setSession = useAuthStore((s) => s.setSession)
   const login = useLoginMutation()
   const { t } = useI18n()
-  const [email, setEmail] = useState(DEMO_HINT ? DEMO_EMAIL : '')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
   async function onSubmit(event: FormEvent) {
@@ -40,15 +37,15 @@ export function LoginPage() {
         : null
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-pf-bg p-6">
+    <div className="flex min-h-screen items-center justify-center bg-ag-n-50 p-6">
       <Card className="w-full max-w-md p-8">
         <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3 text-pf-green">
-            <span className="rounded-[12px] bg-pf-green p-2 text-white">
+          <div className="flex items-center gap-3 text-ag-g-800">
+            <span className="rounded-[12px] bg-ag-g-800 p-2 text-white">
               <Sprout className="h-6 w-6" aria-hidden />
             </span>
             <div>
-              <h1 className="text-xl font-semibold">{t('chrome.brand')}</h1>
+              <h1 className="font-display text-xl font-bold">{t('chrome.brand')}</h1>
               <p className="text-sm text-pf-muted">{t('login.subtitle')}</p>
             </div>
           </div>
@@ -65,7 +62,7 @@ export function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-[12px] border border-pf-border px-3 py-2"
+              className="rounded-[8px] border border-ag-n-300 px-3 py-2"
             />
           </label>
           <label htmlFor="password" className="flex flex-col gap-1 text-sm">
@@ -78,7 +75,7 @@ export function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="rounded-[12px] border border-pf-border px-3 py-2"
+              className="rounded-[8px] border border-ag-n-300 px-3 py-2"
             />
           </label>
           {errorMessage ? (
@@ -90,11 +87,6 @@ export function LoginPage() {
             {login.isPending ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
-        {DEMO_HINT ? (
-          <p className="mt-4 text-xs text-pf-muted">
-            {t('login.demoHint')} <code>{DEMO_EMAIL}</code>
-          </p>
-        ) : null}
       </Card>
     </div>
   )

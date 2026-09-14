@@ -2,12 +2,11 @@ import { Link } from 'react-router'
 
 import { useAckAlertMutation } from '@/features/alerts/queries'
 import type { Alert } from '@/shared/api/types'
-import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import { inspectHref } from '@/shared/lib/useFarmFromSearch'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { Button } from '@/shared/ui/Button'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
 
 type Props = { alert: Alert }
@@ -16,10 +15,6 @@ export function AlertInspector({ alert }: Props) {
   const ack = useAckAlertMutation()
   const { t } = useI18n()
   const { label, dateTime } = useFormat()
-  const thumb =
-    alert.entityType === 'MACHINE' && alert.entityId
-      ? machinePhoto(alert.entityId)
-      : farmPhoto(alert.farmId)
   const machineLink =
     alert.entityType === 'MACHINE' && alert.entityId
       ? inspectHref('/machines', alert.entityId, alert.farmId)
@@ -32,7 +27,12 @@ export function AlertInspector({ alert }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityPhoto src={thumb} alt={label(alert.title)} />
+        <EntityTile
+          kind={alert.entityType === 'MACHINE' ? 'machine' : 'alert'}
+          size="lg"
+          tone={alert.severity === 'CRITICAL' ? 'crit' : 'warn'}
+          label={label(alert.title)}
+        />
         <div className="flex flex-wrap gap-2">
           <StatusBadge value={alert.severity} />
           <StatusBadge value={alert.status} />

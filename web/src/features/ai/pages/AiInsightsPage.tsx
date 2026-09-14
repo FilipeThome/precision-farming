@@ -52,9 +52,11 @@ export function AiInsightsPage() {
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="font-semibold text-pf-green">{label(item.type)}</h2>
-                <span className="rounded-full bg-pf-teal/15 px-2 py-0.5 text-xs font-medium text-pf-teal">
-                  {t('ai.demoModel')}
-                </span>
+                {item.demo === true ? (
+                  <span className="rounded-full bg-ag-warn-bg px-2 py-0.5 text-xs font-medium text-ag-warn">
+                    {t('ai.demoFlag')}
+                  </span>
+                ) : null}
               </div>
               <p className="text-sm text-pf-muted">
                 {item.model} · v{item.modelVersion} · {dateTime(item.generatedAt)}

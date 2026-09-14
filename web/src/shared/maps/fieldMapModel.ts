@@ -1,4 +1,5 @@
 import type { Field, MapLayer } from '@/shared/api/types'
+import { FIELD_STATE_COLORS, type FieldState } from '@/shared/maps/fieldStateColors'
 import { geometryToPaths, type LatLng } from '@/shared/maps/geometry'
 
 export type FieldPolygonStyle = {
@@ -30,11 +31,28 @@ export function fieldPolygons(
   fields: Field[],
   activeLayerKinds: string[] = [],
   layers: MapLayer[] = [],
+  fieldStates?: Record<string, FieldState>,
 ): FieldPolygonStyle[] {
   const active = new Set(activeLayerKinds)
   return fields.flatMap((field) => {
     const rings = geometryToPaths(field.geometry ?? '')
     if (rings.length === 0) return []
+    if (fieldStates) {
+      const state = FIELD_STATE_COLORS[fieldStates[field.id] ?? 'none']
+      return [
+        {
+          id: field.id,
+          name: field.name,
+          crop: field.crop,
+          rings,
+          color: state.stroke,
+          fillColor: state.fill,
+          fillOpacity: state.fillOpacity,
+          weight: state.dash ? 3 : 2,
+          dashArray: state.dash,
+        },
+      ]
+    }
     const kindsForField = layers
       .filter((layer) => active.has(layer.kind) && (!layer.fieldId || layer.fieldId === field.id))
       .map((layer) => layer.kind)

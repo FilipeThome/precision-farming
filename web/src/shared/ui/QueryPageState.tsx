@@ -33,7 +33,7 @@ export function QueryPageState({
 
   if (isLoading) {
     return (
-      <div className="grid gap-3" aria-busy="true" aria-live="polite">
+      <div className="grid gap-3" role="status" aria-busy="true" aria-live="polite">
         <div className="h-24 animate-pulse rounded-[12px] bg-white" />
         <div className="h-40 animate-pulse rounded-[12px] bg-white" />
       </div>

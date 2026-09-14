@@ -23,6 +23,7 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.LoadedList
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
 
@@ -45,8 +46,7 @@ fun TraceabilityLotScreen(lotCode: String, onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text("${S.t("compliance.lot.title")} · ${lotCode.ifBlank { "—" }}")
+        ScreenHeader("${S.t("compliance.lot.title")} · ${lotCode.ifBlank { "—" }}", onBack)
         LoadedList(state) { lot ->
             listOfNotNull(lot.eventType, lot.summary, lot.crop, lot.occurredAt)
                 .joinToString(" · ")

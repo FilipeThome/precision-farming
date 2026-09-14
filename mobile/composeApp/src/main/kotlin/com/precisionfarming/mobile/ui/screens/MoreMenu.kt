@@ -1,20 +1,30 @@
 package com.precisionfarming.mobile.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.AgCard
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun MoreMenu(onOpen: (String) -> Unit) {
@@ -24,7 +34,7 @@ fun MoreMenu(onOpen: (String) -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(S.t("more.title"), style = MaterialTheme.typography.titleLarge)
+        ScreenHeader(S.t("more.title"))
         Group(S.t("more.group.land")) {
             Item("mais/farms", "more.farms", onOpen)
             Item("mais/fields", "more.fields", onOpen)
@@ -68,15 +78,29 @@ fun MoreMenu(onOpen: (String) -> Unit) {
 
 @Composable
 private fun Group(title: String, content: @Composable () -> Unit) {
-    Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 12.dp))
-    content()
+    Text(
+        title,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 14.dp, bottom = 4.dp, start = 4.dp),
+    )
+    AgCard(Modifier.fillMaxWidth()) { content() }
 }
 
 @Composable
 private fun Item(route: String, labelKey: String, onOpen: (String) -> Unit) {
     val label = S.t(labelKey)
-    TextButton(
-        onClick = { onOpen(route) },
-        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = label },
-    ) { Text(label) }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .clickable(onClick = { onOpen(route) })
+            .semantics { contentDescription = label; role = Role.Button }
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
 }
