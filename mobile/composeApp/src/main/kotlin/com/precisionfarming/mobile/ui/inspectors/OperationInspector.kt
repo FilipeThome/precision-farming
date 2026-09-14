@@ -110,7 +110,7 @@ fun OperationInspector(
         val busy = open != null
         if (shown.canStart()) {
             Button(
-                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(operation.id)) },
+                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(operation.id, shown.status)) },
                 enabled = !busy,
                 modifier = Modifier.heightIn(min = 48.dp).fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
@@ -126,7 +126,7 @@ fun OperationInspector(
         }
         if (shown.canComplete()) {
             Button(
-                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(operation.id)) },
+                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(operation.id, shown.status)) },
                 enabled = !busy,
                 modifier = Modifier.heightIn(min = 48.dp).fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
@@ -145,7 +145,7 @@ fun OperationInspector(
             onDismiss = { pauseSheet = false },
             onConfirm = { reason ->
                 pauseSheet = false
-                OfflineRuntime.enqueueAndSync(OpCommand.Pause(operation.id, reason))
+                OfflineRuntime.enqueueAndSync(OpCommand.Pause(operation.id, reason, shown.status))
             },
         )
     }

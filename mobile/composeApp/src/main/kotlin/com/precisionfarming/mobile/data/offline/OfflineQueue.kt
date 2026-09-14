@@ -47,6 +47,7 @@ class OfflineQueue(
             reason = command.reason,
             createdAt = clock().toString(),
             userId = userId,
+            fromStatus = command.fromStatus,
         )
         mutate { it.copy(items = it.items + queued) }
         return queued

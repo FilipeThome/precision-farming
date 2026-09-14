@@ -44,10 +44,11 @@ class OfflineQueueTest {
     fun enqueueAssignsUniqueClientOperationIdAndPersists() {
         val store = InMemoryQueueStore()
         val q = queue(store, FakeExecutor(ArrayDeque()))
-        val a = q.enqueue(OpCommand.Start("op-1"))
+        val a = q.enqueue(OpCommand.Start("op-1", fromStatus = "PLANNED"))
         val b = q.enqueue(OpCommand.Pause("op-1", "chuva"))
         assertNotEquals(a.clientOperationId, b.clientOperationId)
         assertEquals(SyncState.PENDING, a.state)
+        assertEquals("PLANNED", a.fromStatus)
         assertEquals(OpCommandType.PAUSE, b.type)
         assertEquals("chuva", b.reason)
         assertEquals(2, store.saved.items.size)
@@ -369,9 +370,28 @@ class OfflineQueueTest {
                 ),
             ),
         )
-        assertEquals("PAUSED", queue.projectedStatus("op-1", "PLANNED"))
+        assertEquals("PAUSED", queue.projectedStatus("op-1", "IN_PROGRESS"))
         assertEquals("COMPLETED", queue.projectedStatus("op-1", "COMPLETED"))
         assertEquals("PLANNED", queue.projectedStatus("op-other", "PLANNED"))
+    }
+
+    @Test
+    fun projectedStatusKeepsResumeOverStalePause() {
+        val resumed = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "op-1",
+                    OpCommandType.START,
+                    createdAt = "2026-01-01T00:00:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:01Z",
+                    fromStatus = "PAUSED",
+                ),
+            ),
+        )
+        assertEquals("IN_PROGRESS", resumed.projectedStatus("op-1", "PAUSED"))
+        assertEquals("IN_PROGRESS", resumed.projectedStatus("op-1", "STARTING"))
     }
 
     @Test
@@ -385,6 +405,7 @@ class OfflineQueueTest {
                     createdAt = "2026-01-01T00:00:00Z",
                     state = SyncState.SYNCED,
                     syncedAt = "2026-01-01T00:00:01Z",
+                    fromStatus = "PLANNED",
                 ),
             ),
         )
@@ -400,36 +421,10 @@ class OfflineQueueTest {
                     createdAt = "2026-01-01T00:00:02Z",
                     state = SyncState.SYNCED,
                     syncedAt = "2026-01-01T00:00:03Z",
+                    fromStatus = "IN_PROGRESS",
                 ),
             ),
         )
         assertEquals("PAUSED", paused.projectedStatus("op-1", "IN_PROGRESS"))
-    }
-
-    @Test
-    fun projectedStatusUsesLatestSyncedAndKeepsLaterServerState() {
-        val queue = QueueState(
-            items = listOf(
-                QueuedCommand(
-                    "c1",
-                    "op-1",
-                    OpCommandType.START,
-                    createdAt = "2026-01-01T00:00:00Z",
-                    state = SyncState.SYNCED,
-                    syncedAt = "2026-01-01T00:00:01Z",
-                ),
-                QueuedCommand(
-                    "c2",
-                    "op-1",
-                    OpCommandType.PAUSE,
-                    createdAt = "2026-01-01T00:00:02Z",
-                    state = SyncState.SYNCED,
-                    syncedAt = "2026-01-01T00:00:03Z",
-                ),
-            ),
-        )
-        assertEquals("PAUSED", queue.projectedStatus("op-1", "PLANNED"))
-        assertEquals("COMPLETED", queue.projectedStatus("op-1", "COMPLETED"))
-        assertEquals("PLANNED", queue.projectedStatus("op-other", "PLANNED"))
     }
 }

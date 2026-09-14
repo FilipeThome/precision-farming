@@ -233,7 +233,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                         }
                         if (shown.canStart()) {
                             Button(
-                                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(op.id)) },
+                                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(op.id, shown.status)) },
                                 enabled = !busy,
                                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                                 shape = RoundedCornerShape(14.dp),
@@ -249,7 +249,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                         }
                         if (shown.canComplete()) {
                             Button(
-                                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(op.id)) },
+                                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(op.id, shown.status)) },
                                 enabled = !busy,
                                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                                 shape = RoundedCornerShape(14.dp),
@@ -267,7 +267,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                             onDismiss = { pauseSheet = false },
                             onConfirm = { reason ->
                                 pauseSheet = false
-                                OfflineRuntime.enqueueAndSync(OpCommand.Pause(op.id, reason))
+                                OfflineRuntime.enqueueAndSync(OpCommand.Pause(op.id, reason, shown.status))
                             },
                         )
                     }

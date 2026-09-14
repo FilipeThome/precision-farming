@@ -144,7 +144,7 @@ class TodayOpsTest {
 
     @Test
     fun nextActionableSkipsJustSyncedComplete() {
-        val justDone = op("done-soon", "PLANNED", "2026-03-10T08:00:00-03:00")
+        val justDone = op("done-soon", "IN_PROGRESS", "2026-03-10T08:00:00-03:00")
         val next = op("next", "PLANNED", "2026-03-10T14:00:00-03:00")
         val queue = QueueState(
             items = listOf(
