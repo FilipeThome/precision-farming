@@ -2,6 +2,7 @@ package com.precisionfarming.mobile
 
 import com.precisionfarming.mobile.data.offline.CommandExecutor
 import com.precisionfarming.mobile.data.offline.ExecResult
+import com.precisionfarming.mobile.data.offline.conflictAlreadyApplied
 import com.precisionfarming.mobile.data.offline.InMemoryQueueStore
 import com.precisionfarming.mobile.data.offline.OfflineQueue
 import com.precisionfarming.mobile.data.offline.OpCommand
@@ -332,5 +333,43 @@ class OfflineQueueTest {
         assertEquals(1, exec.seen.size)
         assertEquals(1, q.state.value.items.count { it.state == SyncState.SYNCED })
         assertEquals(0, q.state.value.pendingCount)
+    }
+
+    @Test
+    fun conflictAlreadyAppliedWhenServerAlreadyMoved() {
+        assertTrue(conflictAlreadyApplied(OpCommandType.START, "IN_PROGRESS"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.START, "paused"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.PAUSE, "PAUSED"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.COMPLETE, "COMPLETING"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.START, "PLANNED"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.PAUSE, "IN_PROGRESS"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.COMPLETE, "PAUSED"))
+    }
+
+    @Test
+    fun projectedStatusUsesLatestSyncedAndKeepsLaterServerState() {
+        val queue = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "op-1",
+                    OpCommandType.START,
+                    createdAt = "2026-01-01T00:00:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:01Z",
+                ),
+                QueuedCommand(
+                    "c2",
+                    "op-1",
+                    OpCommandType.PAUSE,
+                    createdAt = "2026-01-01T00:00:02Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:03Z",
+                ),
+            ),
+        )
+        assertEquals("PAUSED", queue.projectedStatus("op-1", "PLANNED"))
+        assertEquals("COMPLETED", queue.projectedStatus("op-1", "COMPLETED"))
+        assertEquals("PLANNED", queue.projectedStatus("op-other", "PLANNED"))
     }
 }

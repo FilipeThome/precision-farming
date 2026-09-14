@@ -1,7 +1,15 @@
 package com.precisionfarming.mobile.data
 
+import com.precisionfarming.mobile.data.offline.QueueState
+
 fun OperationDto.canStart(): Boolean =
     status.equals("PLANNED", ignoreCase = true) || status.equals("PAUSED", ignoreCase = true)
+
+/** Apply the latest SYNCED command so gates stay correct until the next GET. */
+fun OperationDto.withQueuedStatus(queue: QueueState): OperationDto {
+    val projected = queue.projectedStatus(id, status)
+    return if (projected.equals(status, ignoreCase = true)) this else copy(status = projected)
+}
 
 fun OperationDto.canPause(): Boolean = status.equals("IN_PROGRESS", ignoreCase = true)
 

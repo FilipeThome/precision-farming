@@ -54,6 +54,7 @@ import com.precisionfarming.mobile.data.WeatherWindowDto
 import com.precisionfarming.mobile.data.alerts
 import com.precisionfarming.mobile.data.canPause
 import com.precisionfarming.mobile.data.canStart
+import com.precisionfarming.mobile.data.withQueuedStatus
 import com.precisionfarming.mobile.data.farms
 import com.precisionfarming.mobile.data.fields
 import com.precisionfarming.mobile.data.formatNumber
@@ -161,13 +162,14 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
                 Greeting(b.me?.name)
                 val next = TodayOps.nextActionable(b.operations, zone)
                 if (next != null) {
+                    val nextOp = next.withQueuedStatus(queue)
                     HeroCard(
-                        op = next,
+                        op = nextOp,
                         bundle = b,
                         zone = zone,
                         pending = queue.openFor(next.id) != null,
                         onPrimary = {
-                            if (next.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id))
+                            if (nextOp.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id))
                             onOpenRun(next.id)
                         },
                         onOpen = { onOpenRun(next.id) },

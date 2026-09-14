@@ -581,6 +581,8 @@ suspend fun machines(farmId: String? = null) =
 suspend fun operations(farmId: String? = null) =
     api.get("/api/v1/operations") { farmQuery(farmId) }.body<List<OperationDto>>()
 
+suspend fun operation(id: String) = api.get("/api/v1/operations/$id").body<OperationDto>()
+
 suspend fun alerts(farmId: String? = null) =
     api.get("/api/v1/alerts") { farmQuery(farmId) }.body<List<AlertDto>>()
 

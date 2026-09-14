@@ -2,6 +2,7 @@ package com.precisionfarming.mobile.data.offline
 
 import com.precisionfarming.mobile.data.SyncCommandDto
 import com.precisionfarming.mobile.data.completeOp
+import com.precisionfarming.mobile.data.operation
 import com.precisionfarming.mobile.data.pauseOp
 import com.precisionfarming.mobile.data.startOp
 import com.precisionfarming.mobile.data.syncDeviceId
@@ -45,7 +46,7 @@ class ApiCommandExecutor(
         } catch (e: CancellationException) {
             throw e
         } catch (e: ClientRequestException) {
-            classifyClientError(e)
+            classifyClientError(command, e)
         } catch (e: ServerResponseException) {
             ExecResult.Retry(e.response.status.toString())
         } catch (e: Exception) {
@@ -72,12 +73,30 @@ class ApiCommandExecutor(
         return result
     }
 
-    private fun classifyClientError(e: ClientRequestException): ExecResult {
+    private suspend fun classifyClientError(command: QueuedCommand, e: ClientRequestException): ExecResult {
         val status = e.response.status
         // Auth/rate-limit/timeout are not domain rejections — keep the command for a later replay.
         val transient = status == HttpStatusCode.Unauthorized ||
             status == HttpStatusCode.RequestTimeout ||
             status == HttpStatusCode.TooManyRequests
-        return if (transient) ExecResult.Retry(status.toString()) else ExecResult.Rejected(status.toString())
+        if (transient) return ExecResult.Retry(status.toString())
+        if (status == HttpStatusCode.Conflict) {
+            val current = runCatching { operation(command.operationId) }.getOrElse {
+                return ExecResult.Retry(it.message ?: status.toString())
+            }
+            return if (conflictAlreadyApplied(command.type, current.status)) ExecResult.Ok
+            else ExecResult.Rejected(status.toString())
+        }
+        return ExecResult.Rejected(status.toString())
+    }
+}
+
+/** 409 after a timeout: treat as success when the server already moved into the command's state. */
+fun conflictAlreadyApplied(type: OpCommandType, serverStatus: String): Boolean {
+    val status = serverStatus.uppercase()
+    return when (type) {
+        OpCommandType.START -> status in setOf("IN_PROGRESS", "STARTING", "PAUSED", "COMPLETED", "COMPLETING")
+        OpCommandType.PAUSE -> status in setOf("PAUSED", "COMPLETED", "COMPLETING")
+        OpCommandType.COMPLETE -> status in setOf("COMPLETED", "COMPLETING")
     }
 }
