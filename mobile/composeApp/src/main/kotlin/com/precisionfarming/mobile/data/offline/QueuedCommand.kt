@@ -64,8 +64,9 @@ data class QueueState(
 
 private fun serverOutranks(server: String, projected: String): Boolean {
     fun rank(value: String): Int = when (value.uppercase()) {
-        "COMPLETED", "COMPLETING" -> 3
-        "IN_PROGRESS", "STARTING", "PAUSED" -> 2
+        "COMPLETED", "COMPLETING" -> 4
+        "PAUSED" -> 3
+        "IN_PROGRESS", "STARTING" -> 2
         "PLANNED" -> 1
         else -> 0
     }

@@ -160,16 +160,16 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
                 val zone = TodayOps.resolveZone(b.farms, FarmFilter.farmId)
                 val now = Instant.now()
                 Greeting(b.me?.name)
-                val next = TodayOps.nextActionable(b.operations, zone)
+                val ops = b.operations.map { it.withQueuedStatus(queue) }
+                val next = TodayOps.nextActionable(ops, zone)
                 if (next != null) {
-                    val nextOp = next.withQueuedStatus(queue)
                     HeroCard(
-                        op = nextOp,
+                        op = next,
                         bundle = b,
                         zone = zone,
                         pending = queue.openFor(next.id) != null,
                         onPrimary = {
-                            if (nextOp.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id))
+                            if (next.canStart()) OfflineRuntime.enqueueAndSync(OpCommand.Start(next.id))
                             onOpenRun(next.id)
                         },
                         onOpen = { onOpenRun(next.id) },
