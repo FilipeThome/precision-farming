@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360" role="img" aria-label="Precision Farming">
+  <rect width="360" height="360" rx="72" fill="#f7f6f1"/>
+  <g transform="translate(140,188) rotate(-32)">
+    <path d="M0-142 C8-140 38-108 56-52 C74 4 66 78 24 128 C10 148 2 154 0 156 C-2 154 -10 148 -24 128 C-66 78 -74 4 -56-52 C-38-108 -8-140 0-142 Z" fill="#1f5a3c" stroke="#ffffff" stroke-width="8.5" stroke-linejoin="round"/>
+    <g fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round">
+      <path d="M0 -112 C0 -40 0 20 0 90"/>
+      <path d="M0 -62 C-20 -48 -34 -28 -40 -8"/>
+      <path d="M0 -18 C-18 -4 -30 16 -36 36"/>
+      <path d="M0 -80 C18 -68 30 -50 36 -32"/>
+      <path d="M0 -36 C18 -22 30 -2 36 18"/>
+    </g>
+  </g>
+  <g transform="translate(218,178) rotate(6)">
+    <path d="M0-142 C8-140 38-108 56-52 C74 4 66 78 24 128 C10 148 2 154 0 156 C-2 154 -10 148 -24 128 C-66 78 -74 4 -56-52 C-38-108 -8-140 0-142 Z" fill="#2a7350" stroke="#ffffff" stroke-width="8.5" stroke-linejoin="round"/>
+    <g fill="none" stroke="#ffffff" stroke-width="4.2" stroke-linecap="round">
+      <path d="M0 -118 C0 -40 1 24 2 98"/>
+      <path d="M0 -78 C-18 -64 -32 -44 -38 -22"/>
+      <path d="M0 -36 C-20 -20 -34 2 -40 24"/>
+      <path d="M0 8 C-16 22 -28 42 -32 60"/>
+      <path d="M0 -96 C16 -84 28 -66 34 -46"/>
+      <path d="M0 -54 C20 -38 34 -16 40 6"/>
+      <path d="M0 -10 C16 6 28 26 34 46"/>
+    </g>
+  </g>
+</svg>

@@ -1,8 +1,8 @@
 package com.precisionfarming.mobile.ui
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -39,9 +39,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.precisionfarming.mobile.R
 import com.precisionfarming.mobile.data.login
 import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.i18n.S
@@ -99,23 +101,24 @@ fun LoginScreen(onOk: () -> Unit) {
                 .padding(horizontal = 24.dp)
                 .padding(top = 28.dp, bottom = 22.dp),
         ) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-                Box(
-                    Modifier
-                        .size(56.dp)
-                        .background(AgOsColors.t500, RoundedCornerShape(16.dp))
-                        .semantics { contentDescription = S.t("app.name") },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(S.t("login.mark"), style = MaterialTheme.typography.headlineSmall, color = AgOsColors.n0)
-                }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 LocalePill(onDark = true)
             }
+            Image(
+                painter = painterResource(R.drawable.precision_mark),
+                contentDescription = null,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(AgOsColors.n50)
+                    .padding(6.dp),
+            )
             Text(
                 S.t("app.name"),
                 style = MaterialTheme.typography.displayMedium,
                 color = AgOsColors.n0,
-                modifier = Modifier.padding(top = 18.dp).semantics { heading() },
+                modifier = Modifier.padding(top = 14.dp).semantics { heading() },
             )
             Text(
                 S.t("login.tagline"),
