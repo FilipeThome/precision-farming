@@ -4,12 +4,19 @@ import { Navigate, Outlet, Route, Routes } from 'react-router'
 import { AppShell } from '@/app/layout/AppShell'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useAuthStore } from '@/shared/auth/store'
+import { RedirectWithSearch } from '@/shared/lib/RedirectWithSearch'
 
 const LoginPage = lazy(() =>
   import('@/features/auth/pages/LoginPage').then((m) => ({ default: m.LoginPage })),
 )
-const DashboardPage = lazy(() =>
-  import('@/features/dashboard/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
+const ControlTowerPage = lazy(() =>
+  import('@/features/dashboard/pages/ControlTowerPage').then((m) => ({ default: m.ControlTowerPage })),
+)
+const DecisionsPage = lazy(() =>
+  import('@/features/decisions/pages/DecisionsPage').then((m) => ({ default: m.DecisionsPage })),
+)
+const HarvestEntry = lazy(() =>
+  import('@/features/harvest/pages/HarvestEntry').then((m) => ({ default: m.HarvestEntry })),
 )
 const MapPage = lazy(() => import('@/features/map/pages/MapPage').then((m) => ({ default: m.MapPage })))
 const FarmsPage = lazy(() =>
@@ -80,7 +87,9 @@ const SettingsPage = lazy(() =>
 function Fallback() {
   const { t } = useI18n()
   return (
-    <div className="flex min-h-64 items-center justify-center text-sm text-pf-muted">{t('chrome.loading')}</div>
+    <div className="flex min-h-64 items-center justify-center text-sm text-ag-n-600" role="status">
+      {t('chrome.loading')}
+    </div>
   )
 }
 
@@ -92,7 +101,7 @@ function ProtectedLayout() {
 
 function GuestOnly() {
   const token = useAuthStore((s) => s.accessToken)
-  if (token) return <Navigate to="/dashboard" replace />
+  if (token) return <RedirectWithSearch to="/dashboard" />
   return <Outlet />
 }
 
@@ -104,8 +113,10 @@ export function AppRouter() {
           <Route path="/login" element={<LoginPage />} />
         </Route>
         <Route element={<ProtectedLayout />}>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/" element={<RedirectWithSearch to="/dashboard" />} />
+          <Route path="/dashboard" element={<ControlTowerPage />} />
+          <Route path="/decisions" element={<DecisionsPage />} />
+          <Route path="/decisions/:id" element={<DecisionsPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/farms" element={<FarmsPage />} />
           <Route path="/fields" element={<FieldsPage />} />
@@ -117,7 +128,8 @@ export function AppRouter() {
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/weather" element={<WeatherPage />} />
           <Route path="/irrigation" element={<IrrigationPage />} />
-          <Route path="/harvest" element={<HarvestPage />} />
+          <Route path="/harvest" element={<HarvestEntry />} />
+          <Route path="/harvest/detail" element={<HarvestPage />} />
           <Route path="/finance" element={<FinancePage />} />
           <Route path="/market" element={<MarketPage />} />
           <Route path="/compliance" element={<CompliancePage />} />
@@ -127,7 +139,7 @@ export function AppRouter() {
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<RedirectWithSearch to="/dashboard" />} />
         </Route>
       </Routes>
     </Suspense>

@@ -1,12 +1,11 @@
 import { useMachineRiskQuery } from '@/features/ai/queries'
 import { useMachinesQuery } from '@/features/machines/queries'
 import type { Machine } from '@/shared/api/types'
-import { machinePhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -20,7 +19,7 @@ function MaintenanceCard({ machine }: { machine: Machine }) {
 
   return (
     <Card className="flex gap-3 p-3">
-      <EntityPhoto src={machinePhoto(machine.id, machine.type)} alt={label(machine.id, machine.name)} />
+      <EntityTile kind="machine" machineType={machine.type} size="lg" label={label(machine.id, machine.name)} />
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <h2 className="font-semibold text-pf-green">{label(machine.id, machine.name)}</h2>

@@ -34,6 +34,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 private enum class AgronomyTab { SCOUTING, SOIL, RECS, PRESCRIPTIONS }
 
@@ -77,8 +78,7 @@ fun AgronomyScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("agronomy.title"))
+        ScreenHeader(S.t("agronomy.title"), onBack)
         SectionTabs(
             labels = listOf(
                 S.t("tab.scouting"),

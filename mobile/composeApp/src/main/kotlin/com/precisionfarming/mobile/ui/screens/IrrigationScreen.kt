@@ -29,6 +29,7 @@ import com.precisionfarming.mobile.ui.components.LoadedList
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun IrrigationScreen(onBack: () -> Unit) {
@@ -55,8 +56,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        TextButton(onClick = onBack) { Text(S.t("common.back")) }
-        Text(S.t("irrigation.title"))
+        ScreenHeader(S.t("irrigation.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("irrigation.assets"), S.t("irrigation.recs")),
             selectedIndex = tab,

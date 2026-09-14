@@ -17,6 +17,13 @@ object InspectNav {
     const val HARVEST = "mais/harvest"
     const val INSIGHTS = "mais/insights"
     const val FINANCE = "mais/finance"
+    const val SYNC = "mais/sync"
+
+    /** Work-order execution screen; path id because it is a detail page, not a tab. */
+    const val ARG_ID = "id"
+    const val OPS_RUN = "ops/run/{$ARG_ID}"
+
+    fun opsRun(id: String): String = "ops/run/${java.net.URLEncoder.encode(id, "UTF-8")}"
 
     fun pattern(base: String): String =
         if (base == ALERTS) "$base?severity={severity}&selected={selected}"
@@ -33,7 +40,11 @@ object InspectNav {
 
     fun tabSelected(destinationRoute: String?, tab: String): Boolean {
         val base = baseOf(destinationRoute)
-        return if (tab == MORE) base == MORE || base.startsWith("mais/") else base == tab
+        return when (tab) {
+            MORE -> base == MORE || base.startsWith("mais/")
+            OPS -> base == OPS || base.startsWith("ops/")
+            else -> base == tab
+        }
     }
 }
 

@@ -78,6 +78,14 @@ describe('fieldPolygons', () => {
     expect(on[0].fillColor).not.toBe(off[0].fillColor)
     expect(on[0].fillOpacity).toBeGreaterThan(off[0].fillOpacity)
   })
+
+  it('colors by operation state when fieldStates is given', () => {
+    const styled = fieldPolygons([soy, corn], [], [], { 'field-a': 'progress' })
+    expect(styled[0].fillColor).toBe('#12a08e')
+    // fields without a state get the neutral style
+    expect(styled[1].fillColor).toBe('#e2dfd5')
+    expect(styled[1].fillOpacity).toBeLessThan(styled[0].fillOpacity)
+  })
 })
 
 describe('shortId', () => {

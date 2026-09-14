@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { reportDownloadPath, reportsPdfPath } from '@/features/reports/api'
+import { GATEWAY_REPORTS, reportDownloadPath, reportsPdfPath } from '@/features/reports/api'
 
 describe('reportsPdfPath', () => {
   it('omits farmId when unset', () => {
@@ -20,5 +20,15 @@ describe('reportsPdfPath', () => {
 
   it('rejects unexpected download paths', () => {
     expect(() => reportDownloadPath('/api/v1/auth/me')).toThrow('Invalid report download path')
+  })
+
+  it('falls back to live gateway PDF paths, never demo files', () => {
+    expect(GATEWAY_REPORTS.map((item) => item.path)).toEqual([
+      '/api/v1/reports/operations.pdf',
+      '/api/v1/reports/inventory.pdf',
+    ])
+    for (const item of GATEWAY_REPORTS) {
+      expect(() => reportDownloadPath(item.path)).not.toThrow()
+    }
   })
 })

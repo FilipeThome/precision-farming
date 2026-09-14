@@ -1,6 +1,5 @@
 import { FieldInspector } from '@/features/fields/components/FieldInspector'
 import { useFieldsQuery } from '@/features/fields/queries'
-import { fieldPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -40,8 +39,7 @@ export function FieldsPage() {
               title={label(field.id, field.name)}
               subtitle={`${label(field.crop)}${field.variety ? ` · ${label(field.variety)}` : ''}`}
               meta={`${number(Number(field.areaHa), 1)} ha`}
-              imageSrc={fieldPhoto(field.id, field.crop, field.farmId)}
-              imageAlt={label(field.id, field.name)}
+              kind="field"
               selected={field.id === selectedId}
               onSelect={() => setSelectedId(field.id)}
             />

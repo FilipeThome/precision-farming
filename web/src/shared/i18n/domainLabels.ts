@@ -1,58 +1,5 @@
 import type { Locale } from '@/shared/i18n/locales'
 
-const FARM_NAMES: Record<string, { pt: string; en: string }> = {
-  'bbc017bc-be38-34d4-95df-0b1f15162e1d': { pt: 'Fazenda Boa Vista', en: 'Boa Vista Farm' },
-  'edee4185-700f-3eca-bda1-5c1e350f9bd7': { pt: 'Fazenda Santa Helena', en: 'Santa Helena Farm' },
-  '7b78a074-4a05-3f91-aa71-a7e40a0ae887': { pt: 'Fazenda Horizonte', en: 'Horizonte Farm' },
-  'c4874c61-ee80-3fd1-8178-07b1c8ba3789': { pt: 'Fazenda Primavera', en: 'Primavera Farm' },
-  'ec0336f8-9c22-33f4-bbad-fd1648c8c6da': { pt: 'Fazenda Campo Alegre', en: 'Campo Alegre Farm' },
-  '0ec22ad0-3142-311b-a3f5-e1e24e868fce': { pt: 'Fazenda Vale Verde', en: 'Vale Verde Farm' },
-  '41b4ef3e-ecef-333b-8575-e693335b7980': { pt: 'Fazenda Estrela do Sul', en: 'Estrela do Sul Farm' },
-  '2b78b23a-0578-32f7-b999-d8e672748b4a': { pt: 'Fazenda Nova Esperança', en: 'Nova Esperança Farm' },
-}
-
-const FIELD_NAMES: Record<string, { pt: string; en: string }> = {
-  '0a88a941-7af8-3bc2-ae31-8d75c072b2f1': { pt: 'Talhão 01', en: 'Field 01' },
-  '3efb5529-e736-3f3e-9a04-e281c0255225': { pt: 'Talhão 02', en: 'Field 02' },
-  '8f2cc990-7a50-38ba-8fb4-0e2675be7a3f': { pt: 'Talhão 03', en: 'Field 03' },
-  '4257e72d-24b3-32f8-9e7d-df5a8dfe5082': { pt: 'Talhão Norte', en: 'North Field' },
-  '103c861e-dc68-3874-a3fb-13a4c4165121': { pt: 'Talhão Sul', en: 'South Field' },
-  '732c2d4d-e3cb-3302-9d79-4c82a3bd240a': { pt: 'Talhão A', en: 'Field A' },
-  'f3b691fd-b3c4-3d42-a936-5bf8f9168013': { pt: 'Talhão B', en: 'Field B' },
-  'bd5d5765-efb3-3ae9-97da-2d43f025a5b6': { pt: 'Talhão C', en: 'Field C' },
-  '4aacee0b-3a7c-3823-bd95-4f86bf857350': { pt: 'Talhão Leste', en: 'East Field' },
-  '449184eb-ca59-32bd-ac65-1316f50af579': { pt: 'Talhão Oeste', en: 'West Field' },
-  '71b09dff-0c53-3bf9-855c-e3e39a318a75': { pt: 'Talhão Centro', en: 'Center Field' },
-  '606934a3-410c-32d7-b442-dbacf95d28e9': { pt: 'Talhão 1', en: 'Field 1' },
-  '6169aebc-e956-36ca-ab0b-0316868f7cfb': { pt: 'Talhão 2', en: 'Field 2' },
-  'f973f03c-cdc9-3bee-a2a5-9f62c4df18e2': { pt: 'Talhão 04', en: 'Field 04' },
-  '9e876222-3f39-3190-ad8c-1c147b28f6e6': { pt: 'Talhão Nordeste', en: 'Northeast Field' },
-  '65649ed1-3288-38ff-9221-fd72c55bfc70': { pt: 'Talhão 3', en: 'Field 3' },
-  '35db3ff8-fcd4-3dc1-a94e-05cfc7f7573f': { pt: 'Talhão VV-01', en: 'Field VV-01' },
-  '8d53bfe3-d56f-3aab-bd31-ea24fe5c00a0': { pt: 'Talhão VV-02', en: 'Field VV-02' },
-  '3c659191-147b-33c6-b9cd-b3ba453ff56b': { pt: 'Talhão ES-Norte', en: 'Field ES-North' },
-  '260f6dc7-43ea-36f4-9f62-697a85176143': { pt: 'Talhão ES-Sul', en: 'Field ES-South' },
-  'bcdc44eb-b9c7-36ee-ab20-4057e50d9b39': { pt: 'Talhão NE-01', en: 'Field NE-01' },
-  'df8b2220-938c-3d82-9391-cce9d326d9b5': { pt: 'Talhão NE-02', en: 'Field NE-02' },
-}
-
-const MACHINE_NAMES: Record<string, { pt: string; en: string }> = {
-  '1f297fd1-d21e-3bc1-8f2e-7cc1f58261b2': { pt: 'Trator 01', en: 'Tractor 01' },
-  '9333e96c-f57d-35af-a819-98378ac30393': { pt: 'Pulverizador 01', en: 'Sprayer 01' },
-  'a553ea50-0abf-35a0-96ea-132dd25b23e0': { pt: 'Colheitadeira 01', en: 'Harvester 01' },
-  'df4e1ee3-5f7a-3391-9bf6-b285623603cf': { pt: 'Trator 02', en: 'Tractor 02' },
-  '8c0daada-661f-33a6-8210-6cf71f4c9a12': { pt: 'Plantadeira 01', en: 'Planter 01' },
-  '10f67c9c-309d-3088-8dfc-366b78097b51': { pt: 'Pulverizador 02', en: 'Sprayer 02' },
-  '8207052a-6b9c-3f28-9d91-17431bedd5f6': { pt: 'Trator 03', en: 'Tractor 03' },
-  'bd684837-1779-3648-b7e6-6dd979329f25': { pt: 'Colheitadeira 02', en: 'Harvester 02' },
-  '1663096f-425b-3508-8c72-38492ca7af9d': { pt: 'Trator 04', en: 'Tractor 04' },
-  '4a764502-e9d8-315e-a22b-afae790d1352': { pt: 'Plantadeira 02', en: 'Planter 02' },
-  'b408224c-1bd9-3a7e-a9e6-b4970fe86693': { pt: 'Pulverizador 03', en: 'Sprayer 03' },
-  'd4b460c4-37b3-321d-a601-535f9ecd8583': { pt: 'Trator 05', en: 'Tractor 05' },
-  '9861d50d-527b-385c-b89b-b0674467015f': { pt: 'Drone 01', en: 'Drone 01' },
-  '9b2296fa-d133-37db-be2f-be69dc802915': { pt: 'Drone 02', en: 'Drone 02' },
-}
-
 const PT: Record<string, string> = {
   SOY: 'Soja',
   CORN: 'Milho',
@@ -790,11 +737,6 @@ function stripAccents(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '')
 }
 
-function pick(pair: { pt: string; en: string } | undefined, locale: Locale): string | undefined {
-  if (!pair) return undefined
-  return locale === 'en-US' ? pair.en : pair.pt
-}
-
 export function humanizeCode(value: string, locale: Locale): string {
   const words = value.split(/[_-]+/).filter(Boolean)
   if (words.length === 0) return value
@@ -805,21 +747,9 @@ export function humanizeCode(value: string, locale: Locale): string {
   return lowered.map((w, i) => (i === 0 ? w.charAt(0).toUpperCase() + w.slice(1) : w)).join(' ')
 }
 
-export function entityDisplayName(locale: Locale, id?: string | null): string | undefined {
-  if (!id) return undefined
-  return (
-    pick(FARM_NAMES[id], locale) ??
-    pick(FIELD_NAMES[id], locale) ??
-    pick(MACHINE_NAMES[id], locale)
-  )
-}
-
 export function domainLabel(locale: Locale, raw?: string | null): string {
   if (raw == null || String(raw).trim() === '') return '—'
   const value = String(raw).trim()
-
-  const named = entityDisplayName(locale, value)
-  if (named) return named
 
   const demoScout = value.match(/^(?:Observação demo|Observacao demo|DEMO_SCOUT)[ _#]*(\d+)$/i)
   if (demoScout) {

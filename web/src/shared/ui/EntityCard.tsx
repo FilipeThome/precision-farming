@@ -1,29 +1,22 @@
 import type { KeyboardEvent, ReactNode } from 'react'
 
 import { Card } from '@/shared/ui/Card'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile, type EntityKind, type EntityTone } from '@/shared/ui/EntityTile'
 
 type Props = {
   title: string
   subtitle?: string
   meta?: string
-  imageSrc?: string
-  imageAlt?: string
+  /** Icon tile kind; when omitted no tile is rendered. */
+  kind?: EntityKind
+  machineType?: string | null
+  tone?: EntityTone
   children?: ReactNode
   selected?: boolean
   onSelect?: () => void
 }
 
-export function EntityCard({
-  title,
-  subtitle,
-  meta,
-  imageSrc,
-  imageAlt,
-  children,
-  selected,
-  onSelect,
-}: Props) {
+export function EntityCard({ title, subtitle, meta, kind, machineType, tone, children, selected, onSelect }: Props) {
   const interactive = Boolean(onSelect)
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -36,25 +29,22 @@ export function EntityCard({
 
   return (
     <Card
-      className={`${imageSrc ? 'flex gap-3 p-3' : 'flex flex-col gap-1'} ${
-        interactive ? 'cursor-pointer transition hover:border-pf-teal' : ''
-      } ${selected ? 'ring-2 ring-pf-teal' : ''}`}
+      className={`flex gap-3 p-3 ${
+        interactive ? 'cursor-pointer transition hover:border-ag-t-500 hover:shadow-[0_6px_16px_-6px_rgba(20,30,25,0.16)]' : ''
+      } ${selected ? 'ring-2 ring-ag-t-500' : ''}`}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
       aria-pressed={interactive ? Boolean(selected) : undefined}
       onClick={onSelect}
       onKeyDown={onKeyDown}
     >
-      {imageSrc ? <EntityPhoto src={imageSrc} alt={imageAlt ?? title} /> : null}
+      {kind ? <EntityTile kind={kind} machineType={machineType} tone={tone} /> : null}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <h2 className="font-semibold text-pf-green">{title}</h2>
-        {subtitle ? <p className="text-sm text-pf-muted">{subtitle}</p> : null}
-        {meta ? <p className="text-xs text-pf-muted">{meta}</p> : null}
+        <h2 className="font-display text-[13px] font-bold text-ag-n-900">{title}</h2>
+        {subtitle ? <p className="text-[12px] text-ag-n-600">{subtitle}</p> : null}
+        {meta ? <p className="text-[11px] text-ag-n-500">{meta}</p> : null}
         {children ? (
-          <div
-            onClick={(event) => event.stopPropagation()}
-            onKeyDown={(event) => event.stopPropagation()}
-          >
+          <div onClick={(event) => event.stopPropagation()} onKeyDown={(event) => event.stopPropagation()}>
             {children}
           </div>
         ) : null}

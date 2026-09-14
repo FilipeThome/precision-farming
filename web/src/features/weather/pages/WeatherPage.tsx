@@ -3,14 +3,13 @@ import { useState } from 'react'
 import { WeatherWindowsList } from '@/features/weather/components/WeatherWindowsList'
 import { useForecastQuery, useWeatherWindowsQuery } from '@/features/weather/queries'
 import { weatherSeries } from '@/shared/charts/adapters'
-import { weatherPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { Card } from '@/shared/ui/Card'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { LineChartBlock } from '@/shared/ui/charts'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { SectionTabs } from '@/shared/ui/SectionTabs'
@@ -72,7 +71,7 @@ export function WeatherPage() {
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             {(forecast.data ?? []).map((day) => (
               <Card key={day.id} className="flex gap-3 p-3">
-                <EntityPhoto src={weatherPhoto()} alt={date(day.forecastAt)} />
+                <EntityTile kind="weather" size="lg" label={date(day.forecastAt)} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="font-medium text-pf-green">{date(day.forecastAt)}</h2>

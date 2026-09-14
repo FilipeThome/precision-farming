@@ -1,6 +1,5 @@
 import { AlertInspector } from '@/features/alerts/components/AlertInspector'
 import { useAckAlertMutation, useAlertsQuery } from '@/features/alerts/queries'
-import { farmPhoto, machinePhoto } from '@/shared/demo/media'
 import type { MessageKey } from '@/shared/i18n/useI18n'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
@@ -10,7 +9,7 @@ import { useSelectedId } from '@/shared/lib/useSelectedId'
 import { Button } from '@/shared/ui/Button'
 import { Card } from '@/shared/ui/Card'
 import { DetailDrawer } from '@/shared/ui/DetailDrawer'
-import { EntityPhoto } from '@/shared/ui/EntityPhoto'
+import { EntityTile } from '@/shared/ui/EntityTile'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
@@ -74,10 +73,6 @@ export function AlertsPage() {
       >
         <div className="flex flex-col gap-3">
           {visible.map((alert) => {
-            const thumb =
-              alert.entityType === 'MACHINE' && alert.entityId
-                ? machinePhoto(alert.entityId)
-                : farmPhoto(alert.farmId)
             return (
               <Card
                 key={alert.id}
@@ -91,7 +86,12 @@ export function AlertsPage() {
                   aria-pressed={alert.id === selectedId}
                   onClick={() => setSelectedId(alert.id)}
                 >
-                  <EntityPhoto variant="thumb" src={thumb} alt={label(alert.title)} />
+                  <EntityTile
+                    kind={alert.entityType === 'MACHINE' ? 'machine' : 'alert'}
+                    size="sm"
+                    tone={alert.severity === 'CRITICAL' ? 'crit' : 'warn'}
+                    label={label(alert.title)}
+                  />
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
                       <h2 className="font-semibold text-pf-green">{label(alert.title)}</h2>

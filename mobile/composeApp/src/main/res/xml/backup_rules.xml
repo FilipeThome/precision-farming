@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="sharedpref" path="pf_secure_session.xml" />
+    <exclude domain="sharedpref" path="pf_secure_offline_queue.xml" />
+    <exclude domain="sharedpref" path="pf_offline_queue.xml" />
+</full-backup-content>

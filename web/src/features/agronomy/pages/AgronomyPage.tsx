@@ -7,7 +7,6 @@ import {
   useScoutingQuery,
   useSoilSamplesQuery,
 } from '@/features/agronomy/queries'
-import { farmPhoto, scoutingPhoto, soilPhoto } from '@/shared/demo/media'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
@@ -90,8 +89,7 @@ export function AgronomyPage() {
                     title={label(row.pest, row.fieldId ?? row.id)}
                     subtitle={row.notes ? label(row.notes) : undefined}
                     meta={`${label(row.severity)} · ${dateTime(row.observedAt)}`}
-                    imageSrc={scoutingPhoto()}
-                    imageAlt={label(row.pest)}
+                    kind="scouting"
                   />
                 ))
               : null}
@@ -109,8 +107,7 @@ export function AgronomyPage() {
                         : undefined
                     }
                     meta={dateTime(row.sampledAt)}
-                    imageSrc={soilPhoto()}
-                    imageAlt={label(row.lab)}
+                    kind="soil"
                   />
                 ))
               : null}
@@ -121,8 +118,7 @@ export function AgronomyPage() {
                     title={label(row.title ?? row.kind, row.id)}
                     subtitle={row.summary ? label(row.summary) : undefined}
                     meta={`${label(row.priority)} · ${dateTime(row.createdAt)}`}
-                    imageSrc={farmPhoto(row.farmId) ?? farmPhoto(farmId)}
-                    imageAlt={label(row.title)}
+                    kind="recommendation"
                   />
                 ))
               : null}

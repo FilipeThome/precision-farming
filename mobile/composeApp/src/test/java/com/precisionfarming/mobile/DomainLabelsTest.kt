@@ -1,13 +1,21 @@
 package com.precisionfarming.mobile
 
+import com.precisionfarming.mobile.data.EntityNames
+import com.precisionfarming.mobile.data.FarmDto
+import com.precisionfarming.mobile.data.FieldDto
+import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.i18n.AppLocale
 import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.LocaleStore
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
 
 class DomainLabelsTest {
+    @After
+    fun tearDown() = EntityNames.clear()
+
     @Test
     fun unknownUuidFallsBackToShortId() {
         LocaleStore.setLocale(AppLocale.EN_US)
@@ -20,22 +28,41 @@ class DomainLabelsTest {
     }
 
     @Test
-    fun seededCodesMatchWebTables() {
+    fun uuidResolvesOnlyAfterBackendReturnedTheEntity() {
+        val farmId = "11111111-1111-1111-1111-111111111111"
+        val fieldId = "22222222-2222-2222-2222-222222222222"
+        val machineId = "33333333-3333-3333-3333-333333333333"
+        assertEquals("11111111", DomainLabels.label(farmId))
+
+        EntityNames.registerFarms(listOf(FarmDto(id = farmId, name = "Fazenda Rio Claro", location = "MT")))
+        EntityNames.registerFields(listOf(FieldDto(id = fieldId, name = "Talhão 7")))
+        EntityNames.registerMachines(listOf(MachineDto(id = machineId, name = "Trator 9", status = "IDLE", type = "TRACTOR")))
+
+        assertEquals("Fazenda Rio Claro", DomainLabels.label(farmId))
+        assertEquals("Talhão 7", DomainLabels.label(fieldId))
+        assertEquals("Trator 9", DomainLabels.label(machineId))
+    }
+
+    @Test
+    fun blankNamesAreNotRegistered() {
+        val fieldId = "44444444-4444-4444-4444-444444444444"
+        EntityNames.registerFields(listOf(FieldDto(id = fieldId, name = "  ")))
+        assertEquals("44444444", DomainLabels.label(fieldId))
+    }
+
+    @Test
+    fun backendCodesAreLocalized() {
         LocaleStore.setLocale(AppLocale.PT_BR)
         assertEquals("Troca de filtros", DomainLabels.label("FILTER_CHANGE"))
         assertEquals("Pivô Norte", DomainLabels.label("PIVOT_NORTH"))
         assertEquals("Déficit hídrico estimado", DomainLabels.label("WATER_DEFICIT"))
         assertEquals("Óleo hidráulico", DomainLabels.label("HYDRAULIC_OIL"))
-        assertEquals("Talhão Nordeste", DomainLabels.label("9e876222-3f39-3190-ad8c-1c147b28f6e6"))
-        assertEquals("Talhão Leste", DomainLabels.label("4aacee0b-3a7c-3823-bd95-4f86bf857350"))
         assertEquals("Drone", DomainLabels.label("DRONE"))
-        assertEquals("Drone 01", DomainLabels.label("9861d50d-527b-385c-b89b-b0674467015f"))
-        assertEquals("Drone 02", DomainLabels.label("9b2296fa-d133-37db-be2f-be69dc802915"))
         assertEquals("Ocioso", DomainLabels.label("IDLE"))
         LocaleStore.setLocale(AppLocale.EN_US)
         assertEquals("DemoJohnDeere", DomainLabels.label("DemoJohnDeere"))
         assertEquals("listMachines", DomainLabels.label("listMachines"))
         assertEquals("North Pivot", DomainLabels.label("PIVOT_NORTH"))
-        assertEquals("Northeast Field", DomainLabels.label("9e876222-3f39-3190-ad8c-1c147b28f6e6"))
+        assertEquals("Idle", DomainLabels.label("IDLE"))
     }
 }
