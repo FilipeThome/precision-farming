@@ -116,11 +116,14 @@ export function ControlTowerPage() {
             <FieldStatusMap
               fields={fields.data ?? []}
               fieldStates={states}
-              isLoading={fields.isLoading}
-              isError={fields.isError}
-              errorMessage={queryError(fields.error).message}
-              correlationId={queryError(fields.error).correlationId}
-              onRetry={() => void fields.refetch()}
+              isLoading={fields.isLoading || operations.isLoading}
+              isError={fields.isError || operations.isError}
+              errorMessage={queryError(fields.error ?? operations.error).message}
+              correlationId={queryError(fields.error ?? operations.error).correlationId}
+              onRetry={() => {
+                void fields.refetch()
+                void operations.refetch()
+              }}
               onFieldClick={(fieldId) => navigate(inspectHref('/fields', fieldId, farmId))}
             />
             <TodayTimeline

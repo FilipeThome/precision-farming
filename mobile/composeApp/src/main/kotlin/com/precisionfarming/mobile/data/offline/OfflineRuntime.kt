@@ -43,10 +43,13 @@ object OfflineRuntime {
         }
     }
 
-    /** Drop anyone else's leftover commands after a successful login. */
+    /** Drop anyone else's leftover commands after a successful login, then flush if already online. */
     fun bindSession(userId: String) {
         if (!initialized) return
         queue.retainForUser(userId)
+        if (connectivity.online.value) {
+            scope.launch { runCatching { queue.flush(userId = Session.userId ?: userId) } }
+        }
     }
 
     /** Intentional logout: wipe the queue so the next operator cannot replay it. */

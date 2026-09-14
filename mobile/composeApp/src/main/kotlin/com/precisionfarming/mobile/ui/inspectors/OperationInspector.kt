@@ -29,6 +29,7 @@ import com.precisionfarming.mobile.data.OperationDto
 import com.precisionfarming.mobile.data.canComplete
 import com.precisionfarming.mobile.data.canPause
 import com.precisionfarming.mobile.data.canStart
+import com.precisionfarming.mobile.data.withQueuedStatus
 import com.precisionfarming.mobile.data.formatWhen
 import com.precisionfarming.mobile.data.inventory
 import com.precisionfarming.mobile.data.machines
@@ -60,6 +61,7 @@ fun OperationInspector(
         items = runCatching { inventory(FarmFilter.farmId) }.getOrDefault(emptyList())
     }
     val queue by OfflineRuntime.queue.state.collectAsState()
+    val shown = operation.withQueuedStatus(queue)
     val open = queue.openFor(operation.id)
     val failed = queue.failedFor(operation.id)
     val syncedForOp = queue.items.count { it.operationId == operation.id && it.state == SyncState.SYNCED }
@@ -75,7 +77,7 @@ fun OperationInspector(
         }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-            StatusTag(DomainLabels.label(operation.status), tone = toneForStatus(operation.status), large = true)
+            StatusTag(DomainLabels.label(shown.status), tone = toneForStatus(shown.status), large = true)
             if (open != null) {
                 StatusTag(
                     S.t("run.pendingSync"),
@@ -106,15 +108,15 @@ fun OperationInspector(
             )
         }
         val busy = open != null
-        if (operation.canStart()) {
+        if (shown.canStart()) {
             Button(
                 onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(operation.id)) },
                 enabled = !busy,
                 modifier = Modifier.heightIn(min = 48.dp).fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
-            ) { Text(if (operation.status.equals("PAUSED", ignoreCase = true)) S.t("today.continue") else S.t("ops.start")) }
+            ) { Text(if (shown.status.equals("PAUSED", ignoreCase = true)) S.t("today.continue") else S.t("ops.start")) }
         }
-        if (operation.canPause()) {
+        if (shown.canPause()) {
             OutlinedButton(
                 onClick = { pauseSheet = true },
                 enabled = !busy,
@@ -122,7 +124,7 @@ fun OperationInspector(
                 shape = MaterialTheme.shapes.small,
             ) { Text(S.t("ops.pause")) }
         }
-        if (operation.canComplete()) {
+        if (shown.canComplete()) {
             Button(
                 onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(operation.id)) },
                 enabled = !busy,

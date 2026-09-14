@@ -43,4 +43,35 @@ data class QueueState(
 
     fun failedFor(operationId: String): List<QueuedCommand> =
         items.filter { it.operationId == operationId && it.state == SyncState.FAILED }
+
+    /**
+     * Status implied by the latest SYNCED command. Used so Start/Pause/Complete stay gated after
+     * sync succeeds and before the next GET reflects the server.
+     */
+    fun projectedStatus(operationId: String, serverStatus: String): String {
+        val lastSynced = items
+            .filter { it.operationId == operationId && it.state == SyncState.SYNCED }
+            .maxByOrNull { it.syncedAt ?: it.createdAt }
+            ?: return serverStatus
+        val projected = when (lastSynced.type) {
+            OpCommandType.START -> "IN_PROGRESS"
+            OpCommandType.PAUSE -> "PAUSED"
+            OpCommandType.COMPLETE -> "COMPLETED"
+        }
+        return if (serverOutranks(serverStatus, projected)) serverStatus else projected
+    }
+}
+
+private fun serverOutranks(server: String, projected: String): Boolean {
+    fun rank(value: String): Int = when (value.uppercase()) {
+        "COMPLETED", "COMPLETING" -> 3
+        "IN_PROGRESS", "STARTING", "PAUSED" -> 2
+        "PLANNED" -> 1
+        else -> 0
+    }
+    val serverRank = rank(server)
+    val projectedRank = rank(projected)
+    if (serverRank > projectedRank) return true
+    if (serverRank < projectedRank) return false
+    return server.equals(projected, ignoreCase = true)
 }

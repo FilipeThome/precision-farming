@@ -49,6 +49,7 @@ import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.data.canComplete
 import com.precisionfarming.mobile.data.canPause
 import com.precisionfarming.mobile.data.canStart
+import com.precisionfarming.mobile.data.withQueuedStatus
 import com.precisionfarming.mobile.data.farms
 import com.precisionfarming.mobile.data.fields
 import com.precisionfarming.mobile.data.formatNumber
@@ -155,11 +156,12 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                     val machine = b.machines.firstOrNull { it.id == op.machineId }
                     val item = b.items.firstOrNull { it.id == op.itemId }
                     val title = listOfNotNull(DomainLabels.label(op.type), field?.name?.let { DomainLabels.label(it) }).joinToString(" · ")
+                    val shown = op.withQueuedStatus(queue)
                     val open = queue.openFor(op.id)
                     val failed = queue.failedFor(op.id)
 
                     ScreenHeader(title, onBack) {
-                        StatusTag(DomainLabels.label(op.status), tone = toneForStatus(op.status), large = true)
+                        StatusTag(DomainLabels.label(shown.status), tone = toneForStatus(shown.status), large = true)
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         Text(op.id.take(8), style = MonoSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -180,7 +182,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                         )
                     }
 
-                    TimerCard(op, zone)
+                    TimerCard(shown, zone)
 
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         KpiCard(
@@ -201,7 +203,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                             hint = DomainLabels.label(item.name),
                         )
                     }
-                    if (!op.pauseReason.isNullOrBlank() && op.status.equals("PAUSED", ignoreCase = true)) {
+                    if (!op.pauseReason.isNullOrBlank() && shown.status.equals("PAUSED", ignoreCase = true)) {
                         AgCard(Modifier.fillMaxWidth()) {
                             Text(
                                 S.t("operations.pauseMeta", "reason" to DomainLabels.label(op.pauseReason)),
@@ -213,7 +215,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
 
                     val busy = open != null
                     Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        if (op.canPause()) {
+                        if (shown.canPause()) {
                             OutlinedButton(
                                 onClick = { pauseSheet = true },
                                 enabled = !busy,
@@ -229,7 +231,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                                 Text(S.t("ops.pause"), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(start = 8.dp))
                             }
                         }
-                        if (op.canStart()) {
+                        if (shown.canStart()) {
                             Button(
                                 onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Start(op.id)) },
                                 enabled = !busy,
@@ -239,13 +241,13 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                             ) {
                                 Icon(Icons.Filled.PlayArrow, contentDescription = null)
                                 Text(
-                                    if (op.status.equals("PAUSED", ignoreCase = true)) S.t("today.continue") else S.t("ops.start"),
+                                    if (shown.status.equals("PAUSED", ignoreCase = true)) S.t("today.continue") else S.t("ops.start"),
                                     style = MaterialTheme.typography.titleMedium,
                                     modifier = Modifier.padding(start = 8.dp),
                                 )
                             }
                         }
-                        if (op.canComplete()) {
+                        if (shown.canComplete()) {
                             Button(
                                 onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(op.id)) },
                                 enabled = !busy,
@@ -290,10 +292,11 @@ private fun TimerCard(op: OperationDto, zone: java.time.ZoneId) {
         }
     }
     val now = Instant.ofEpochMilli(nowMs)
-    // PAUSED: freeze at actualEnd if the server has one, else at load time (never pretend it keeps counting).
+    // PAUSED/COMPLETED: freeze at actualEnd if the server has one, else at load time.
     val elapsedUntil = when {
         running -> now
-        op.status.equals("COMPLETED", ignoreCase = true) -> TimeFormat.parseInstant(op.actualEnd, zone) ?: now
+        op.status.equals("COMPLETED", ignoreCase = true) ||
+            op.status.equals("PAUSED", ignoreCase = true) -> TimeFormat.parseInstant(op.actualEnd, zone) ?: now
         else -> now
     }
     val elapsed = start?.let { TimeFormat.formatElapsed(Duration.between(it, elapsedUntil).seconds) }

@@ -12,6 +12,11 @@ import com.precisionfarming.mobile.data.canComplete
 import com.precisionfarming.mobile.data.canPause
 import com.precisionfarming.mobile.data.canStart
 import com.precisionfarming.mobile.data.isOpen
+import com.precisionfarming.mobile.data.offline.OpCommandType
+import com.precisionfarming.mobile.data.offline.QueueState
+import com.precisionfarming.mobile.data.offline.QueuedCommand
+import com.precisionfarming.mobile.data.offline.SyncState
+import com.precisionfarming.mobile.data.withQueuedStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -149,6 +154,50 @@ class OpGatesTest {
         assertTrue(OperationDto("1", "PLANT", "planned").canStart())
         assertTrue(OperationDto("1", "PLANT", "in_progress").canPause())
         assertTrue(OperationDto("1", "PLANT", "paused").canComplete())
+    }
+
+    @Test
+    fun queuedSyncedStartHidesStartUntilReload() {
+        val planned = OperationDto("1", "PLANT", "PLANNED")
+        val queue = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "1",
+                    OpCommandType.START,
+                    createdAt = "2026-01-01T00:00:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:01Z",
+                ),
+            ),
+        )
+        val shown = planned.withQueuedStatus(queue)
+        assertEquals("IN_PROGRESS", shown.status)
+        assertFalse(shown.canStart())
+        assertTrue(shown.canPause())
+        assertTrue(shown.canComplete())
+    }
+
+    @Test
+    fun serverCompletedOutranksLocalStart() {
+        val completed = OperationDto("1", "PLANT", "COMPLETED")
+        val queue = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "1",
+                    OpCommandType.START,
+                    createdAt = "2026-01-01T00:00:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:01Z",
+                ),
+            ),
+        )
+        val shown = completed.withQueuedStatus(queue)
+        assertEquals("COMPLETED", shown.status)
+        assertFalse(shown.canStart())
+        assertFalse(shown.canPause())
+        assertFalse(shown.canComplete())
     }
 
     @Test
