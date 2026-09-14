@@ -81,7 +81,8 @@ services:
       - precision-farming
 
   minio:
-    image: minio/minio:latest
+    # Docker Hub minio/minio is no longer publicly pullable (source-only). Last official image on Quay.
+    image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
     command: server /data --console-address ":9001"
     environment:
