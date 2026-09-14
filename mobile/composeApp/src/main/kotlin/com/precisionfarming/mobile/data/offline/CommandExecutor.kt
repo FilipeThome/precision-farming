@@ -95,7 +95,8 @@ class ApiCommandExecutor(
 fun conflictAlreadyApplied(type: OpCommandType, serverStatus: String): Boolean {
     val status = serverStatus.uppercase()
     return when (type) {
-        OpCommandType.START -> status in setOf("IN_PROGRESS", "STARTING", "PAUSED", "COMPLETED", "COMPLETING")
+        // PAUSED is the resume-failure revert, not a successful START.
+        OpCommandType.START -> status in setOf("IN_PROGRESS", "STARTING", "COMPLETED", "COMPLETING")
         OpCommandType.PAUSE -> status in setOf("PAUSED", "COMPLETED", "COMPLETING")
         OpCommandType.COMPLETE -> status in setOf("COMPLETED", "COMPLETING")
     }

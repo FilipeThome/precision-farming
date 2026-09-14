@@ -5,6 +5,11 @@ import com.precisionfarming.mobile.data.FarmDto
 import com.precisionfarming.mobile.data.OperationDto
 import com.precisionfarming.mobile.data.TodayOps
 import com.precisionfarming.mobile.data.WeatherWindowDto
+import com.precisionfarming.mobile.data.offline.OpCommandType
+import com.precisionfarming.mobile.data.offline.QueueState
+import com.precisionfarming.mobile.data.offline.QueuedCommand
+import com.precisionfarming.mobile.data.offline.SyncState
+import com.precisionfarming.mobile.data.withQueuedStatus
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -135,6 +140,27 @@ class TodayOpsTest {
         assertEquals("paused", TodayOps.nextActionable(listOf(paused), zone)?.id)
         assertEquals("running", TodayOps.nextActionable(listOf(paused, planned, running), zone)?.id)
         assertEquals(listOf("paused"), TodayOps.operationsToday(listOf(paused), now, zone).map { it.id })
+    }
+
+    @Test
+    fun nextActionableSkipsJustSyncedComplete() {
+        val justDone = op("done-soon", "PLANNED", "2026-03-10T08:00:00-03:00")
+        val next = op("next", "PLANNED", "2026-03-10T14:00:00-03:00")
+        val queue = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "done-soon",
+                    OpCommandType.COMPLETE,
+                    createdAt = "2026-03-10T08:05:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-03-10T08:05:01Z",
+                ),
+            ),
+        )
+        val projected = listOf(justDone, next).map { it.withQueuedStatus(queue) }
+        assertEquals("next", TodayOps.nextActionable(projected, zone)?.id)
+        assertEquals("done-soon", TodayOps.nextActionable(listOf(justDone, next), zone)?.id)
     }
 
     @Test
