@@ -40,6 +40,14 @@ describe('LoginPage', () => {
     setSession.mockReset()
   })
 
+  it('exposes a brand heading next to a decorative mark', () => {
+    renderLogin()
+    expect(screen.getByRole('heading', { name: 'Precision Farming' })).toBeInTheDocument()
+    const mark = document.querySelector('img')
+    expect(mark).toHaveAttribute('src', '/brand/precision-mark.svg')
+    expect(mark).toHaveAttribute('alt', '')
+  })
+
   it('renders empty email and password fields without any prefilled hint', () => {
     renderLogin()
     expect(screen.getByLabelText('E-mail')).toHaveValue('')

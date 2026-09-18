@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from 'react-router'
 
 import { useAuthStore } from '@/shared/auth/store'
+import { BrandLogo } from '@/shared/brand/BrandLogo'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { preserveFarmSearch } from '@/shared/ui/RouteTabs'
 
@@ -47,13 +48,10 @@ export function Rail() {
       className="flex h-full w-[76px] shrink-0 flex-col items-center gap-1 bg-[linear-gradient(180deg,var(--color-ag-g-900),var(--color-ag-g-950))] py-3 text-[#cfe3d6]"
       aria-label={t('nav.main')}
     >
-      <span
-        className="mb-2.5 grid h-10 w-10 place-items-center rounded-[12px] bg-ag-t-500 font-display text-sm font-extrabold text-white shadow-[inset_0_-2px_0_rgba(0,0,0,0.15)]"
-        aria-label={t('chrome.brand')}
-        role="img"
-      >
-        {t('chrome.mark')}
-      </span>
+      <BrandLogo
+        variant="mark"
+        className="mb-2.5 h-10 w-10 rounded-[12px] bg-ag-n-50 object-contain p-0.5"
+      />
       {DOMAINS.map((domain) => (
         <RailLink key={domain.id} domain={domain} active={active === domain.id} search={search} />
       ))}

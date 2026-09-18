@@ -31,7 +31,6 @@ export const enUS: Record<MessageKey, string> = {
   'chrome.offlineBanner': 'You are offline. Data may be out of date.',
   'chrome.loading': 'Loading…',
   'chrome.brand': 'Precision Farming',
-  'chrome.mark': 'Ag',
 
   'locale.ptBR': 'Portuguese (Brazil)',
   'locale.enUS': 'English (United States)',
