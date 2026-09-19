@@ -25,6 +25,28 @@ class TodayTimelineTest {
     }
 
     @Test
+    fun todayRangeUsesNextLocalMidnightAcrossDst() {
+        val zone = java.time.ZoneId.of("America/New_York")
+        // 2026-03-08 is spring-forward in US (23h local day).
+        val spring = Instant.parse("2026-03-08T15:00:00Z")
+        val springRange = todayRange(spring, zone)
+        assertEquals(
+            java.time.LocalDate.of(2026, 3, 8).atStartOfDay(zone).toInstant().toEpochMilli(),
+            springRange.start,
+        )
+        assertEquals(
+            java.time.LocalDate.of(2026, 3, 9).atStartOfDay(zone).toInstant().toEpochMilli(),
+            springRange.end,
+        )
+        assertEquals(23L * 60 * 60 * 1000, springRange.end - springRange.start)
+
+        // 2026-11-01 is fall-back in US (25h local day).
+        val fall = Instant.parse("2026-11-01T15:00:00Z")
+        val fallRange = todayRange(fall, zone)
+        assertEquals(25L * 60 * 60 * 1000, fallRange.end - fallRange.start)
+    }
+
+    @Test
     fun includesOpsIntersectingDayWithOffsetTimestamps() {
         val now = Instant.parse("2026-09-18T12:00:00Z")
         val range = todayRange(now, ZoneOffset.UTC)

@@ -148,7 +148,7 @@ fun ControlTowerScreen(
                 val b = s.items.first()
                 if (b.partialError) {
                     Text(
-                        S.t("decisions.partialError"),
+                        S.t("common.partialError"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                     )
