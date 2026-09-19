@@ -21,14 +21,17 @@ import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.HarvestPlanDto
 import com.precisionfarming.mobile.data.LogisticsLoadDto
+import com.precisionfarming.mobile.data.MeDto
 import com.precisionfarming.mobile.data.StorageLotDto
 import com.precisionfarming.mobile.data.StorageUnitDto
 import com.precisionfarming.mobile.data.YieldRecordDto
 import com.precisionfarming.mobile.data.byId
+import com.precisionfarming.mobile.data.canManageFarmOps
 import com.precisionfarming.mobile.data.dispatchLoad
 import com.precisionfarming.mobile.data.harvestPlans
 import com.precisionfarming.mobile.data.harvestYield
 import com.precisionfarming.mobile.data.logisticsLoads
+import com.precisionfarming.mobile.data.me
 import com.precisionfarming.mobile.data.storageLots
 import com.precisionfarming.mobile.data.storageUnits
 import com.precisionfarming.mobile.i18n.DomainLabels
@@ -60,12 +63,17 @@ fun HarvestScreen(
     var loads by remember { mutableStateOf<LoadState<LogisticsLoadDto>>(LoadState.Loading) }
     var units by remember { mutableStateOf<LoadState<StorageUnitDto>>(LoadState.Loading) }
     var lots by remember { mutableStateOf<LoadState<StorageLotDto>>(LoadState.Loading) }
+    var meDto by remember { mutableStateOf<MeDto?>(null) }
+    var meFailed by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
     val tabs = HarvestTab.entries
     fun reload() {
         scope.launch {
             val farmId = FarmFilter.farmId
+            val meResult = runCatching { me() }
+            meDto = meResult.getOrNull()
+            meFailed = meResult.isFailure
             when (tabs[tab]) {
                 HarvestTab.PLANS -> {
                     if (plans !is LoadState.Ok) plans = LoadState.Loading
@@ -93,6 +101,7 @@ fun HarvestScreen(
         }
     }
     LaunchedEffect(tab, storageSub, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    val canDispatch = canManageFarmOps(meDto?.role)
     val planItems = (plans as? LoadState.Ok)?.items.orEmpty()
     val lotItems = (lots as? LoadState.Ok)?.items.orEmpty()
     val yieldItems = (yieldState as? LoadState.Ok)?.items.orEmpty()
@@ -104,7 +113,7 @@ fun HarvestScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ScreenHeader(S.t("harvest.title"), onBack)
+        ScreenHeader(S.t("harvest.detail.title"), onBack)
         SectionTabs(
             labels = listOf(S.t("tab.plans"), S.t("tab.yield"), S.t("tab.logistics"), S.t("tab.storage")),
             selectedIndex = tab,
@@ -135,13 +144,29 @@ fun HarvestScreen(
                         status = DomainLabels.label(load.status),
                     )
                     val queued = load.status?.equals("QUEUED", ignoreCase = true) == true
-                    if (queued) {
+                    if (queued && canDispatch) {
                         TextButton(onClick = {
                             scope.launch {
-                                runCatching { dispatchLoad(load.id) }.onFailure { msg = it.message }
+                                runCatching { dispatchLoad(load.id) }
+                                    .onSuccess { msg = S.t("harvest.dispatchOk") }
+                                    .onFailure { msg = it.message }
                                 reload()
                             }
                         }) { Text(S.t("harvest.dispatch")) }
+                    }
+                    if (queued && meFailed) {
+                        Text(
+                            S.t("auth.meLoadError"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    if (queued && !meFailed && meDto != null && !canDispatch) {
+                        Text(
+                            S.t("harvest.dispatchNoPermission"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                 }
             }
