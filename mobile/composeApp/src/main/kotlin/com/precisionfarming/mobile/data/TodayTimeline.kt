@@ -16,10 +16,12 @@ data class TimelineRow(
     val executed: Segment? = null,
 )
 
-/** Calendar day containing [now] in [zone] (00:00 → next 00:00). */
+/** Calendar day containing [now] in [zone] (local midnight → next local midnight). */
 fun todayRange(now: Instant = Instant.now(), zone: ZoneId = ZoneId.systemDefault()): DayRange {
-    val start = LocalDate.ofInstant(now, zone).atStartOfDay(zone).toInstant().toEpochMilli()
-    return DayRange(start = start, end = start + 24L * 60 * 60 * 1000)
+    val today = LocalDate.ofInstant(now, zone)
+    val start = today.atStartOfDay(zone).toInstant().toEpochMilli()
+    val end = today.plusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+    return DayRange(start = start, end = end)
 }
 
 private fun intersects(start: Long?, end: Long?, range: DayRange): Boolean {
