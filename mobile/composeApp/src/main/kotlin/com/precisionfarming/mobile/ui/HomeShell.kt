@@ -61,6 +61,8 @@ import com.precisionfarming.mobile.ui.components.OfflineStripFromRuntime
 import com.precisionfarming.mobile.ui.screens.AlertsScreen
 import com.precisionfarming.mobile.ui.screens.AgronomyScreen
 import com.precisionfarming.mobile.ui.screens.ComplianceScreen
+import com.precisionfarming.mobile.ui.screens.ControlTowerScreen
+import com.precisionfarming.mobile.ui.screens.DecisionsScreen
 import com.precisionfarming.mobile.ui.screens.FarmsScreen
 import com.precisionfarming.mobile.ui.screens.FieldsScreen
 import com.precisionfarming.mobile.ui.screens.FinanceScreen
@@ -76,6 +78,7 @@ import com.precisionfarming.mobile.ui.screens.MarketScreen
 import com.precisionfarming.mobile.ui.screens.MoreMenu
 import com.precisionfarming.mobile.ui.screens.OperationExecutionScreen
 import com.precisionfarming.mobile.ui.screens.OpsScreen
+import com.precisionfarming.mobile.ui.screens.PostHarvestTowerScreen
 import com.precisionfarming.mobile.ui.screens.ReportsScreen
 import com.precisionfarming.mobile.ui.screens.SeasonsScreen
 import com.precisionfarming.mobile.ui.screens.SettingsScreen
@@ -237,9 +240,9 @@ fun HomeShell(onLogout: () -> Unit) {
     ) { padding ->
         val back: () -> Unit = { nav.popBackStack() }
         fun selectedOf(entry: androidx.navigation.NavBackStackEntry) =
-            entry.arguments?.getString(InspectNav.ARG_SELECTED).orEmpty().ifBlank { null }
+            InspectNav.decodeArg(entry.arguments?.getString(InspectNav.ARG_SELECTED))
         fun severityOf(entry: androidx.navigation.NavBackStackEntry) =
-            entry.arguments?.getString(InspectNav.ARG_SEVERITY).orEmpty().ifBlank { null }
+            InspectNav.decodeArg(entry.arguments?.getString(InspectNav.ARG_SEVERITY))
         fun setSelected(base: String, id: String, severity: String? = null) {
             nav.openInspect(InspectNav.href(base, selected = id, severity = severity))
         }
@@ -282,11 +285,12 @@ fun HomeShell(onLogout: () -> Unit) {
                 MoreMenu(onOpen = { route ->
                     val href = when (route) {
                         InspectNav.FARMS, InspectNav.FIELDS, InspectNav.MACHINES,
-                        InspectNav.INVENTORY, InspectNav.HARVEST, InspectNav.INSIGHTS,
+                        InspectNav.INVENTORY, InspectNav.INSIGHTS, InspectNav.DECISIONS,
+                        InspectNav.HARVEST,
                         -> InspectNav.href(route)
                         else -> route
                     }
-                    nav.navigate(href)
+                    nav.navigate(href) { launchSingleTop = true }
                 })
             }
             composable(InspectNav.pattern(InspectNav.FARMS), arguments = listOf(selectedArg)) { entry ->
@@ -303,8 +307,46 @@ fun HomeShell(onLogout: () -> Unit) {
             composable("mais/agronomy") { AgronomyScreen(onBack = back) }
             composable("mais/weather") { WeatherScreen(onBack = back) }
             composable("mais/irrigation") { IrrigationScreen(onBack = back) }
+            composable(InspectNav.TOWER) {
+                ControlTowerScreen(onBack = back, onOpen = { nav.openInspect(it) })
+            }
+            composable(InspectNav.pattern(InspectNav.DECISIONS), arguments = listOf(selectedArg)) { entry ->
+                DecisionsScreen(
+                    selectedId = selectedOf(entry),
+                    onSelect = { setSelected(InspectNav.DECISIONS, it) },
+                    onClearSelected = { clearSelected(InspectNav.DECISIONS) },
+                    onBack = back,
+                    onOpen = { nav.openInspect(it) },
+                )
+            }
             composable(InspectNav.pattern(InspectNav.HARVEST), arguments = listOf(selectedArg)) { entry ->
-                HarvestScreen(selectedOf(entry), { setSelected(InspectNav.HARVEST, it) }, { clearSelected(InspectNav.HARVEST) }, back)
+                val legacySelected = selectedOf(entry)
+                if (legacySelected != null) {
+                    // Legacy deep-link `mais/harvest?selected=` opens harvest detail UI in place.
+                    HarvestScreen(
+                        legacySelected,
+                        { setSelected(InspectNav.HARVEST, it) },
+                        { clearSelected(InspectNav.HARVEST) },
+                        back,
+                    )
+                } else {
+                    PostHarvestTowerScreen(
+                        onBack = back,
+                        onOpenDetail = {
+                            nav.navigate(InspectNav.href(InspectNav.HARVEST_DETAIL)) {
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+            }
+            composable(InspectNav.pattern(InspectNav.HARVEST_DETAIL), arguments = listOf(selectedArg)) { entry ->
+                HarvestScreen(
+                    selectedOf(entry),
+                    { setSelected(InspectNav.HARVEST_DETAIL, it) },
+                    { clearSelected(InspectNav.HARVEST_DETAIL) },
+                    back,
+                )
             }
             composable(InspectNav.pattern(InspectNav.INVENTORY), arguments = listOf(selectedArg)) { entry ->
                 InventoryScreen(selectedOf(entry), { setSelected(InspectNav.INVENTORY, it) }, { clearSelected(InspectNav.INVENTORY) }, back)
