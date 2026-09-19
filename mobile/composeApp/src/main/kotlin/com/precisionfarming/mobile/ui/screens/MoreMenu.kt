@@ -65,6 +65,8 @@ fun MoreMenu(onOpen: (String) -> Unit) {
             Item("mais/compliance", "more.compliance", onOpen)
         }
         Group(S.t("more.group.insights")) {
+            Item("mais/tower", "more.tower", onOpen)
+            Item("mais/decisions", "more.decisions", onOpen)
             Item("mais/insights", "more.insights", onOpen)
             Item("mais/reports", "more.reports", onOpen)
             Item("mais/integrations", "more.integrations", onOpen)
