@@ -100,11 +100,8 @@ class RestExceptionHandler {
         )
     }
 
-    private fun isPathVariable(ex: MethodArgumentTypeMismatchException): Boolean {
-        val param = ex.parameter
-        if (param != null) return param.hasParameterAnnotation(PathVariable::class.java)
-        return ex.name == "id"
-    }
+    private fun isPathVariable(ex: MethodArgumentTypeMismatchException): Boolean =
+        ex.parameter.hasParameterAnnotation(PathVariable::class.java)
 
     private fun notFound(request: HttpServletRequest, code: String, message: String): ResponseEntity<ApiError> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(

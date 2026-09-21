@@ -34,6 +34,7 @@ fun DetailSheet(
     onDismiss: () -> Unit,
     found: Boolean,
     subtitle: String? = null,
+    actions: @Composable () -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -68,6 +69,7 @@ fun DetailSheet(
                     Icon(Icons.Filled.Close, contentDescription = null)
                 }
             }
+            actions()
             if (!found) {
                 Text(S.t("inspector.notFound"), style = MaterialTheme.typography.titleMedium)
                 Text(S.t("inspector.notFoundHint"), style = MaterialTheme.typography.bodyMedium)

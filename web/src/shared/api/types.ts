@@ -43,6 +43,8 @@ export type Machine = {
   manufacturer: string
   model: string
   status: string
+  photoFileId?: string | null
+  photoUrl?: string | null
 }
 
 export type TelemetryPoint = {
@@ -84,6 +86,17 @@ export type MachineWorkSummary = {
   areaHa: number
   days: Array<{ day: string; areaHa: number }>
   inputs: Array<{ itemId: string; quantity: number }>
+}
+
+export type WorkOrder = {
+  id: string
+  farmId: string
+  machineId: string
+  title: string
+  priority: string
+  status: string
+  createdAt: string
+  completedAt: string | null
 }
 
 export type InventoryMovement = {
@@ -258,6 +271,7 @@ export type IrrigationAsset = {
   type?: string
   status?: string
   fieldId?: string
+  capacityMmH?: number | null
 }
 
 export type IrrigationRecommendation = {

@@ -17,6 +17,9 @@ class FileMetaEntity(
     @Column(name = "acquisition_at") val acquisitionAt: Instant?,
     @Column(name = "processing_version") val processingVersion: String?,
     val quality: String?,
+    @Column(name = "content_type") val contentType: String? = null,
+    @Column(name = "size_bytes") val sizeBytes: Long? = null,
+    @Column(name = "entity_id") var entityId: UUID? = null,
 )
 
 @Entity
@@ -35,6 +38,7 @@ class MapLayerEntity(
 
 interface FileJpaRepository : JpaRepository<FileMetaEntity, UUID> {
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<FileMetaEntity>
+    fun findByKindAndEntityId(kind: String, entityId: UUID): FileMetaEntity?
 }
 interface MapLayerJpaRepository : JpaRepository<MapLayerEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<MapLayerEntity>

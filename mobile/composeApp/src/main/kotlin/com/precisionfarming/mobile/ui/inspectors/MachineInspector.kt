@@ -1,8 +1,12 @@
 package com.precisionfarming.mobile.ui.inspectors
 
+import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,12 +15,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InventoryItemDto
 import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.data.MachineMetricsDto
 import com.precisionfarming.mobile.data.MachineWorkSummaryDto
+import com.precisionfarming.mobile.data.fileContent
 import com.precisionfarming.mobile.data.formatNumber
 import com.precisionfarming.mobile.data.formatWhen
 import com.precisionfarming.mobile.data.inventory
@@ -34,15 +43,22 @@ fun MachineInspector(machine: MachineDto, modifier: Modifier = Modifier) {
     var metrics by remember { mutableStateOf<MachineMetricsDto?>(null) }
     var work by remember { mutableStateOf<MachineWorkSummaryDto?>(null) }
     var items by remember { mutableStateOf<List<InventoryItemDto>>(emptyList()) }
+    var photo by remember { mutableStateOf<ImageBitmap?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(machine.id, FarmFilter.farmId) {
+    LaunchedEffect(machine.id, machine.photoFileId, FarmFilter.farmId) {
         loading = true
         error = null
         val range = rollingWeekIsoRange()
         val metricsResult = runCatching { machineMetrics(machine.id) }
         val workResult = runCatching { machineWorkSummary(machine.id, range.first, range.second) }
         items = runCatching { inventory(FarmFilter.farmId) }.getOrDefault(emptyList())
+        photo = machine.photoFileId?.let { id ->
+            runCatching {
+                val bytes = fileContent(id)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
+            }.getOrNull()
+        }
         metrics = metricsResult.getOrNull()
         work = workResult.getOrNull()
         error = metricsResult.exceptionOrNull()?.message ?: workResult.exceptionOrNull()?.message
@@ -51,6 +67,17 @@ fun MachineInspector(machine: MachineDto, modifier: Modifier = Modifier) {
     val source = machineFreshness(metrics?.lastObservedAt)
     val names = items.associate { it.id to (it.name ?: it.id) }
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        photo?.let { bmp ->
+            Image(
+                bitmap = bmp,
+                contentDescription = machine.name,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop,
+            )
+        }
         Text(DomainLabels.label(machine.status))
         source?.let { key ->
             val label = when (key) {

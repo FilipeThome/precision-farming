@@ -1,6 +1,6 @@
 # Thin runtime fallback when a bootJar already exists under build/libs.
 # Prefer the optimized multi-stage image: deploy/docker/Dockerfile.jvm (repo root context).
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:26-jre-alpine
 RUN apk add --no-cache curl \
   && addgroup -S app && adduser -S app -G app
 WORKDIR /app

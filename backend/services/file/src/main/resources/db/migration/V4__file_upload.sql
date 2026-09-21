@@ -1,0 +1,3 @@
+ALTER TABLE files ADD COLUMN content_type VARCHAR(80);
+ALTER TABLE files ADD COLUMN size_bytes BIGINT;
+ALTER TABLE files ADD COLUMN entity_id UUID;

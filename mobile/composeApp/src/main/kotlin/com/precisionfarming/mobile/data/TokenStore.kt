@@ -10,6 +10,8 @@ object TokenStore {
     private const val PREFS = "pf_secure_session"
     private const val KEY = "access_token"
     private const val KEY_USER_ID = "user_id"
+    private const val KEY_ROLE = "role"
+    private const val KEY_REFRESH = "refresh_token"
 
     @Volatile
     private var prefs: SharedPreferences? = null
@@ -19,6 +21,12 @@ object TokenStore {
 
     @Volatile
     private var memoryUserId: String? = null
+
+    @Volatile
+    private var memoryRole: String? = null
+
+    @Volatile
+    private var memoryRefresh: String? = null
 
     fun init(context: Context) {
         if (prefs != null) return
@@ -38,15 +46,20 @@ object TokenStore {
         }
     }
 
-    fun save(accessToken: String, userId: String? = null) {
+    fun save(accessToken: String, userId: String? = null, role: String? = null, refreshToken: String? = null) {
         memory = accessToken
         memoryUserId = userId
+        memoryRole = role
+        if (refreshToken != null) memoryRefresh = refreshToken
         try {
             prefs?.edit()
                 ?.putString(KEY, accessToken)
                 ?.also { editor ->
                     if (userId != null) editor.putString(KEY_USER_ID, userId)
                     else editor.remove(KEY_USER_ID)
+                    if (role != null) editor.putString(KEY_ROLE, role)
+                    else editor.remove(KEY_ROLE)
+                    if (refreshToken != null) editor.putString(KEY_REFRESH, refreshToken)
                 }
                 ?.apply()
         } catch (_: Exception) {
@@ -72,11 +85,43 @@ object TokenStore {
         }
     }
 
+    fun readRole(): String? {
+        memoryRole?.let { return it }
+        return try {
+            prefs?.getString(KEY_ROLE, null)?.also { memoryRole = it }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun readRefresh(): String? {
+        memoryRefresh?.let { return it }
+        return try {
+            prefs?.getString(KEY_REFRESH, null)?.also { memoryRefresh = it }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    /** Drop the refresh token from memory and prefs; returns the previous value (or null). */
+    fun clearRefresh(): String? {
+        val current = readRefresh()
+        memoryRefresh = null
+        try {
+            prefs?.edit()?.remove(KEY_REFRESH)?.apply()
+        } catch (_: Exception) {
+            // ignore
+        }
+        return current
+    }
+
     fun clear() {
         memory = null
         memoryUserId = null
+        memoryRole = null
+        memoryRefresh = null
         try {
-            prefs?.edit()?.remove(KEY)?.remove(KEY_USER_ID)?.apply()
+            prefs?.edit()?.remove(KEY)?.remove(KEY_USER_ID)?.remove(KEY_ROLE)?.remove(KEY_REFRESH)?.apply()
         } catch (_: Exception) {
             // ignore
         }

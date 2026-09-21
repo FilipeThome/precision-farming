@@ -5,14 +5,11 @@ plugins {
     alias(libs.plugins.spring.dep.mgmt)
 }
 
-java {
-    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
-}
 
 dependencies {
     api(project(":backend:libs:common"))
     api(project(":backend:libs:security"))
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:3.5.6"))
+    implementation(platform(libs.spring.boot.bom))
     api(libs.jjwt.api)
     runtimeOnly(libs.jjwt.impl)
     runtimeOnly(libs.jjwt.jackson)

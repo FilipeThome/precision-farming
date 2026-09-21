@@ -91,6 +91,8 @@ type EntityTileProps = {
   className?: string
   /** Accessible name; when omitted the tile is decorative. */
   label?: string
+  /** Authenticated blob URL; when set, replaces the icon. */
+  photoUrl?: string | null
 }
 
 export function entityIcon(kind: EntityKind, machineType?: string | null): LucideIcon {
@@ -102,18 +104,30 @@ export function entityIcon(kind: EntityKind, machineType?: string | null): Lucid
 }
 
 /** Icon tile on a tinted rounded square — replaces photos for every entity. */
-export function EntityTile({ kind, machineType, tone = 'brand', size = 'md', className = '', label }: EntityTileProps) {
+export function EntityTile({
+  kind,
+  machineType,
+  tone = 'brand',
+  size = 'md',
+  className = '',
+  label,
+  photoUrl,
+}: EntityTileProps) {
   const Icon = entityIcon(kind, machineType)
   const s = SIZE[size]
   return (
     <span
-      className={`inline-grid shrink-0 place-items-center ${s.box} ${TONE[tone]} ${className}`}
+      className={`inline-grid shrink-0 place-items-center overflow-hidden ${s.box} ${photoUrl ? 'bg-ag-n-100' : TONE[tone]} ${className}`}
       role={label ? 'img' : undefined}
       aria-label={label}
       aria-hidden={label ? undefined : true}
       data-kind={kind}
     >
-      <Icon className={s.icon} aria-hidden />
+      {photoUrl ? (
+        <img src={photoUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        <Icon className={s.icon} aria-hidden />
+      )}
     </span>
   )
 }

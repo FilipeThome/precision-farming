@@ -23,6 +23,8 @@ class I18nMapsTest {
         assertTrue(Pt.map.containsKey("inspector.close"))
         assertTrue(Pt.map.containsKey("inspector.notFound"))
         assertTrue(Pt.map.containsKey("inspector.source.live"))
+        assertTrue(Pt.map.containsKey("form.none"))
+        assertTrue(Pt.map.containsKey("form.photoInvalid"))
         assertTrue(Pt.map.containsKey("harvest.kpi.yieldVsPlan"))
         assertTrue(Pt.map.containsKey("harvest.kpi.expected"))
         assertTrue(Pt.map.containsKey("harvest.kpi.actual"))

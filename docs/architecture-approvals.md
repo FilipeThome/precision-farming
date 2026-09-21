@@ -14,7 +14,7 @@ Recorded after parallel architect review. Implementation may proceed.
 
 - Compose runs the full local stack: PostGIS Alpine `127.0.0.1:5432` (transactional DBs), Timescale `127.0.0.1:5433` (`telemetry_db`), RabbitMQ management-alpine, Redis, MinIO. Network `precision-farming`. Host 8080 stays reserved for the gateway. Production must not publish infra ports.
 - PostGIS is enabled on `farm_db`.
-- Servlet services use Java 21 virtual threads (`spring.threads.virtual.enabled=true`) with a bounded Hikari pool (10). Gateway stays on Netty and does not enable servlet VTs.
+- Servlet services use Java 26 virtual threads (`spring.threads.virtual.enabled=true`) with a bounded Hikari pool (10). Gateway stays on Netty and does not enable servlet VTs.
 - AMQP is on the classpath with listener `auto-startup: false` so the broker is ready without blocking boot when unused.
 - Web JWT stays in memory. Maps SATELLITE; missing key shows status, not a fake image.
 
@@ -54,7 +54,6 @@ See `docs/full-spec-implementation-slice.md`.
 ## Deferred (next slices)
 
 - Full transactional outbox + Rabbit command bus as the primary saga transport (HTTP reserve/consume remains the working path).
-- Spring Boot 4.1.1 (ADR-003 keeps 3.5.x until Cloud/Springdoc 4.x is wired).
 - KMP module split `shared` / `androidApp` / `iosApp` + SQLDelight (current Android `composeApp` is the Windows slice).
 - Terraform apply — `infra/` stays a skeleton.
 - Kafka, workflow engine, Copilot/Agents, GeoTIFF/ISOXML, OIDC, Chaos lab UI.

@@ -2,13 +2,14 @@ package com.precisionfarming.asset.application
 
 import com.precisionfarming.asset.infrastructure.MachineEntity
 import com.precisionfarming.asset.infrastructure.MachineJpaRepository
+import com.precisionfarming.asset.infrastructure.MachinePhotoGuard
 import com.precisionfarming.asset.infrastructure.WorkOrderEntity
 import com.precisionfarming.asset.infrastructure.WorkOrderJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DemoCatalog
+import com.precisionfarming.common.ForbiddenException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoMachineFarms
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -21,10 +22,13 @@ import java.util.UUID
 data class MachineDto(
     val id: UUID, val farmId: UUID, val name: String, val type: String,
     val manufacturer: String, val model: String, val status: String,
+    val photoFileId: UUID?,
+    val photoUrl: String?,
 )
 data class UpsertMachine(
     val farmId: UUID, val name: String, val type: String,
     val manufacturer: String, val model: String, val status: String,
+    val photoFileId: UUID? = null,
 )
 data class WorkOrderDto(
     val id: UUID, val farmId: UUID, val machineId: UUID, val title: String,
@@ -36,6 +40,7 @@ data class CreateWorkOrder(val farmId: UUID, val machineId: UUID, val title: Str
 class AssetService(
     private val repo: MachineJpaRepository,
     private val workOrders: WorkOrderJpaRepository,
+    private val photos: MachinePhotoGuard,
 ) {
     fun list(scope: AccessScope, farmId: UUID?) =
         repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -49,11 +54,21 @@ class AssetService(
     @Transactional
     fun create(scope: AccessScope, cmd: UpsertMachine): MachineDto {
         scope.requireFarm(cmd.farmId)
-        val saved = repo.save(
-            MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status),
-        ).toDto()
-        DemoMachineFarms.register(saved.id, saved.farmId)
-        return saved
+        cmd.photoFileId?.let { photos.requireAssignable(it, cmd.farmId, machineId = null) }
+        val entity = repo.save(
+            MachineEntity(
+                UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status,
+                cmd.photoFileId,
+            ),
+        )
+        try {
+            cmd.photoFileId?.let { photos.bind(it, entity.id) }
+        } catch (ex: Exception) {
+            entity.photoFileId = null
+            repo.save(entity)
+            throw ex
+        }
+        return entity.toDto()
     }
 
     @Transactional
@@ -61,11 +76,33 @@ class AssetService(
         val e = repo.findById(id).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }
         scope.requireEntityFarm(e.farmId)
         scope.requireFarm(cmd.farmId)
+        val previousPhoto = e.photoFileId
+        val movedFarm = e.farmId != cmd.farmId
+        val nextPhoto = when {
+            movedFarm && (cmd.photoFileId == null || cmd.photoFileId == previousPhoto) -> null
+            else -> cmd.photoFileId
+        }
+        nextPhoto?.let { photos.requireAssignable(it, cmd.farmId, machineId = id) }
         e.farmId = cmd.farmId; e.name = cmd.name; e.type = cmd.type
         e.manufacturer = cmd.manufacturer; e.model = cmd.model; e.status = cmd.status
-        val saved = repo.save(e).toDto()
-        DemoMachineFarms.register(saved.id, saved.farmId)
-        return saved
+        e.photoFileId = nextPhoto
+        repo.save(e)
+        try {
+            if (previousPhoto != null && previousPhoto != nextPhoto) {
+                photos.unbind(previousPhoto)
+            }
+            if (nextPhoto != null && nextPhoto != previousPhoto) {
+                photos.bind(nextPhoto, id)
+            }
+        } catch (ex: Exception) {
+            e.photoFileId = previousPhoto
+            repo.save(e)
+            if (previousPhoto != null && previousPhoto != nextPhoto) {
+                runCatching { photos.bind(previousPhoto, id) }
+            }
+            throw ex
+        }
+        return e.toDto()
     }
 
     fun listWorkOrders(scope: AccessScope, farmId: UUID?) =
@@ -74,7 +111,10 @@ class AssetService(
     @Transactional
     fun createWorkOrder(scope: AccessScope, cmd: CreateWorkOrder): WorkOrderDto {
         scope.requireFarm(cmd.farmId)
-        DemoMachineFarms.requireBelongsToFarm(cmd.machineId, cmd.farmId)
+        val machine = repo.findById(cmd.machineId).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }
+        if (machine.farmId != cmd.farmId) {
+            throw ForbiddenException("Machine does not belong to farm", "FARM_SCOPE_DENIED")
+        }
         return workOrders.save(
             WorkOrderEntity(UUID.randomUUID(), cmd.farmId, cmd.machineId, cmd.title, cmd.priority, "OPEN", Instant.now(), null),
         ).toDto()
@@ -157,7 +197,12 @@ class AssetService(
         )
     }
 
-    private fun MachineEntity.toDto() = MachineDto(id, farmId, name, type, manufacturer, model, status)
+    private fun MachineEntity.toDto() = MachineDto(
+        id, farmId, name, type, manufacturer, model, status, photoFileId, photoUrl(photoFileId),
+    )
+
+    private fun photoUrl(photoFileId: UUID?) =
+        photoFileId?.let { "/api/v1/files/$it/content" }
     private fun WorkOrderEntity.toDto() = WorkOrderDto(id, farmId, machineId, title, priority, status, createdAt, completedAt)
 }
 

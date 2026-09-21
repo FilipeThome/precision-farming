@@ -2,9 +2,12 @@ package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
+import com.precisionfarming.inventory.application.PatchItem
+import com.precisionfarming.inventory.application.UpsertItem
 import com.precisionfarming.inventory.infrastructure.ItemEntity
 import com.precisionfarming.inventory.infrastructure.ItemJpaRepository
 import com.precisionfarming.inventory.infrastructure.MovementEntity
@@ -142,6 +145,78 @@ class InventoryServiceTest {
 
         assertEquals(BigDecimal("30"), dto.quantity)
         assertEquals(BigDecimal.ZERO, dto.reserved)
+    }
+
+    @Test
+    fun createAndPatchUpdatesNameWithoutChangingStock() {
+        every { items.save(any<ItemEntity>()) } answers { firstArg() }
+        val farmId = UUID.randomUUID()
+        val scope = AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER")
+        val created = svc.create(scope, UpsertItem(farmId, "Urea", "FERTILIZER", "KG", BigDecimal("100")))
+        assertEquals(BigDecimal("100"), created.quantity)
+
+        val entity = ItemEntity(created.id, farmId, created.name, created.category, created.unit, created.quantity, created.reserved)
+        every { items.findById(created.id) } returns Optional.of(entity)
+        val patched = svc.patch(scope, created.id, PatchItem(farmId, "MAP", "FERTILIZER", "T"))
+        assertEquals("MAP", patched.name)
+        assertEquals("T", patched.unit)
+        assertEquals(0, BigDecimal("0.1").compareTo(patched.quantity))
+        assertEquals(BigDecimal.ZERO, patched.reserved)
+    }
+
+    @Test
+    fun patchRejectsIncompatibleUnitChange() {
+        every { items.save(any<ItemEntity>()) } answers { firstArg() }
+        val farmId = UUID.randomUUID()
+        val scope = AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER")
+        val created = svc.create(scope, UpsertItem(farmId, "Urea", "FERTILIZER", "KG", BigDecimal("100")))
+        val entity = ItemEntity(created.id, farmId, created.name, created.category, created.unit, created.quantity, created.reserved)
+        every { items.findById(created.id) } returns Optional.of(entity)
+        val ex = assertThrows(ConflictException::class.java) {
+            svc.patch(scope, created.id, PatchItem(farmId, "Urea", "FERTILIZER", "L"))
+        }
+        assertEquals("UNIT_CHANGE_UNSUPPORTED", ex.code)
+        assertEquals(BigDecimal("100"), entity.quantity)
+        assertEquals("KG", entity.unit)
+    }
+
+    @Test
+    fun createRejectsUnknownUnit() {
+        val farmId = UUID.randomUUID()
+        val scope = AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER")
+        val ex = assertThrows(com.precisionfarming.common.DomainException::class.java) {
+            svc.create(scope, UpsertItem(farmId, "Urea", "FERTILIZER", "FOO", BigDecimal("100")))
+        }
+        assertEquals("UNIT_UNSUPPORTED", ex.code)
+    }
+
+    @Test
+    fun getReturnsInScopeItem() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val dto = svc.get(scopeFor(item), item.id)
+        assertEquals(item.id, dto.id)
+        assertEquals(item.farmId, dto.farmId)
+    }
+
+    @Test
+    fun getRejectsOutOfScopeItem() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            svc.get(other, item.id)
+        }
+    }
+
+    @Test
+    fun patchRejectsOtherFarm() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "FARM_MANAGER")
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            svc.patch(other, item.id, PatchItem(item.farmId, "X", "SEED", "KG"))
+        }
     }
 
     private fun item(quantity: String, reserved: String) = ItemEntity(

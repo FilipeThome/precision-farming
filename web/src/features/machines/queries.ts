@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { fetchMachines, fetchMachineMetrics, fetchMachineTelemetry } from './api'
+import { fetchMachines, fetchMachineMetrics, fetchMachineTelemetry, saveMachine } from './api'
 
 export const machineKeys = {
   all: (farmId?: string | null) => ['machines', farmId ?? 'all'] as const,
@@ -33,5 +33,15 @@ export function useMachineMetricsQuery(machineId?: string | null) {
     enabled: Boolean(machineId),
     retry: 1,
     staleTime: 30_000,
+  })
+}
+
+export function useMachineCommands() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: saveMachine,
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['machines'] })
+    },
   })
 }
