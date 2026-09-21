@@ -85,15 +85,21 @@ object DemoFieldFarms {
     )
 
     private val runtime = ConcurrentHashMap<UUID, UUID>()
+    private val removed = ConcurrentHashMap.newKeySet<UUID>()
 
     fun register(fieldId: UUID, farmId: UUID) {
+        removed.remove(fieldId)
         runtime[fieldId] = farmId
     }
 
-    fun farmId(fieldId: UUID): UUID? = runtime[fieldId] ?: SEED[fieldId]
+    fun farmId(fieldId: UUID): UUID? {
+        if (removed.contains(fieldId)) return null
+        return runtime[fieldId] ?: SEED[fieldId]
+    }
 
     fun unregister(fieldId: UUID) {
         runtime.remove(fieldId)
+        removed.add(fieldId)
     }
 
     fun requireField(scope: AccessScope, fieldId: UUID) {

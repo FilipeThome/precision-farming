@@ -43,5 +43,16 @@ describe('createFarm', () => {
     await expect(
       createFarm({ name: 'Nova', location: 'MT', areaHa: 10, timezone: 'America/Cuiaba' }),
     ).rejects.toMatchObject({ code: 'SESSION_REFRESH_FAILED' })
+    expect(refreshSessionNow).toHaveBeenCalledTimes(3)
+  })
+
+  it('retries refresh without creating a second farm for the same payload', async () => {
+    apiPost.mockResolvedValue({ id: 'farm-1', name: 'Nova' })
+    refreshSessionNow.mockResolvedValue(false)
+    const body = { name: 'Retry', location: 'MT', areaHa: 10, timezone: 'America/Cuiaba' }
+    await expect(createFarm(body)).rejects.toMatchObject({ code: 'SESSION_REFRESH_FAILED' })
+    refreshSessionNow.mockResolvedValue(true)
+    await expect(createFarm(body)).resolves.toMatchObject({ id: 'farm-1' })
+    expect(apiPost).toHaveBeenCalledTimes(1)
   })
 })

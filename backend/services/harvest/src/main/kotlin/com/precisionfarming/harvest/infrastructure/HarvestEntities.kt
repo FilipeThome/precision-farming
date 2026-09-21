@@ -64,7 +64,7 @@ class StorageUnitEntity(
 class StorageLotEntity(
     @Id val id: UUID,
     @Column(name = "unit_id") val unitId: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
+    @Column(name = "farm_id") var farmId: UUID,
     val crop: String,
     val tons: BigDecimal,
     val quality: String,
@@ -90,4 +90,5 @@ interface StorageUnitJpaRepository : JpaRepository<StorageUnitEntity, UUID> {
 interface StorageLotJpaRepository : JpaRepository<StorageLotEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<StorageLotEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<StorageLotEntity>
+    fun findByUnitId(unitId: UUID): List<StorageLotEntity>
 }

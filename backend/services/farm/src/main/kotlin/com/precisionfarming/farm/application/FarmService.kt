@@ -116,11 +116,13 @@ class FarmService(
     fun deleteFarm(scope: AccessScope, id: UUID) {
         scope.requireFarm(id)
         if (!farms.existsById(id)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
+        val fieldIds = fields.findByFarmId(id).map { it.id }
         seasons.deleteByFarmId(id)
         fields.deleteByFarmId(id)
         farms.deleteById(id)
         memberships.revoke(id)
         UserFarmGrants.revoke(id)
+        fieldIds.forEach(DemoFieldFarms::unregister)
     }
 
     fun listFields(scope: AccessScope, farmId: UUID?) =
