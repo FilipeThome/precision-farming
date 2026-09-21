@@ -48,6 +48,8 @@ describe('saveMachine', () => {
       expect.objectContaining({ photoFileId: 'file-1' }),
     )
     expect(apiPatch).not.toHaveBeenCalled()
+    expect(calledPaths().some((path) => path.includes('/binding'))).toBe(false)
+    expect((apiUpload.mock.calls[0][1] as FormData).get('entityId')).toBeNull()
   })
 
   it('uploads the photo before patching an existing machine', async () => {
@@ -70,5 +72,20 @@ describe('saveMachine', () => {
       '/api/v1/machines/m1',
       expect.objectContaining({ photoFileId: 'file-2' }),
     )
+    expect(calledPaths()).not.toEqual(expect.arrayContaining([expect.stringContaining('/binding')]))
+  })
+
+  it('does not call POST /api/v1/files/{id}/binding', async () => {
+    apiUpload.mockResolvedValue({ id: 'file-1' })
+    apiPost.mockResolvedValue({ id: 'm1', ...body, photoFileId: 'file-1' })
+    await saveMachine({
+      body,
+      photo: new File(['x'], 'tractor.jpg', { type: 'image/jpeg' }),
+    })
+    expect(calledPaths().some((path) => path.includes('/binding'))).toBe(false)
   })
 })
+
+function calledPaths() {
+  return [...apiUpload.mock.calls, ...apiPost.mock.calls, ...apiPatch.mock.calls].map((call) => String(call[0]))
+}

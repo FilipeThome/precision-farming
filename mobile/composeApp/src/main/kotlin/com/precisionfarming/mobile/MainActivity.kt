@@ -3,6 +3,7 @@ package com.precisionfarming.mobile
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.precisionfarming.mobile.data.PendingFarmCreates
 import com.precisionfarming.mobile.data.TokenStore
 import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.i18n.LocaleStore
@@ -14,6 +15,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         LocaleStore.init(this)
         TokenStore.init(this)
+        PendingFarmCreates.init(this)
         OfflineRuntime.init(this)
         setContent {
             AgOsTheme { AppRoot() }

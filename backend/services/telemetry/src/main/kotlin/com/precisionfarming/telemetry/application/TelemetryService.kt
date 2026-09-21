@@ -5,7 +5,7 @@ import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.common.concurrency.VirtualJobs
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoMachineFarms
+import com.precisionfarming.security.MachineFarmGuard
 import com.precisionfarming.telemetry.infrastructure.TelemetryEntity
 import com.precisionfarming.telemetry.infrastructure.TelemetryId
 import com.precisionfarming.telemetry.infrastructure.TelemetryJpaRepository
@@ -32,22 +32,25 @@ data class TelemetryPoint(
 data class TrackPoint(val lat: Double, val lon: Double, val observedAt: Instant)
 
 @Service
-class TelemetryService(private val repo: TelemetryJpaRepository) {
+class TelemetryService(
+    private val repo: TelemetryJpaRepository,
+    private val machineFarms: MachineFarmGuard,
+) {
     fun history(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TelemetryPoint> {
-        DemoMachineFarms.requireMachineRead(scope, machineId)
+        machineFarms.requireRead(scope, machineId)
         requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to).map { it.toDto() }
     }
 
     fun track(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): List<TrackPoint> {
-        DemoMachineFarms.requireMachineRead(scope, machineId)
+        machineFarms.requireRead(scope, machineId)
         requireRange(from, to)
         return repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
             .map { TrackPoint(it.lat, it.lon, it.observedAt) }
     }
 
     fun metrics(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): MachineMetricsDto {
-        DemoMachineFarms.requireMachineRead(scope, machineId)
+        machineFarms.requireRead(scope, machineId)
         requireRange(from, to)
         val rows = repo.findByMachineIdAndObservedAtBetweenOrderByObservedAtAsc(machineId, from, to)
         return TelemetryMetrics.aggregate(

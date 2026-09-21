@@ -5,8 +5,8 @@ import com.precisionfarming.ai.infrastructure.PredictionJpaRepository
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoFieldFarms
-import com.precisionfarming.security.DemoMachineFarms
+import com.precisionfarming.security.FieldFarmGuard
+import com.precisionfarming.security.MachineFarmGuard
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
@@ -23,28 +23,29 @@ data class PredictionDto(
 )
 
 @Service
-class AiService(private val repo: PredictionJpaRepository) {
+class AiService(
+    private val repo: PredictionJpaRepository,
+    private val fieldFarms: FieldFarmGuard,
+    private val machineFarms: MachineFarmGuard,
+) {
     fun insights(scope: AccessScope, farmId: UUID?): List<PredictionDto> {
         val farms = scope.resolveFarms(farmId)
         return repo.findByFarmIdIn(farms).map { it.toDto() }
     }
 
     fun predictions(scope: AccessScope, fieldId: UUID): List<PredictionDto> {
-        DemoFieldFarms.requireField(scope, fieldId)
+        fieldFarms.requireRead(scope, fieldId)
         return repo.findByEntityId(fieldId).map { it.toDto() }
     }
 
     fun machineRisk(scope: AccessScope, machineId: UUID): List<PredictionDto> {
-        DemoMachineFarms.requireMachine(scope, machineId)
+        machineFarms.requireRead(scope, machineId)
         return repo.findByEntityId(machineId).map { it.toDto() }
     }
 
     fun feedback(scope: AccessScope, id: UUID): Map<String, Any> {
         val e = repo.findById(id).orElseThrow { NotFoundException("PREDICTION_NOT_FOUND", "Prediction not found") }
-        val farmId = e.farmId
-            ?: DemoFieldFarms.farmId(e.entityId)
-            ?: DemoMachineFarms.farmId(e.entityId)
-            ?: throw NotFoundException("PREDICTION_NOT_FOUND", "Prediction farm unknown")
+        val farmId = e.farmId ?: throw NotFoundException("PREDICTION_NOT_FOUND", "Prediction not found")
         scope.requireEntityFarm(farmId)
         return mapOf("id" to id, "status" to "recorded")
     }

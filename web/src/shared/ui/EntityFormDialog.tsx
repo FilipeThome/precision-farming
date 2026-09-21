@@ -24,6 +24,7 @@ type Props = {
   onSubmit: () => void
   onClose: () => void
   pending?: boolean
+  submitDisabled?: boolean
   error?: string | null
   children?: ReactNode
 }
@@ -41,6 +42,7 @@ export function EntityFormDialog({
   onSubmit,
   onClose,
   pending,
+  submitDisabled,
   error,
   children,
 }: Props) {
@@ -82,6 +84,7 @@ export function EntityFormDialog({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault()
+    if (pending || submitDisabled) return
     onSubmit()
   }
 
@@ -151,7 +154,7 @@ export function EntityFormDialog({
             <Button type="button" variant="secondary" onClick={onClose}>
               {t('form.cancel')}
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending || submitDisabled}>
               {pending ? t('form.saving') : t('form.save')}
             </Button>
           </div>

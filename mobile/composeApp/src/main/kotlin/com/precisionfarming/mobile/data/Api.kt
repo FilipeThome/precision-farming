@@ -580,8 +580,12 @@ suspend fun login(email: String, password: String): TokenResponse {
 }
 
 suspend fun refreshSession(): Boolean {
-    val refresh = TokenStore.readRefresh() ?: return false
-    return runCatching {
+    val refresh = TokenStore.clearRefresh() ?: return false
+    return refreshWithToken(refresh)
+}
+
+private suspend fun refreshWithToken(refresh: String): Boolean =
+    runCatching {
         val res: TokenResponse = api.post("/api/v1/auth/refresh") {
             contentType(ContentType.Application.Json)
             setBody(RefreshRequest(refresh))
@@ -590,7 +594,6 @@ suspend fun refreshSession(): Boolean {
         TokenStore.save(res.accessToken, res.userId, res.role, res.refreshToken)
         true
     }.getOrDefault(false)
-}
 
 suspend fun me() = api.get("/api/v1/auth/me").body<MeDto>()
 
@@ -869,25 +872,15 @@ private suspend inline fun <reified T, reified B : Any> patchJson(path: String, 
         setBody(body)
     }.body()
 
-private var pendingFarmCreate: Pair<FarmUpsert, FarmDto>? = null
-
-private suspend fun refreshCreatedFarmSession(attempts: Int = 3): Boolean {
-    repeat(attempts) {
-        if (refreshSession()) return true
-    }
-    return false
-}
-
-suspend fun createFarm(body: FarmUpsert): FarmDto {
-    val farm = pendingFarmCreate?.takeIf { it.first == body }?.second
-        ?: postJson<FarmDto, FarmUpsert>("/api/v1/farms", body)
-    if (!refreshCreatedFarmSession()) {
-        pendingFarmCreate = body to farm
-        throw IllegalStateException("SESSION_REFRESH_FAILED")
-    }
-    pendingFarmCreate = null
-    return farm
-}
+suspend fun createFarm(body: FarmUpsert): FarmDto =
+    createFarm(
+        userId = Session.userId,
+        body = body,
+        store = PendingFarmCreates,
+        postFarm = { postJson("/api/v1/farms", it) },
+        consumeRefresh = { TokenStore.clearRefresh() },
+        refreshHttp = { refreshWithToken(it) },
+    )
 suspend fun patchFarm(id: String, body: FarmUpsert): FarmDto = patchJson("/api/v1/farms/$id", body)
 suspend fun createField(body: FieldUpsert): FieldDto = postJson("/api/v1/fields", body)
 suspend fun patchField(id: String, body: FieldUpsert): FieldDto = patchJson("/api/v1/fields/$id", body)

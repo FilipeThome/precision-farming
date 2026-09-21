@@ -2,6 +2,7 @@ package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.inventory.domain.InventoryUnits
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -36,5 +37,18 @@ class InventoryDomainTest {
             InventoryUnits.apply("KG", "L", BigDecimal("100"), BigDecimal.ZERO)
         }
         assertEquals("UNIT_CHANGE_UNSUPPORTED", ex.code)
+    }
+
+    @Test
+    fun rejectsUnknownUnit() {
+        val ex = assertThrows(DomainException::class.java) {
+            InventoryUnits.requireKnown("FOO")
+        }
+        assertEquals("UNIT_UNSUPPORTED", ex.code)
+    }
+
+    @Test
+    fun normalizesKnownUnit() {
+        assertEquals("KG", InventoryUnits.requireKnown("kg"))
     }
 }

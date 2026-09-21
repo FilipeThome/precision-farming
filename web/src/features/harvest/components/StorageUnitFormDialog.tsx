@@ -52,7 +52,7 @@ export function StorageUnitFormDialog({ open, unit, onClose }: Props) {
           name: values.name.trim(),
           type: values.type,
           capacityT: Number(values.capacityT),
-          usedT: unit ? Number(unit.usedT ?? 0) : 0,
+          usedT: 0,
         }
         const req = unit
           ? commands.patch.mutateAsync({ id: unit.id, body })

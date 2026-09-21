@@ -2,6 +2,7 @@ package com.precisionfarming.mobile.data.offline
 
 import android.content.Context
 import com.precisionfarming.mobile.data.EntityNames
+import com.precisionfarming.mobile.data.PendingFarmCreates
 import com.precisionfarming.mobile.data.Session
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -55,6 +56,7 @@ object OfflineRuntime {
     /** Intentional logout: wipe the queue so the next operator cannot replay it. */
     fun onLogout() {
         EntityNames.clear()
+        PendingFarmCreates.clear()
         if (initialized) queue.clear()
     }
 

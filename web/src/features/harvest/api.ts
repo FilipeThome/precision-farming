@@ -12,6 +12,8 @@ export type HarvestPlanBody = {
   fieldId: string
   crop: string
   expectedTHa: number
+  plannedStart: string | null
+  plannedEnd: string | null
 }
 
 export type StorageUnitBody = {

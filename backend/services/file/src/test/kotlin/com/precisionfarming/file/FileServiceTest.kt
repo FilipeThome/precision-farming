@@ -3,6 +3,7 @@ package com.precisionfarming.file
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.ForbiddenException
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.file.application.BindFile
 import com.precisionfarming.file.application.FileService
 import com.precisionfarming.file.infrastructure.FileJpaRepository
 import com.precisionfarming.file.infrastructure.FileMetaEntity
@@ -44,6 +45,15 @@ class FileServiceTest {
         assertEquals("image/jpeg", dto.contentType)
         assertEquals(jpeg.size.toLong(), dto.sizeBytes)
         assertTrue(Files.isRegularFile(dir.resolve(dto.id.toString())))
+        assertEquals(null, dto.entityId)
+    }
+
+    @Test
+    fun uploadIgnoresEntityIdQueryParam() {
+        every { repo.save(any<FileMetaEntity>()) } answers { firstArg() }
+        val svc = FileService(repo, layers, dir.toString())
+        val dto = svc.upload(scope, farmId, "MACHINE_PHOTO", UUID.randomUUID(), jpegBytes())
+        assertEquals(null, dto.entityId)
     }
 
     @Test
@@ -85,6 +95,57 @@ class FileServiceTest {
             svc.content(scope, id)
         }
         assertEquals("FILE_CONTENT_MISSING", ex.code)
+    }
+
+    @Test
+    fun bindIsExclusiveAndUnbindClearsEntity() {
+        val id = UUID.randomUUID()
+        val machineId = UUID.randomUUID()
+        val entity = meta(id, farmId, id.toString(), "image/jpeg")
+        every { repo.findById(id) } returns Optional.of(entity)
+        every { repo.findByKindAndEntityId("MACHINE_PHOTO", machineId) } returns null
+        every { repo.save(any<FileMetaEntity>()) } answers { firstArg() }
+        val svc = FileService(repo, layers, dir.toString())
+
+        val bound = svc.bind(scope, id, BindFile(machineId))
+        assertEquals(machineId, bound.entityId)
+
+        val otherFile = meta(UUID.randomUUID(), farmId, "other", "image/jpeg").also { it.entityId = machineId }
+        every { repo.findByKindAndEntityId("MACHINE_PHOTO", machineId) } returns otherFile
+        val ex = assertThrows(com.precisionfarming.common.ConflictException::class.java) {
+            svc.bind(scope, id, BindFile(machineId))
+        }
+        assertEquals("FILE_ALREADY_BOUND", ex.code)
+
+        entity.entityId = machineId
+        every { repo.findByKindAndEntityId("MACHINE_PHOTO", any()) } returns entity
+        val unbound = svc.bind(scope, id, BindFile(null))
+        assertEquals(null, unbound.entityId)
+    }
+
+    @Test
+    fun bindRejectsFileAlreadyBoundToAnotherEntity() {
+        val id = UUID.randomUUID()
+        val entity = meta(id, farmId, id.toString(), "image/jpeg")
+        entity.entityId = UUID.randomUUID()
+        every { repo.findById(id) } returns Optional.of(entity)
+        val svc = FileService(repo, layers, dir.toString())
+        val ex = assertThrows(com.precisionfarming.common.ConflictException::class.java) {
+            svc.bind(scope, id, BindFile(UUID.randomUUID()))
+        }
+        assertEquals("FILE_ALREADY_BOUND", ex.code)
+    }
+
+    @Test
+    fun bindRejectsOtherFarm() {
+        val id = UUID.randomUUID()
+        every { repo.findById(id) } returns Optional.of(meta(id, farmId, id.toString(), "image/jpeg"))
+        val svc = FileService(repo, layers, dir.toString())
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "FARM_MANAGER")
+        val ex = assertThrows(ForbiddenException::class.java) {
+            svc.bind(other, id, BindFile(UUID.randomUUID()))
+        }
+        assertEquals("FARM_SCOPE_DENIED", ex.code)
     }
 
     private fun jpegBytes() = byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte()) + ByteArray(13)

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useInventoryCommands } from '@/features/inventory/queries'
+import { inventoryUnitOptions } from '@/features/inventory/units'
 import type { InventoryItem } from '@/shared/api/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
@@ -36,7 +37,13 @@ export function InventoryFormDialog({ open, item, onClose }: Props) {
     farmField,
     { name: 'name', label: t('form.field.name'), type: 'text' as const, required: true },
     { name: 'category', label: t('form.field.category'), type: 'select' as const, required: true, options: categories },
-    { name: 'unit', label: t('form.field.unit'), type: 'text' as const, required: true },
+    {
+      name: 'unit',
+      label: t('form.field.unit'),
+      type: 'select' as const,
+      required: true,
+      options: inventoryUnitOptions(item?.unit),
+    },
     ...(item
       ? []
       : [{ name: 'quantity', label: t('form.field.quantity'), type: 'number' as const, required: true, step: '0.1', min: '0' }]),

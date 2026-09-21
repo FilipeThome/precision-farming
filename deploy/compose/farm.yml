@@ -1,5 +1,6 @@
 # Local demo Compose overlay for farm-service (optimized multi-stage JVM image).
 # Requires root infra: docker compose up -d
+# Copy deploy/compose/*.env.example if *.env is missing; stage the pinned Gradle zip; then --build.
 # Usage:
 #   docker compose -f docker-compose.yml -f deploy/compose/farm.yml --env-file deploy/compose/demo.env up -d --build
 

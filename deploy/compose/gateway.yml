@@ -1,5 +1,6 @@
 # Local demo Compose overlay for API gateway (optimized multi-stage JVM image).
 # Publishes only 127.0.0.1:8080 — clients must use the gateway.
+# Copy deploy/compose/*.env.example if *.env is missing; stage the pinned Gradle zip; then --build.
 # Usage (repo root):
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/gateway.yml \
 #     --env-file deploy/compose/demo.env up -d --build

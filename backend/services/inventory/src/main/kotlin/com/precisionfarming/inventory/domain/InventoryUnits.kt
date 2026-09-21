@@ -1,6 +1,7 @@
 package com.precisionfarming.inventory.domain
 
 import com.precisionfarming.common.ConflictException
+import com.precisionfarming.common.DomainException
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -24,6 +25,14 @@ object InventoryUnits {
         "UNIT" to BigDecimal.ONE,
         "PC" to BigDecimal.ONE,
     )
+
+    fun requireKnown(unit: String): String {
+        val normalized = unit.trim().uppercase()
+        if (factor(normalized) == null) {
+            throw DomainException("UNIT_UNSUPPORTED", "Unknown unit $unit")
+        }
+        return normalized
+    }
 
     fun apply(current: String, requested: String, quantity: BigDecimal, reserved: BigDecimal): StockUnit {
         val from = current.trim().uppercase()

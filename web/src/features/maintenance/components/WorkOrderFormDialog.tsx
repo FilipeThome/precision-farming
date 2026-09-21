@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useWorkOrderCommands } from '@/features/maintenance/queries'
 import { useMachinesQuery } from '@/features/machines/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { findInFarmScope } from '@/shared/lib/inFarmScope'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'
 import { useCodeOptions, useFarmScope } from '@/shared/ui/useFarmScope'
@@ -33,6 +34,10 @@ export function WorkOrderFormDialog({ open, onClose }: Props) {
     })
   }, [open, machines.data])
 
+  const scoped = findInFarmScope(machines.data, values.machineId, values.farmId)
+  const scopeError = machines.isSuccess && !scoped ? t('form.validation.machineNotInFarm') : null
+  const submitDisabled = !machines.isSuccess || !scoped
+
   return (
     <EntityFormDialog
       open={open}
@@ -54,14 +59,14 @@ export function WorkOrderFormDialog({ open, onClose }: Props) {
         setValues((prev) => ({ ...prev, [name]: value, ...(name === 'farmId' ? { machineId: '' } : {}) }))
       }
       pending={create.isPending}
-      error={create.error ? queryError(create.error).message : null}
+      submitDisabled={submitDisabled}
+      error={scopeError ?? (create.error ? queryError(create.error).message : null)}
       onClose={onClose}
       onSubmit={() => {
-        const machine = (machines.data ?? []).find((row) => row.id === values.machineId)
-        if (!machine || machine.farmId !== values.farmId) return
+        if (submitDisabled || !scoped) return
         void create
           .mutateAsync({
-            farmId: machine.farmId,
+            farmId: scoped.farmId ?? values.farmId,
             machineId: values.machineId,
             title: values.title.trim(),
             priority: values.priority,

@@ -103,6 +103,18 @@ object TokenStore {
         }
     }
 
+    /** Drop the refresh token from memory and prefs; returns the previous value (or null). */
+    fun clearRefresh(): String? {
+        val current = readRefresh()
+        memoryRefresh = null
+        try {
+            prefs?.edit()?.remove(KEY_REFRESH)?.apply()
+        } catch (_: Exception) {
+            // ignore
+        }
+        return current
+    }
+
     fun clear() {
         memory = null
         memoryUserId = null

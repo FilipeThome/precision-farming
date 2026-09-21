@@ -41,7 +41,9 @@ class OperationServiceTest {
         override fun rollback(status: TransactionStatus) {}
     }
     private val fieldFarms = mockk<com.precisionfarming.security.FieldFarmGuard>(relaxUnitFun = true)
-    private val svc = OperationService(repo, sagas, inventory, tx, fieldFarms)
+    private val machineFarms = mockk<com.precisionfarming.security.MachineFarmGuard>(relaxUnitFun = true)
+    private val itemFarms = mockk<com.precisionfarming.security.ItemFarmGuard>(relaxUnitFun = true)
+    private val svc = OperationService(repo, sagas, inventory, tx, fieldFarms, machineFarms, itemFarms)
 
     private fun scopeFor(op: OperationEntity) = AccessScope(DemoTenant.ID, setOf(op.farmId), "OPERATOR")
 
@@ -135,10 +137,12 @@ class OperationServiceTest {
 
     @Test
     fun machineSummaryUnknownMachineIsNotFound() {
+        val machineId = UUID.randomUUID()
+        every { machineFarms.requireRead(any(), machineId) } throws NotFoundException("MACHINE_NOT_FOUND", "Not found")
         val ex = assertThrows(NotFoundException::class.java) {
             svc.machineSummary(
                 AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-001")), "OPERATOR"),
-                UUID.randomUUID(),
+                machineId,
                 Instant.parse("2026-09-01T00:00:00Z"),
                 Instant.parse("2026-09-08T00:00:00Z"),
             )
@@ -149,6 +153,7 @@ class OperationServiceTest {
     @Test
     fun machineSummaryOutOfScopeIsNotFound() {
         val machineId = DemoIds.uuid("machine-001")
+        every { machineFarms.requireRead(any(), machineId) } throws NotFoundException("MACHINE_NOT_FOUND", "Not found")
         val ex = assertThrows(NotFoundException::class.java) {
             svc.machineSummary(
                 AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-002")), "OPERATOR"),
@@ -218,6 +223,24 @@ class OperationServiceTest {
         }
         assertEquals("OPERATION_AREA_INVALID", ex.code)
         verify(exactly = 0) { repo.save(any()) }
+    }
+
+    @Test
+    fun createAllowsCadastroIdsWhenGuardsPass() {
+        val farmId = UUID.randomUUID()
+        val fieldId = UUID.randomUUID()
+        val machineId = UUID.randomUUID()
+        val itemId = UUID.randomUUID()
+        every { repo.save(any<OperationEntity>()) } answers { firstArg() }
+        val created = svc.create(
+            AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER"),
+            CreateOperation(fieldId, farmId, "PLANTING", null, null, machineId, itemId, BigDecimal.ONE, null),
+        )
+        assertEquals(machineId, created.machineId)
+        assertEquals(itemId, created.itemId)
+        verify { fieldFarms.requireBelongsToFarm(fieldId, farmId) }
+        verify { machineFarms.requireBelongsToFarm(machineId, farmId) }
+        verify { itemFarms.requireBelongsToFarm(itemId, farmId) }
     }
 
     @Test

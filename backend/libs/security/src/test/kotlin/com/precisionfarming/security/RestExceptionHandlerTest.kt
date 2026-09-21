@@ -61,4 +61,12 @@ class RestExceptionHandlerTest {
         assertEquals(400, res.statusCode.value())
         assertEquals("VALIDATION_ERROR", res.body!!.code)
     }
+
+    @Test
+    fun serviceUnavailableIsMapped() {
+        val req = MockHttpServletRequest()
+        val res = handler.domain(com.precisionfarming.common.ServiceUnavailableException(), req)
+        assertEquals(503, res.statusCode.value())
+        assertEquals("UPSTREAM_UNAVAILABLE", res.body!!.code)
+    }
 }
