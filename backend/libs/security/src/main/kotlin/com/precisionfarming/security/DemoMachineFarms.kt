@@ -50,7 +50,7 @@ object DemoMachineFarms {
 
     fun requireBelongsToFarm(machineId: UUID, farmId: UUID) {
         val mapped = farmId(machineId)
-            ?: throw ForbiddenException("Machine out of scope", "FARM_SCOPE_DENIED")
+            ?: throw NotFoundException("MACHINE_NOT_FOUND", "Machine not found")
         if (mapped != farmId) {
             throw ForbiddenException("Machine does not belong to farm", "FARM_SCOPE_DENIED")
         }
@@ -85,12 +85,22 @@ object DemoFieldFarms {
     )
 
     private val runtime = ConcurrentHashMap<UUID, UUID>()
+    private val removed = ConcurrentHashMap.newKeySet<UUID>()
 
     fun register(fieldId: UUID, farmId: UUID) {
+        removed.remove(fieldId)
         runtime[fieldId] = farmId
     }
 
-    fun farmId(fieldId: UUID): UUID? = runtime[fieldId] ?: SEED[fieldId]
+    fun farmId(fieldId: UUID): UUID? {
+        if (removed.contains(fieldId)) return null
+        return runtime[fieldId] ?: SEED[fieldId]
+    }
+
+    fun unregister(fieldId: UUID) {
+        runtime.remove(fieldId)
+        removed.add(fieldId)
+    }
 
     fun requireField(scope: AccessScope, fieldId: UUID) {
         val farmId = farmId(fieldId)
@@ -100,7 +110,7 @@ object DemoFieldFarms {
 
     fun requireBelongsToFarm(fieldId: UUID, farmId: UUID) {
         val mapped = farmId(fieldId)
-            ?: throw ForbiddenException("Field out of scope", "FARM_SCOPE_DENIED")
+            ?: throw NotFoundException("FIELD_NOT_FOUND", "Field not found")
         if (mapped != farmId) {
             throw ForbiddenException("Field does not belong to farm", "FARM_SCOPE_DENIED")
         }
@@ -138,7 +148,7 @@ object DemoItemFarms {
 
     fun requireBelongsToFarm(itemId: UUID, farmId: UUID) {
         val mapped = farmId(itemId)
-            ?: throw ForbiddenException("Item out of scope", "FARM_SCOPE_DENIED")
+            ?: throw NotFoundException("ITEM_NOT_FOUND", "Item not found")
         if (mapped != farmId) {
             throw ForbiddenException("Item does not belong to farm", "FARM_SCOPE_DENIED")
         }

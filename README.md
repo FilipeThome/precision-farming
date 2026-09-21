@@ -4,10 +4,10 @@ Protótipo executável de gestão agrícola de precisão: **microserviços Kotli
 
 ## Stack
 
-- Backend: Spring Boot 3.5, Java 21 (virtual threads), Spring Cloud Gateway
+- Backend: Spring Boot 4.1, Java 26 (virtual threads), Kotlin 2.4, Spring Cloud Gateway
 - Dados: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose; portas só em `127.0.0.1` — prod não deve publicar)
 - Web: React + TypeScript + Vite + Tailwind
-- Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS)
+- Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS). Gradle/JDK 26, Android jvmTarget 26, compileSdk 37
 - Auth: JWT + refresh. Demo: `manager@precisionfarming.demo` / `Precision@123`
 - Segredos demo: `.env.example` define `ALLOW_DEMO_SECRETS=true`; sem isso (e sem profile `local`) o boot recusa JWT/DB demo
 
@@ -44,23 +44,25 @@ docker compose up -d
 cd web && npm install && npm run dev
 ```
 
-## Subir local (Docker Compose por serviço)
+## Subir local (Docker Compose)
 
 Imagens **multi-stage Alpine** (JDK/Node no builder; JRE/nginx no runtime). Mobile não entra no Compose.
 
+Caminho suportado: os scripts fazem stage do zip Gradle (SHA-256), copiam `deploy/compose/*.env.example` se faltar, **sempre buildam**, e sobem com `pull_policy: never`. Perfil padrão: **core** (não `all`).
+
 ```powershell
 docker compose up -d
-.\scripts\compose-up.ps1 -Profile core -Build
-# ou stack completo:
-# .\scripts\compose-up.ps1 -Profile all -Build
+.\scripts\compose-up.ps1
+# stack completo:
+# .\scripts\compose-up.ps1 all
 ```
 
 Linux / macOS:
 
 ```bash
 chmod +x scripts/compose-up.sh
-./scripts/compose-up.sh --build          # todos os containers (profile all)
-# ./scripts/compose-up.sh core --build   # só core
+./scripts/compose-up.sh            # profile core
+# ./scripts/compose-up.sh all      # todos os containers
 ```
 
 Detalhes: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`.
@@ -71,7 +73,7 @@ O mapa web usa Leaflet com imagens de satélite Esri (sem chave do Google Maps).
 
 - [001 Microserviços](docs/adr/001-microservices.md)
 - [002 KMP](docs/adr/002-kmp-mobile.md)
-- [003 Spring Boot 3.5](docs/adr/003-spring-boot-35.md)
+- [003 Spring Boot 4 / Java 26](docs/adr/003-spring-boot-4.md)
 
 ## Seed
 

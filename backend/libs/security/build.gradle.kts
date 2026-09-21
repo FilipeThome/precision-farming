@@ -5,13 +5,10 @@ plugins {
     alias(libs.plugins.spring.dep.mgmt)
 }
 
-java {
-    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
-}
 
 dependencies {
     api(project(":backend:libs:common"))
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:3.5.6"))
+    implementation(platform(libs.spring.boot.bom))
     api(libs.spring.boot.web)
     api(libs.spring.boot.security)
     api(libs.spring.boot.oauth2.rs)

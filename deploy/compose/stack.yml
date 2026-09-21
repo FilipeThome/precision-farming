@@ -1,7 +1,14 @@
 # Convenience app overlays with Compose profiles (infra stays in root docker-compose.yml).
 # Mobile is intentionally excluded.
 #
-# Core demo (gateway + auth + farm + fleet/ops needed by inspectors + reporting + web) — from repo root:
+# Supported path (stages Gradle zip, copies *.env.example if missing, always builds):
+#   .\scripts\compose-up.ps1              # profile core
+#   ./scripts/compose-up.sh               # profile core
+#   .\scripts\compose-up.ps1 all
+#
+# Raw compose is power-user only: zip already staged, demo.env present, always --build.
+# pull_policy: never — `up -d` without --build fails if :local images are absent.
+#
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
 #     --env-file deploy/compose/demo.env --profile core up -d --build
 #
@@ -19,6 +26,7 @@ name: precision-farming
 # Always pass --project-directory <repo-root> (or put docker-compose.yml first with cwd=root).
 x-jvm: &jvm
   restart: unless-stopped
+  pull_policy: never
   env_file:
     - deploy/compose/demo.env
   environment: &jvm-env
@@ -407,6 +415,7 @@ services:
 
   gateway:
     profiles: [gateway, core, all]
+    pull_policy: never
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.gateway
@@ -436,6 +445,7 @@ services:
 
   web:
     profiles: [web, core, all]
+    pull_policy: never
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.web

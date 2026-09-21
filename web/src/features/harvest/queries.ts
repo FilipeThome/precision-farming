@@ -1,12 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
+  createHarvestPlan,
+  createStorageUnit,
   dispatchLogisticsLoad,
   fetchHarvestPlans,
   fetchLogisticsLoads,
   fetchStorageLots,
   fetchStorageUnits,
   fetchYield,
+  patchStorageUnit,
+  type StorageUnitBody,
 } from './api'
 
 type QueryToggle = { enabled?: boolean }
@@ -72,4 +76,23 @@ export function useDispatchLoad() {
       void client.invalidateQueries({ queryKey: ['harvest', 'logistics'] })
     },
   })
+}
+
+export function useHarvestPlanCommands() {
+  const client = useQueryClient()
+  return useMutation({
+    mutationFn: createHarvestPlan,
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['harvest', 'plans'] }),
+  })
+}
+
+export function useStorageUnitCommands() {
+  const client = useQueryClient()
+  const invalidate = () => void client.invalidateQueries({ queryKey: ['harvest', 'storage'] })
+  const create = useMutation({ mutationFn: createStorageUnit, onSuccess: invalidate })
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: StorageUnitBody }) => patchStorageUnit(id, body),
+    onSuccess: invalidate,
+  })
+  return { create, patch }
 }

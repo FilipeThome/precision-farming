@@ -1,7 +1,8 @@
 package com.precisionfarming.farm.application
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
+import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.DomainException
@@ -16,7 +17,6 @@ import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.farm.infrastructure.AuthMembershipClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.UnauthorizedException
-import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.security.UserFarmGrants
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
@@ -82,7 +82,7 @@ class FarmService(
 ) {
     private val gf = GeometryFactory(PrecisionModel(), 4326)
     private val wktReader = WKTReader(gf)
-    private val json = ObjectMapper()
+    private val json = JsonMapper.builder().build()
 
     fun listFarms(scope: AccessScope) = farms.findAllById(scope.farmIds).map { it.toDto() }
 
@@ -138,18 +138,18 @@ class FarmService(
         if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         val geom = parseMulti(cmd.geometry)
         val entity = FieldEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.areaHa, cmd.crop, cmd.variety, geom, geom.centroid)
-        val saved = fields.save(entity).toDto()
-        DemoFieldFarms.register(saved.id, saved.farmId)
-        return saved
+        return fields.save(entity).toDto()
     }
 
     @Transactional
     fun patchField(scope: AccessScope, id: UUID, cmd: UpsertField): FieldDto {
         val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
         scope.requireEntityFarm(e.farmId)
+        if (cmd.farmId != e.farmId) {
+            throw ConflictException("FIELD_FARM_IMMUTABLE", "Field cannot move to another farm")
+        }
         scope.requireFarm(cmd.farmId)
         val geom = parseMulti(cmd.geometry)
-        e.farmId = cmd.farmId
         e.name = cmd.name
         e.areaHa = cmd.areaHa
         e.crop = cmd.crop
@@ -312,7 +312,7 @@ class FarmService(
 
     private fun parseGeoJson(text: String): Geometry {
         val node = json.readTree(text)
-        val type = node.path("type").asText()
+        val type = node.path("type").asString()
         val coordinates = node.get("coordinates")
             ?: throw DomainException("INVALID_GEOMETRY", "GeoJSON coordinates are required")
         return when (type) {
@@ -321,17 +321,19 @@ class FarmService(
                 if (!coordinates.isArray || coordinates.isEmpty) {
                     throw DomainException("INVALID_GEOMETRY", "MultiPolygon coordinates are empty")
                 }
-                gf.createMultiPolygon(coordinates.map { polygonFromRings(it) }.toTypedArray())
+                gf.createMultiPolygon(arrayElements(coordinates).map { polygonFromRings(it) }.toTypedArray())
             }
             else -> throw DomainException("INVALID_GEOMETRY", "Expected Polygon or MultiPolygon")
         }
     }
 
+    private fun arrayElements(node: JsonNode): List<JsonNode> = List(node.size()) { node[it] }
+
     private fun polygonFromRings(rings: JsonNode): Polygon {
         if (!rings.isArray || rings.isEmpty) {
             throw DomainException("INVALID_GEOMETRY", "Polygon rings are required")
         }
-        val parsed = rings.map { ringToLinearRing(it) }
+        val parsed = arrayElements(rings).map { ringToLinearRing(it) }
         return gf.createPolygon(parsed.first(), parsed.drop(1).toTypedArray())
     }
 
@@ -339,7 +341,7 @@ class FarmService(
         if (!ring.isArray || ring.size() < 4) {
             throw DomainException("INVALID_GEOMETRY", "A linear ring needs at least 4 positions")
         }
-        val points = ring.map { pos ->
+        val points = arrayElements(ring).map { pos ->
             if (!pos.isArray || pos.size() < 2) {
                 throw DomainException("INVALID_GEOMETRY", "Each position needs longitude and latitude")
             }

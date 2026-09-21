@@ -13,12 +13,12 @@ import java.util.UUID
 @Table(name = "irrigation_assets")
 class IrrigationAssetEntity(
     @Id val id: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
-    @Column(name = "field_id") val fieldId: UUID?,
-    val name: String,
-    val type: String,
+    @Column(name = "farm_id") var farmId: UUID,
+    @Column(name = "field_id") var fieldId: UUID?,
+    var name: String,
+    var type: String,
     var status: String,
-    @Column(name = "capacity_mm_h") val capacityMmH: BigDecimal?,
+    @Column(name = "capacity_mm_h") var capacityMmH: BigDecimal?,
 )
 
 @Entity

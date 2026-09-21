@@ -55,6 +55,7 @@ app:
   seed: ${APP_SEED:true}
   clients:
     farm: ${FARM_URL:http://localhost:8082}
+    file: ${FILE_URL:http://localhost:8091}
     asset: ${ASSET_URL:http://localhost:8083}
     inventory: ${INVENTORY_URL:http://localhost:8087}
     operation: ${OPERATION_URL:http://localhost:8086}

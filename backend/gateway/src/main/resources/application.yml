@@ -3,267 +3,273 @@ server:
 spring:
   application:
     name: gateway
+  codec:
+    max-in-memory-size: 8MB
   cloud:
     gateway:
-      x-forwarded:
-        enabled: true
-        for-append: false
-      httpclient:
-        connect-timeout: 3000
-        response-timeout: 10s
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowedOriginPatterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-            allowedMethods: "*"
-            allowedHeaders: "*"
-            allowCredentials: true
-      routes:
-        - id: auth
-          uri: ${AUTH_URL:http://localhost:8081}
-          predicates:
-            - Path=/api/v1/auth/**
-        - id: farms
-          uri: ${FARM_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/v1/farms/**,/api/v1/fields/**,/api/v1/seasons/**
-        - id: telemetry
-          uri: ${TELEMETRY_URL:http://localhost:8084}
-          predicates:
-            - Path=/api/v1/machines/{machineId}/telemetry,/api/v1/machines/{machineId}/track,/api/v1/machines/{machineId}/metrics
-        - id: maintenance
-          uri: ${ASSET_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/v1/maintenance/**
-        - id: machines
-          uri: ${ASSET_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/v1/machines/**
-        - id: weather
-          uri: ${WEATHER_URL:http://localhost:8085}
-          predicates:
-            - Path=/api/v1/weather/**
-        - id: operations
-          uri: ${OPERATION_URL:http://localhost:8086}
-          predicates:
-            - Path=/api/v1/operations/**
-        - id: inventory
-          uri: ${INVENTORY_URL:http://localhost:8087}
-          predicates:
-            - Path=/api/v1/inventory/**
-        - id: alerts
-          uri: ${ALERT_URL:http://localhost:8088}
-          predicates:
-            - Path=/api/v1/alerts/**
-        - id: ai
-          uri: ${AI_URL:http://localhost:8089}
-          predicates:
-            - Path=/api/v1/ai/**
-        - id: notifications
-          uri: ${NOTIFICATION_URL:http://localhost:8090}
-          predicates:
-            - Path=/api/v1/notifications/**
-        - id: map
-          uri: ${FILE_URL:http://localhost:8091}
-          predicates:
-            - Path=/api/v1/map/**
-        - id: files
-          uri: ${FILE_URL:http://localhost:8091}
-          predicates:
-            - Path=/api/v1/files/**
-        - id: reports
-          uri: ${REPORTING_URL:http://localhost:8092}
-          predicates:
-            - Path=/api/v1/reports/**
-        - id: sync
-          uri: ${SYNC_URL:http://localhost:8093}
-          predicates:
-            - Path=/api/v1/sync/**
-        - id: integration
-          uri: ${INTEGRATION_URL:http://localhost:8094}
-          predicates:
-            - Path=/api/v1/integrations/**
-        - id: agronomy-soil
-          uri: ${AGRONOMY_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/soil/**
-        - id: agronomy-scouting
-          uri: ${AGRONOMY_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/scouting/**
-        - id: agronomy-recommendations
-          uri: ${AGRONOMY_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/recommendations/**
-        - id: agronomy-prescriptions
-          uri: ${AGRONOMY_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/prescriptions/**
-        - id: irrigation
-          uri: ${IRRIGATION_URL:http://localhost:8096}
-          predicates:
-            - Path=/api/v1/irrigation/**
-        - id: harvest
-          uri: ${HARVEST_URL:http://localhost:8097}
-          predicates:
-            - Path=/api/v1/harvest/**
-        - id: logistics
-          uri: ${HARVEST_URL:http://localhost:8097}
-          predicates:
-            - Path=/api/v1/logistics/**
-        - id: storage
-          uri: ${HARVEST_URL:http://localhost:8097}
-          predicates:
-            - Path=/api/v1/storage/**
-        - id: finance
-          uri: ${FINANCE_URL:http://localhost:8098}
-          predicates:
-            - Path=/api/v1/finance/**
-        - id: market
-          uri: ${FINANCE_URL:http://localhost:8098}
-          predicates:
-            - Path=/api/v1/market/**
-        - id: traceability
-          uri: ${COMPLIANCE_URL:http://localhost:8099}
-          predicates:
-            - Path=/api/v1/traceability/**
-        - id: esg
-          uri: ${COMPLIANCE_URL:http://localhost:8099}
-          predicates:
-            - Path=/api/v1/esg/**
-        - id: seed-farm
-          uri: ${FARM_URL:http://localhost:8082}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/farm
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/farm,/api/v1/dev/seed/reset
-        - id: seed-machines
-          uri: ${ASSET_URL:http://localhost:8083}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/machines
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/machines,/api/v1/dev/seed/reset
-        - id: seed-telemetry
-          uri: ${TELEMETRY_URL:http://localhost:8084}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/telemetry
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/telemetry,/api/v1/dev/seed/reset
-        - id: seed-weather
-          uri: ${WEATHER_URL:http://localhost:8085}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/weather
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/weather,/api/v1/dev/seed/reset
-        - id: seed-operation
-          uri: ${OPERATION_URL:http://localhost:8086}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/operation
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/operation,/api/v1/dev/seed/reset
-        - id: seed-inventory
-          uri: ${INVENTORY_URL:http://localhost:8087}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/inventory
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/inventory,/api/v1/dev/seed/reset
-        - id: seed-alerts
-          uri: ${ALERT_URL:http://localhost:8088}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/alerts
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/alerts,/api/v1/dev/seed/reset
-        - id: seed-ai
-          uri: ${AI_URL:http://localhost:8089}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/ai
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/ai,/api/v1/dev/seed/reset
-        - id: seed-notifications
-          uri: ${NOTIFICATION_URL:http://localhost:8090}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/notifications
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/notifications,/api/v1/dev/seed/reset
-        - id: seed-files
-          uri: ${FILE_URL:http://localhost:8091}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/files
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/files,/api/v1/dev/seed/reset
-        - id: seed-reports
-          uri: ${REPORTING_URL:http://localhost:8092}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/reports
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/reports,/api/v1/dev/seed/reset
-        - id: seed-sync
-          uri: ${SYNC_URL:http://localhost:8093}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/sync
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/sync,/api/v1/dev/seed/reset
-        - id: seed-integrations
-          uri: ${INTEGRATION_URL:http://localhost:8094}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/integrations
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/integrations,/api/v1/dev/seed/reset
-        - id: seed-agronomy
-          uri: ${AGRONOMY_URL:http://localhost:8095}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/agronomy
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/agronomy,/api/v1/dev/seed/reset
-        - id: seed-irrigation
-          uri: ${IRRIGATION_URL:http://localhost:8096}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/irrigation
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/irrigation,/api/v1/dev/seed/reset
-        - id: seed-harvest
-          uri: ${HARVEST_URL:http://localhost:8097}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/harvest
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/harvest,/api/v1/dev/seed/reset
-        - id: seed-finance
-          uri: ${FINANCE_URL:http://localhost:8098}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/finance
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/finance,/api/v1/dev/seed/reset
-        - id: seed-compliance
-          uri: ${COMPLIANCE_URL:http://localhost:8099}
-          predicates:
-            - Path=/api/v1/dev/seed/reset/compliance
-            - Method=POST
-          filters:
-            - RewritePath=/api/v1/dev/seed/reset/compliance,/api/v1/dev/seed/reset
-        - id: seed-auth
-          uri: ${AUTH_URL:http://localhost:8081}
-          predicates:
-            - Path=/api/v1/dev/seed/reset
-            - Method=POST
+      server:
+        webflux:
+          x-forwarded:
+            enabled: true
+            for-append: false
+          httpclient:
+            connect-timeout: 3000
+            response-timeout: 10s
+          globalcors:
+            cors-configurations:
+              '[/**]':
+                allowedOriginPatterns:
+                  - "http://localhost:*"
+                  - "http://127.0.0.1:*"
+                allowedMethods: "*"
+                allowedHeaders: "*"
+                allowCredentials: true
+          routes:
+            - id: auth
+              uri: ${AUTH_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/auth/**
+            - id: farms
+              uri: ${FARM_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/farms/**,/api/v1/fields/**,/api/v1/seasons/**
+            - id: telemetry
+              uri: ${TELEMETRY_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/machines/{machineId}/telemetry,/api/v1/machines/{machineId}/track,/api/v1/machines/{machineId}/metrics
+            - id: maintenance
+              uri: ${ASSET_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/maintenance/**
+            - id: machines
+              uri: ${ASSET_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/machines/**
+            - id: weather
+              uri: ${WEATHER_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/weather/**
+            - id: operations
+              uri: ${OPERATION_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/operations/**
+            - id: inventory
+              uri: ${INVENTORY_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/inventory/**
+            - id: alerts
+              uri: ${ALERT_URL:http://localhost:8088}
+              predicates:
+                - Path=/api/v1/alerts/**
+            - id: ai
+              uri: ${AI_URL:http://localhost:8089}
+              predicates:
+                - Path=/api/v1/ai/**
+            - id: notifications
+              uri: ${NOTIFICATION_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/v1/notifications/**
+            - id: map
+              uri: ${FILE_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/v1/map/**
+            - id: files
+              uri: ${FILE_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/v1/files/**
+              metadata:
+                response-timeout: 30000
+            - id: reports
+              uri: ${REPORTING_URL:http://localhost:8092}
+              predicates:
+                - Path=/api/v1/reports/**
+            - id: sync
+              uri: ${SYNC_URL:http://localhost:8093}
+              predicates:
+                - Path=/api/v1/sync/**
+            - id: integration
+              uri: ${INTEGRATION_URL:http://localhost:8094}
+              predicates:
+                - Path=/api/v1/integrations/**
+            - id: agronomy-soil
+              uri: ${AGRONOMY_URL:http://localhost:8095}
+              predicates:
+                - Path=/api/v1/soil/**
+            - id: agronomy-scouting
+              uri: ${AGRONOMY_URL:http://localhost:8095}
+              predicates:
+                - Path=/api/v1/scouting/**
+            - id: agronomy-recommendations
+              uri: ${AGRONOMY_URL:http://localhost:8095}
+              predicates:
+                - Path=/api/v1/recommendations/**
+            - id: agronomy-prescriptions
+              uri: ${AGRONOMY_URL:http://localhost:8095}
+              predicates:
+                - Path=/api/v1/prescriptions/**
+            - id: irrigation
+              uri: ${IRRIGATION_URL:http://localhost:8096}
+              predicates:
+                - Path=/api/v1/irrigation/**
+            - id: harvest
+              uri: ${HARVEST_URL:http://localhost:8097}
+              predicates:
+                - Path=/api/v1/harvest/**
+            - id: logistics
+              uri: ${HARVEST_URL:http://localhost:8097}
+              predicates:
+                - Path=/api/v1/logistics/**
+            - id: storage
+              uri: ${HARVEST_URL:http://localhost:8097}
+              predicates:
+                - Path=/api/v1/storage/**
+            - id: finance
+              uri: ${FINANCE_URL:http://localhost:8098}
+              predicates:
+                - Path=/api/v1/finance/**
+            - id: market
+              uri: ${FINANCE_URL:http://localhost:8098}
+              predicates:
+                - Path=/api/v1/market/**
+            - id: traceability
+              uri: ${COMPLIANCE_URL:http://localhost:8099}
+              predicates:
+                - Path=/api/v1/traceability/**
+            - id: esg
+              uri: ${COMPLIANCE_URL:http://localhost:8099}
+              predicates:
+                - Path=/api/v1/esg/**
+            - id: seed-farm
+              uri: ${FARM_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/farm
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/farm,/api/v1/dev/seed/reset
+            - id: seed-machines
+              uri: ${ASSET_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/machines
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/machines,/api/v1/dev/seed/reset
+            - id: seed-telemetry
+              uri: ${TELEMETRY_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/telemetry
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/telemetry,/api/v1/dev/seed/reset
+            - id: seed-weather
+              uri: ${WEATHER_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/weather
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/weather,/api/v1/dev/seed/reset
+            - id: seed-operation
+              uri: ${OPERATION_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/operation
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/operation,/api/v1/dev/seed/reset
+            - id: seed-inventory
+              uri: ${INVENTORY_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/inventory
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/inventory,/api/v1/dev/seed/reset
+            - id: seed-alerts
+              uri: ${ALERT_URL:http://localhost:8088}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/alerts
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/alerts,/api/v1/dev/seed/reset
+            - id: seed-ai
+              uri: ${AI_URL:http://localhost:8089}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/ai
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/ai,/api/v1/dev/seed/reset
+            - id: seed-notifications
+              uri: ${NOTIFICATION_URL:http://localhost:8090}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/notifications
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/notifications,/api/v1/dev/seed/reset
+            - id: seed-files
+              uri: ${FILE_URL:http://localhost:8091}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/files
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/files,/api/v1/dev/seed/reset
+            - id: seed-reports
+              uri: ${REPORTING_URL:http://localhost:8092}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/reports
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/reports,/api/v1/dev/seed/reset
+            - id: seed-sync
+              uri: ${SYNC_URL:http://localhost:8093}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/sync
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/sync,/api/v1/dev/seed/reset
+            - id: seed-integrations
+              uri: ${INTEGRATION_URL:http://localhost:8094}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/integrations
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/integrations,/api/v1/dev/seed/reset
+            - id: seed-agronomy
+              uri: ${AGRONOMY_URL:http://localhost:8095}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/agronomy
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/agronomy,/api/v1/dev/seed/reset
+            - id: seed-irrigation
+              uri: ${IRRIGATION_URL:http://localhost:8096}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/irrigation
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/irrigation,/api/v1/dev/seed/reset
+            - id: seed-harvest
+              uri: ${HARVEST_URL:http://localhost:8097}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/harvest
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/harvest,/api/v1/dev/seed/reset
+            - id: seed-finance
+              uri: ${FINANCE_URL:http://localhost:8098}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/finance
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/finance,/api/v1/dev/seed/reset
+            - id: seed-compliance
+              uri: ${COMPLIANCE_URL:http://localhost:8099}
+              predicates:
+                - Path=/api/v1/dev/seed/reset/compliance
+                - Method=POST
+              filters:
+                - RewritePath=/api/v1/dev/seed/reset/compliance,/api/v1/dev/seed/reset
+            - id: seed-auth
+              uri: ${AUTH_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/v1/dev/seed/reset
+                - Method=POST
 app:
   security:
     jwt-public-key: ${JWT_PUBLIC_KEY:}

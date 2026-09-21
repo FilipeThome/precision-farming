@@ -21,7 +21,7 @@ fun AppRoot() {
         val userId = TokenStore.readUserId()
         val route = AuthNav.startRoute(token, userId)
         if (route == AuthNav.HOME) {
-            Session.set(token, userId)
+            Session.set(token, userId, TokenStore.readRole())
             if (!userId.isNullOrBlank()) OfflineRuntime.bindSession(userId)
         }
         else {

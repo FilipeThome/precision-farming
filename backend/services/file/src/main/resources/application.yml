@@ -19,6 +19,10 @@ spring:
       hibernate.order_inserts: true
   flyway:
     enabled: true
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
 
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
@@ -53,6 +57,8 @@ app:
     allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
   seed: ${APP_SEED:true}
+  files:
+    storage-dir: ${FILE_STORAGE_DIR:./data/files}
   clients:
     farm: ${FARM_URL:http://localhost:8082}
     asset: ${ASSET_URL:http://localhost:8083}

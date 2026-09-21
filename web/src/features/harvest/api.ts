@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from '@/shared/api/client'
+import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
 import type {
   HarvestPlan,
   LogisticsLoad,
@@ -7,8 +7,29 @@ import type {
   YieldRecord,
 } from '@/shared/api/types'
 
+export type HarvestPlanBody = {
+  farmId: string
+  fieldId: string
+  crop: string
+  expectedTHa: number
+  plannedStart: string | null
+  plannedEnd: string | null
+}
+
+export type StorageUnitBody = {
+  farmId: string
+  name: string
+  type: string
+  capacityT: number
+  usedT: number
+}
+
 export async function fetchHarvestPlans(farmId?: string | null): Promise<HarvestPlan[]> {
   return apiGet<HarvestPlan[]>('/api/v1/harvest/plans', { farmId: farmId ?? undefined })
+}
+
+export async function createHarvestPlan(body: HarvestPlanBody): Promise<HarvestPlan> {
+  return apiPost<HarvestPlan>('/api/v1/harvest/plans', body)
 }
 
 export async function fetchYield(farmId?: string | null): Promise<YieldRecord[]> {
@@ -25,6 +46,14 @@ export async function dispatchLogisticsLoad(loadId: string): Promise<LogisticsLo
 
 export async function fetchStorageUnits(farmId?: string | null): Promise<StorageUnit[]> {
   return apiGet<StorageUnit[]>('/api/v1/storage/units', { farmId: farmId ?? undefined })
+}
+
+export async function createStorageUnit(body: StorageUnitBody): Promise<StorageUnit> {
+  return apiPost<StorageUnit>('/api/v1/storage/units', body)
+}
+
+export async function patchStorageUnit(id: string, body: StorageUnitBody): Promise<StorageUnit> {
+  return apiPatch<StorageUnit>(`/api/v1/storage/units/${id}`, body)
 }
 
 export async function fetchStorageLots(farmId?: string | null): Promise<StorageLot[]> {

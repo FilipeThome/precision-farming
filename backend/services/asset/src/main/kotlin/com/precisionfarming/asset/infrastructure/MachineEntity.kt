@@ -17,6 +17,7 @@ class MachineEntity(
     var manufacturer: String,
     var model: String,
     var status: String,
+    @Column(name = "photo_file_id") var photoFileId: UUID? = null,
 )
 
 @Entity

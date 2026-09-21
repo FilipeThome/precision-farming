@@ -16,7 +16,7 @@ class GatewayDemoSecretsGuard(
     @Value("\${app.security.jwt-public-key}") private val jwtPublicKey: String,
     @Value("\${app.security.allow-demo-secrets:false}") private val allowDemoSecrets: Boolean,
 ) : ApplicationRunner {
-    override fun run(args: ApplicationArguments?) {
+    override fun run(args: ApplicationArguments) {
         val local = env.activeProfiles.contains("local")
         if (local || allowDemoSecrets) return
         val missing = jwtPublicKey.isBlank()

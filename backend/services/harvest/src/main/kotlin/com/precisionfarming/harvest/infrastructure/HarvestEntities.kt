@@ -52,11 +52,11 @@ class LogisticsLoadEntity(
 @Table(name = "storage_units")
 class StorageUnitEntity(
     @Id val id: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
-    val name: String,
-    @Column(name = "capacity_t") val capacityT: BigDecimal,
+    @Column(name = "farm_id") var farmId: UUID,
+    var name: String,
+    @Column(name = "capacity_t") var capacityT: BigDecimal,
     @Column(name = "used_t") var usedT: BigDecimal,
-    val type: String,
+    var type: String,
 )
 
 @Entity
@@ -64,7 +64,7 @@ class StorageUnitEntity(
 class StorageLotEntity(
     @Id val id: UUID,
     @Column(name = "unit_id") val unitId: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
+    @Column(name = "farm_id") var farmId: UUID,
     val crop: String,
     val tons: BigDecimal,
     val quality: String,
@@ -90,4 +90,5 @@ interface StorageUnitJpaRepository : JpaRepository<StorageUnitEntity, UUID> {
 interface StorageLotJpaRepository : JpaRepository<StorageLotEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<StorageLotEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<StorageLotEntity>
+    fun findByUnitId(unitId: UUID): List<StorageLotEntity>
 }

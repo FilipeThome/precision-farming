@@ -57,13 +57,23 @@ async function parseError(res: Response, correlationId: string): Promise<ApiErro
   )
 }
 
-let inflightRefresh: Promise<boolean> | null = null
+let inflight: Promise<boolean> | null = null
+let allowLogout = true
 
-async function refreshSession(): Promise<boolean> {
-  if (inflightRefresh) return inflightRefresh
-  inflightRefresh = (async () => {
+type RefreshOptions = { logoutOnFailure?: boolean }
+
+async function refreshSession(options: RefreshOptions = {}): Promise<boolean> {
+  const wantLogout = options.logoutOnFailure ?? true
+  if (inflight) {
+    if (!wantLogout) allowLogout = false
+    return inflight
+  }
+  allowLogout = wantLogout
+  inflight = (async () => {
     const refreshToken = useAuthStore.getState().refreshToken
     if (!refreshToken) return false
+    // Rotate-on-use: drop the jti before HTTP so a retry cannot revokeAll.
+    useAuthStore.getState().clearRefresh()
     try {
       const data = await apiRequest<TokenResponse>('/api/v1/auth/refresh', {
         method: 'POST',
@@ -74,15 +84,18 @@ async function refreshSession(): Promise<boolean> {
       useAuthStore.getState().setSession(data)
       return true
     } catch {
-      useAuthStore.getState().clearSession()
-      queryClient.clear()
+      if (allowLogout) {
+        useAuthStore.getState().clearSession()
+        queryClient.clear()
+      }
       return false
     }
   })()
   try {
-    return await inflightRefresh
+    return await inflight
   } finally {
-    inflightRefresh = null
+    inflight = null
+    allowLogout = true
   }
 }
 
@@ -95,7 +108,8 @@ async function fetchAuthorized(
     [CORRELATION_HEADER]: correlationId,
     ...options.headers,
   }
-  if (options.body !== undefined) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
+  if (options.body !== undefined && !isFormData) {
     headers['Content-Type'] = 'application/json'
   }
   if (options.idempotent) {
@@ -109,7 +123,12 @@ async function fetchAuthorized(
   const res = await fetch(`${API_BASE}${path}`, {
     method: options.method ?? 'GET',
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body:
+      options.body === undefined
+        ? undefined
+        : isFormData
+          ? (options.body as FormData)
+          : JSON.stringify(options.body),
   })
 
   if (res.status === 401 && !options.skipRefresh && !options.skipAuth) {
@@ -141,6 +160,10 @@ async function apiRequest<T>(path: string, options: RequestOptions = {}): Promis
   return JSON.parse(text) as T
 }
 
+export async function refreshSessionNow(options: RefreshOptions = {}): Promise<boolean> {
+  return refreshSession(options)
+}
+
 export async function apiGet<T>(path: string, query?: Record<string, QueryValue>): Promise<T> {
   return apiRequest<T>(`${path}${toQuery(query)}`)
 }
@@ -152,6 +175,22 @@ export async function apiPost<T>(
   extra: { skipAuth?: boolean; skipRefresh?: boolean } = {},
 ): Promise<T> {
   return apiRequest<T>(path, { method: 'POST', body, idempotent, ...extra })
+}
+
+export async function apiPatch<T>(path: string, body?: unknown): Promise<T> {
+  return apiRequest<T>(path, { method: 'PATCH', body, idempotent: false })
+}
+
+export async function apiUpload<T>(path: string, body: FormData): Promise<T> {
+  return apiRequest<T>(path, { method: 'POST', body, idempotent: true })
+}
+
+export async function apiGetBlob(path: string): Promise<Blob> {
+  const { res, correlationId } = await fetchAuthorized(path)
+  if (!res.ok) {
+    throw await parseError(res, correlationId)
+  }
+  return res.blob()
 }
 
 export async function apiDownload(path: string, filename: string): Promise<void> {

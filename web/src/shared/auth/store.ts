@@ -10,6 +10,7 @@ type AuthState = {
   name: string | null
   email: string | null
   setSession: (session: TokenResponse) => void
+  clearRefresh: () => void
   clearSession: () => void
 }
 
@@ -29,6 +30,7 @@ export const useAuthStore = create<AuthState>()((set) => ({
       name: session.name,
       email: session.email,
     }),
+  clearRefresh: () => set({ refreshToken: null }),
   clearSession: () =>
     set({
       accessToken: null,

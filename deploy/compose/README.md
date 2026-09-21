@@ -6,7 +6,7 @@ Optimized multi-stage images live under `deploy/docker/`. Per-service overlays a
 
 | Target | Builder | Runtime |
 | --- | --- | --- |
-| JVM services / gateway | `eclipse-temurin:21-jdk-alpine` + Gradle `bootJar` | `eclipse-temurin:21-jre-alpine` (jar only, non-root) |
+| JVM services / gateway | `eclipse-temurin:26-jdk-alpine` + Gradle `bootJar` | `eclipse-temurin:26-jre-alpine` (jar only, non-root) |
 | Web | `node:22-alpine` (`npm ci` + `npm run build`) | `nginx:1.27-alpine` (static `dist/` only) |
 
 Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `build/`, `.git`).
@@ -19,21 +19,23 @@ Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `bui
 
 ## Quick start — core demo
 
+Supported path: `compose-up` stages the pinned Gradle zip (SHA-256), copies `*.env.example` → runtime `*.env` if missing, **always builds**, then `up --no-build --pull never`. Default profile is **core**.
+
 ```powershell
 # Windows
-.\scripts\compose-up.ps1 -Profile core -Build
+.\scripts\compose-up.ps1
 ```
 
 ```bash
 # Linux / macOS — core (default)
 chmod +x scripts/compose-up.sh
-./scripts/compose-up.sh --build
+./scripts/compose-up.sh
 
 # full stack
-./scripts/compose-up.sh all --build
+./scripts/compose-up.sh all
 ```
 
-Equivalent:
+Raw compose is power-user only (zip already staged, `demo.env` present, **always** `--build`). `up -d` without `--build` fails if `:local` images are missing (`pull_policy: never`).
 
 ```bash
 docker compose --project-directory . up -d
@@ -44,7 +46,7 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 - API gateway: http://localhost:8080  
 - Web: http://localhost:5173  
 - Login: `manager@precisionfarming.demo` / `Precision@123`  
-- Seeds: `APP_SEED=true` in `demo.env`
+- Seeds: `APP_SEED=true` in `demo.env` (copied from `demo.env.example` on first compose-up)
 - `SPRINGDOC_ENABLED=true` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
 - `AUTH_RATE_LIMIT` applies to auth login/refresh
 
@@ -61,6 +63,8 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 
 ## Single service overlay
 
+Copy `deploy/compose/*.env.example` if `*.env` is missing, stage the pinned Gradle zip, then `--build`.
+
 ```powershell
 docker compose --project-directory . -f docker-compose.yml -f deploy/compose/auth.yml `
   --env-file deploy/compose/demo.env up -d --build
@@ -73,4 +77,4 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/aut
 - Network `precision-farming` is owned by root `docker-compose.yml` (overlays no longer force `external: true`).
 - Gateway waits for auth/farm health when those services are in the active profile.
 - First JVM image build compiles with Gradle inside Docker (slower); rebuilds reuse layers when sources unchanged.
-- Do not use these demo secrets outside local machines.
+- Do not use these demo secrets outside local machines. Runtime `demo*.env` is gitignored; templates are `*.example`.

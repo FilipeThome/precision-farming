@@ -1,17 +1,22 @@
 package com.precisionfarming.file.application
 
+import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
-import com.precisionfarming.security.AccessScope
+import com.precisionfarming.file.domain.FileUploadRules
 import com.precisionfarming.file.infrastructure.FileJpaRepository
 import com.precisionfarming.file.infrastructure.FileMetaEntity
 import com.precisionfarming.file.infrastructure.MapLayerEntity
 import com.precisionfarming.file.infrastructure.MapLayerJpaRepository
+import com.precisionfarming.security.AccessScope
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Instant
 import java.util.UUID
 
@@ -25,6 +30,17 @@ data class FileMetaDto(
     val acquisitionAt: Instant?,
     val processingVersion: String?,
     val quality: String?,
+    val contentType: String?,
+    val sizeBytes: Long?,
+    val     entityId: UUID?,
+)
+
+data class BindFile(val entityId: UUID?)
+
+data class FileContent(
+    val path: Path,
+    val contentType: String,
+    val sizeBytes: Long,
 )
 
 data class MapLayerDto(
@@ -43,8 +59,87 @@ data class MapLayerDto(
 class FileService(
     private val repo: FileJpaRepository,
     private val layers: MapLayerJpaRepository,
+    @Value("\${app.files.storage-dir:./data/files}") storageDir: String,
 ) {
+    private val storageRoot: Path = Path.of(storageDir).toAbsolutePath().normalize()
+
     fun list(scope: AccessScope) = repo.findByFarmIdIn(scope.farmIds).map { it.toDto() }
+
+    fun get(scope: AccessScope, id: UUID): FileMetaDto {
+        val e = repo.findById(id).orElseThrow { NotFoundException("FILE_NOT_FOUND", "File not found") }
+        val farmId = e.farmId ?: throw NotFoundException("FILE_NOT_FOUND", "File not found")
+        scope.requireFarmRead(farmId, "FILE_NOT_FOUND", "File not found")
+        return e.toDto()
+    }
+
+    fun content(scope: AccessScope, id: UUID): FileContent {
+        val meta = get(scope, id)
+        val path = resolve(meta.objectKey)
+        if (!Files.isRegularFile(path)) {
+            throw NotFoundException("FILE_CONTENT_MISSING", "File content not found")
+        }
+        return FileContent(
+            path,
+            meta.contentType ?: "application/octet-stream",
+            meta.sizeBytes ?: Files.size(path),
+        )
+    }
+
+    @Transactional
+    @Suppress("UNUSED_PARAMETER")
+    fun upload(scope: AccessScope, farmId: UUID, kind: String, entityId: UUID?, bytes: ByteArray): FileMetaDto {
+        scope.requireFarm(farmId)
+        val validated = FileUploadRules.validate(kind, bytes)
+        val id = UUID.randomUUID()
+        Files.createDirectories(storageRoot)
+        val path = resolve(id.toString())
+        Files.write(path, bytes)
+        return try {
+            repo.save(
+                FileMetaEntity(
+                    id = id,
+                    farmId = farmId,
+                    fieldId = null,
+                    kind = kind,
+                    source = "UPLOAD",
+                    objectKey = id.toString(),
+                    acquisitionAt = Instant.now(),
+                    processingVersion = null,
+                    quality = null,
+                    contentType = validated.contentType,
+                    sizeBytes = bytes.size.toLong(),
+                    entityId = null,
+                ),
+            ).toDto()
+        } catch (ex: Exception) {
+            Files.deleteIfExists(path)
+            throw ex
+        }
+    }
+
+    @Transactional
+    fun bind(scope: AccessScope, id: UUID, cmd: BindFile): FileMetaDto {
+        val e = repo.findById(id).orElseThrow { NotFoundException("FILE_NOT_FOUND", "File not found") }
+        val farmId = e.farmId ?: throw NotFoundException("FILE_NOT_FOUND", "File not found")
+        scope.requireEntityFarm(farmId)
+        if (e.kind != FileUploadRules.KIND_MACHINE_PHOTO) {
+            throw DomainException("FILE_KIND_UNSUPPORTED", "Unsupported file kind")
+        }
+        val target = cmd.entityId
+        if (target != null) {
+            if (e.entityId != null && e.entityId != target) {
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            }
+            val existing = repo.findByKindAndEntityId(FileUploadRules.KIND_MACHINE_PHOTO, target)
+            if (existing != null && existing.id != e.id) {
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            }
+            e.entityId = target
+        } else {
+            e.entityId = null
+        }
+        return repo.save(e).toDto()
+    }
 
     fun listLayers(scope: AccessScope, farmId: UUID?) =
         layers.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -84,8 +179,15 @@ class FileService(
         layers.saveAll(layerRows)
     }
 
+    private fun resolve(objectKey: String): Path {
+        val target = storageRoot.resolve(objectKey).normalize()
+        require(target.startsWith(storageRoot)) { "Invalid object key" }
+        return target
+    }
+
     private fun FileMetaEntity.toDto() = FileMetaDto(
         id, farmId, fieldId, kind, source, objectKey, acquisitionAt, processingVersion, quality,
+        contentType, sizeBytes, entityId,
     )
 
     private fun MapLayerEntity.toDto() = MapLayerDto(id, farmId, fieldId, name, kind, source, tileUrl, acquiredAt, status)

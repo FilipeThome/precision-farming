@@ -26,3 +26,8 @@ class TooManyRequestsException(
     message: String = "Too many requests",
     code: String = "RATE_LIMITED",
 ) : DomainException(code, message, 429)
+
+class ServiceUnavailableException(
+    message: String = "Upstream unavailable",
+    code: String = "UPSTREAM_UNAVAILABLE",
+) : DomainException(code, message, 503)

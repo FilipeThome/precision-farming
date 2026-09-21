@@ -5,24 +5,43 @@
 ARG GRADLE_PROJECT=:backend:gateway
 ARG MODULE_DIR=backend/gateway
 
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:26-jdk-alpine AS builder
 ARG GRADLE_PROJECT
 ARG MODULE_DIR
 WORKDIR /src
 
 RUN apk add --no-cache bash
 
-COPY gradlew settings.gradle.kts ./
+COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle ./gradle
 COPY backend ./backend
 
+# compose-up stages gradle/wrapper/gradle-${VER}-bin.zip so parallel image
+# builds do not each hit services.gradle.org. Verify SHA-256, then file://.
+RUN set -eu; \
+  PROPS=gradle/wrapper/gradle-wrapper.properties; \
+  VER="$(sed -n 's/.*gradle-\([0-9.]*\)-bin\.zip.*/\1/p' "$PROPS" | head -n 1)"; \
+  test -n "${VER}"; \
+  ZIP="gradle/wrapper/gradle-${VER}-bin.zip"; \
+  test -f "${ZIP}"; \
+  EXPECTED="$(sed -n 's/^distributionSha256Sum=//p' "$PROPS" | head -n 1)"; \
+  test -n "${EXPECTED}"; \
+  echo "${EXPECTED}  ${ZIP}" | sha256sum -c -; \
+  sed -i '/^distributionUrl=/d' "$PROPS"; \
+  printf 'distributionUrl=file\\://%s\n' "/src/${ZIP}" >> "$PROPS"; \
+  sed -i "s|^validateDistributionUrl=.*|validateDistributionUrl=false|" "$PROPS"
+
+ENV GRADLE_OPTS="-Xmx256m -Dorg.gradle.jvmargs=-Xmx1g -Dfile.encoding=UTF-8"
+
+# Do not share /root/.gradle via a BuildKit cache mount: concurrent image
+# builds on Docker Desktop deadlock Gradle's journal-1.lock.
 RUN chmod +x gradlew \
   && ./gradlew "${GRADLE_PROJECT}:bootJar" -x test --no-daemon \
   && mkdir -p /out \
   && JAR="$(ls ${MODULE_DIR}/build/libs/*.jar | grep -v -- '-plain' | head -n 1)" \
   && cp "$JAR" /out/app.jar
 
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:26-jre-alpine AS runtime
 RUN apk add --no-cache curl \
   && addgroup -S app && adduser -S app -G app
 WORKDIR /app
