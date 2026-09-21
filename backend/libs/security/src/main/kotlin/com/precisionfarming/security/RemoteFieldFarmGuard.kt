@@ -34,13 +34,6 @@ class RemoteFieldFarmGuard(
         .build()
 
     override fun requireBelongsToFarm(fieldId: UUID, farmId: UUID) {
-        val mapped = DemoFieldFarms.farmId(fieldId)
-        if (mapped != null) {
-            if (mapped != farmId) {
-                throw ForbiddenException("Field does not belong to farm", "FARM_SCOPE_DENIED")
-            }
-            return
-        }
         val field = fetchField(fieldId)
         if (field.farmId != farmId) {
             throw ForbiddenException("Field does not belong to farm", "FARM_SCOPE_DENIED")
@@ -57,6 +50,7 @@ class RemoteFieldFarmGuard(
                 ?: throw NotFoundException("FIELD_NOT_FOUND", "Field not found")
         } catch (ex: RestClientResponseException) {
             if (ex.statusCode.value() == 404) {
+                DemoFieldFarms.unregister(fieldId)
                 throw NotFoundException("FIELD_NOT_FOUND", "Field not found")
             }
             throw ForbiddenException("Field does not belong to farm", "FARM_SCOPE_DENIED")

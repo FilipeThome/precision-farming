@@ -103,12 +103,19 @@ class HarvestService(
         scope.requireEntityFarm(e.farmId)
         scope.requireFarm(cmd.farmId)
         validateCapacity(cmd.capacityT, cmd.usedT)
+        val farmChanged = e.farmId != cmd.farmId
         e.farmId = cmd.farmId
         e.name = cmd.name
         e.type = cmd.type
         e.capacityT = cmd.capacityT
         e.usedT = cmd.usedT
-        return units.save(e).toDto()
+        val saved = units.save(e)
+        if (farmChanged) {
+            val moved = lots.findByUnitId(id)
+            moved.forEach { it.farmId = cmd.farmId }
+            if (moved.isNotEmpty()) lots.saveAll(moved)
+        }
+        return saved.toDto()
     }
     fun listLots(scope: AccessScope, farmId: UUID?) =
         lots.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }

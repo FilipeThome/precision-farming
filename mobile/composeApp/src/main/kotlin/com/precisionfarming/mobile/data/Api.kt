@@ -869,11 +869,23 @@ private suspend inline fun <reified T, reified B : Any> patchJson(path: String, 
         setBody(body)
     }.body()
 
+private var pendingFarmCreate: Pair<FarmUpsert, FarmDto>? = null
+
+private suspend fun refreshCreatedFarmSession(attempts: Int = 3): Boolean {
+    repeat(attempts) {
+        if (refreshSession()) return true
+    }
+    return false
+}
+
 suspend fun createFarm(body: FarmUpsert): FarmDto {
-    val farm = postJson<FarmDto, FarmUpsert>("/api/v1/farms", body)
-    if (!refreshSession()) {
+    val farm = pendingFarmCreate?.takeIf { it.first == body }?.second
+        ?: postJson<FarmDto, FarmUpsert>("/api/v1/farms", body)
+    if (!refreshCreatedFarmSession()) {
+        pendingFarmCreate = body to farm
         throw IllegalStateException("SESSION_REFRESH_FAILED")
     }
+    pendingFarmCreate = null
     return farm
 }
 suspend fun patchFarm(id: String, body: FarmUpsert): FarmDto = patchJson("/api/v1/farms/$id", body)

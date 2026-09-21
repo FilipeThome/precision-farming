@@ -123,4 +123,30 @@ class FarmServiceTest {
             DemoFieldFarms.unregister(created.id)
         }
     }
+
+    @Test
+    fun deleteFarmUnregistersItsFields() {
+        val farmId = UUID.randomUUID()
+        every { farms.existsById(farmId) } returns true
+        every { fields.save(any()) } answers { firstArg<FieldEntity>() }
+        val polygon =
+            """{"type":"Polygon","coordinates":[[[-50.92,-17.79],[-50.88,-17.79],[-50.88,-17.75],[-50.92,-17.75],[-50.92,-17.79]]]}"""
+        val created = svc.createField(
+            scope(farmId),
+            UpsertField(farmId, "Talhão Norte", BigDecimal("10"), "Soja", null, polygon),
+        )
+        val row = mockk<FieldEntity>()
+        every { row.id } returns created.id
+        every { fields.findByFarmId(farmId) } returns listOf(row)
+        every { seasons.deleteByFarmId(farmId) } returns 0
+        every { fields.deleteByFarmId(farmId) } returns 1
+        every { farms.deleteById(farmId) } returns Unit
+        try {
+            assertEquals(farmId, DemoFieldFarms.farmId(created.id))
+            svc.deleteFarm(scope(farmId), farmId)
+            assertEquals(null, DemoFieldFarms.farmId(created.id))
+        } finally {
+            DemoFieldFarms.unregister(created.id)
+        }
+    }
 }

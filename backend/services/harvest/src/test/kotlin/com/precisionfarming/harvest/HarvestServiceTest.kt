@@ -8,6 +8,7 @@ import com.precisionfarming.harvest.infrastructure.HarvestPlanJpaRepository
 import com.precisionfarming.harvest.infrastructure.HarvestPlanEntity
 import com.precisionfarming.harvest.infrastructure.HarvestYieldJpaRepository
 import com.precisionfarming.harvest.infrastructure.LogisticsLoadJpaRepository
+import com.precisionfarming.harvest.infrastructure.StorageLotEntity
 import com.precisionfarming.harvest.infrastructure.StorageLotJpaRepository
 import com.precisionfarming.harvest.infrastructure.StorageUnitEntity
 import com.precisionfarming.harvest.infrastructure.StorageUnitJpaRepository
@@ -51,6 +52,29 @@ class HarvestServiceTest {
         )
         assertEquals(BigDecimal("2500"), patched.capacityT)
         assertEquals(BigDecimal("10"), patched.usedT)
+    }
+
+    @Test
+    fun patchUnitMovesLotsWithTheUnitFarm() {
+        val farmB = UUID.randomUUID()
+        val both = AccessScope(DemoTenant.ID, setOf(farmId, farmB), "FARM_MANAGER")
+        val unitId = UUID.randomUUID()
+        val lot = StorageLotEntity(
+            UUID.randomUUID(), unitId, farmId, "SOY", BigDecimal("12"), "STANDARD", java.time.Instant.EPOCH,
+        )
+        every { units.findById(unitId) } returns Optional.of(
+            StorageUnitEntity(unitId, farmId, "SILO", BigDecimal("2000"), BigDecimal("12"), "SILO"),
+        )
+        every { units.save(any<StorageUnitEntity>()) } answers { firstArg() }
+        every { lots.findByUnitId(unitId) } returns listOf(lot)
+        every { lots.saveAll(any<Iterable<StorageLotEntity>>()) } answers { firstArg<Iterable<StorageLotEntity>>().toList() }
+        val patched = svc.patchUnit(
+            both,
+            unitId,
+            UpsertStorageUnit(farmB, "SILO", "SILO", BigDecimal("2000"), BigDecimal("12")),
+        )
+        assertEquals(farmB, patched.farmId)
+        assertEquals(farmB, lot.farmId)
     }
 
     @Test
