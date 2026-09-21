@@ -1,5 +1,6 @@
 # Local demo Compose overlay for React web (Node Alpine build → nginx Alpine).
 # Browser calls host gateway at http://localhost:8080 (build-arg VITE_API_BASE_URL).
+# Copy deploy/compose/*.env.example if *.env is missing; stage the pinned Gradle zip; then --build.
 
 name: precision-farming
 

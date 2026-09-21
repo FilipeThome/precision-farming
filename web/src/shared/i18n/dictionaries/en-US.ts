@@ -558,4 +558,8 @@ export const enUS: Record<MessageKey, string> = {
   'form.field.title': 'Title',
   'form.field.priority': 'Priority',
   'form.none': 'None',
+  'form.validation.fieldNotInFarm': 'The selected field does not belong to this farm.',
+  'form.validation.machineNotInFarm': 'The selected machine does not belong to this farm.',
+  'form.validation.plannedWindow': 'Enter both start and end dates, or leave both empty.',
+  'form.validation.plannedOrder': 'Start date must be on or before the end date.',
 }

@@ -4,6 +4,7 @@ import { useFieldsQuery } from '@/features/fields/queries'
 import { useIrrigationAssetCommands } from '@/features/irrigation/queries'
 import type { IrrigationAsset } from '@/shared/api/types'
 import { useI18n } from '@/shared/i18n/useI18n'
+import { findInFarmScope } from '@/shared/lib/inFarmScope'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'
 import { useCodeOptions, useFarmScope } from '@/shared/ui/useFarmScope'
@@ -35,17 +36,12 @@ export function IrrigationAssetFormDialog({ open, asset, onClose }: Props) {
     )
   }, [open, asset, defaultFarmId])
 
-  useEffect(() => {
-    if (!open || !values.fieldId) return
-    const list = fields.data
-    if (list == null) return
-    if (list.length === 0) return
-    if (!list.some((row) => row.id === values.fieldId)) {
-      setValues((prev) => ({ ...prev, fieldId: '' }))
-    }
-  }, [open, fields.data, values.fieldId])
-
+  const scoped = values.fieldId ? findInFarmScope(fields.data, values.fieldId, values.farmId) : undefined
+  const fieldOk = values.fieldId === '' || Boolean(fields.isSuccess && scoped)
+  const scopeError =
+    values.fieldId !== '' && fields.isSuccess && !scoped ? t('form.validation.fieldNotInFarm') : null
   const failure = commands.create.error || commands.patch.error
+
   return (
     <EntityFormDialog
       open={open}
@@ -71,11 +67,11 @@ export function IrrigationAssetFormDialog({ open, asset, onClose }: Props) {
         setValues((prev) => ({ ...prev, [name]: value, ...(name === 'farmId' ? { fieldId: '' } : {}) }))
       }
       pending={commands.create.isPending || commands.patch.isPending}
-      error={failure ? queryError(failure).message : null}
+      submitDisabled={!fieldOk}
+      error={scopeError ?? (failure ? queryError(failure).message : null)}
       onClose={onClose}
       onSubmit={() => {
-        const field = (fields.data ?? []).find((row) => row.id === values.fieldId)
-        if (values.fieldId && (!field || field.farmId !== values.farmId)) return
+        if (!fieldOk) return
         const body = {
           farmId: values.farmId,
           fieldId: values.fieldId || null,

@@ -41,7 +41,6 @@ export async function saveMachine(input: {
     const form = new FormData()
     form.append('farmId', input.body.farmId)
     form.append('kind', 'MACHINE_PHOTO')
-    if (input.id) form.append('entityId', input.id)
     form.append('file', input.photo)
     const meta = await apiUpload<{ id: string }>('/api/v1/files', form)
     photoFileId = meta.id

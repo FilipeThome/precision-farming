@@ -18,6 +18,9 @@ class InventoryController(
     @GetMapping
     fun list(@RequestParam(required = false) farmId: UUID?) = svc.list(farmAccess.current(), farmId)
 
+    @GetMapping("/{id}")
+    fun get(@PathVariable id: UUID) = svc.get(farmAccess.current(), id)
+
     @GetMapping("/{itemId}/movements")
     fun movements(@PathVariable itemId: UUID) = svc.listMovements(farmAccess.current(), itemId)
 

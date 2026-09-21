@@ -1,9 +1,15 @@
 .gradle/
 .kotlin/
 **/build/
+# Staged by compose-up so Docker image builds do not download Gradle N times.
+gradle/wrapper/gradle-*-bin.zip
 .idea/
 *.iml
 .env
+deploy/compose/demo.env
+deploy/compose/demo-auth.env
+deploy/compose/demo-farm.env
+deploy/compose/demo-operation.env
 local.properties
 node_modules/
 dist/

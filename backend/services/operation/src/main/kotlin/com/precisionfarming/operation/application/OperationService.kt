@@ -7,9 +7,9 @@ import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoItemFarms
-import com.precisionfarming.security.DemoMachineFarms
 import com.precisionfarming.security.FieldFarmGuard
+import com.precisionfarming.security.ItemFarmGuard
+import com.precisionfarming.security.MachineFarmGuard
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.SagaEntity
@@ -46,6 +46,8 @@ class OperationService(
     private val inventory: InventorySagaClient,
     private val txManager: PlatformTransactionManager,
     private val fieldFarms: FieldFarmGuard,
+    private val machineFarms: MachineFarmGuard,
+    private val itemFarms: ItemFarmGuard,
 ) {
     private fun <T> inTx(block: () -> T): T = TransactionTemplate(txManager).execute { block() }!!
 
@@ -53,7 +55,7 @@ class OperationService(
         repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     fun machineSummary(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): MachineWorkSummaryDto {
-        DemoMachineFarms.requireMachineRead(scope, machineId)
+        machineFarms.requireRead(scope, machineId)
         requireRange(from, to)
         val ops = repo.findByMachineIdAndFarmIdIn(machineId, scope.resolveFarms(null))
             .mapNotNull { op ->
@@ -87,8 +89,8 @@ class OperationService(
     fun create(scope: AccessScope, cmd: CreateOperation): OperationDto {
         scope.requireFarm(cmd.farmId)
         fieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
-        cmd.machineId?.let { DemoMachineFarms.requireBelongsToFarm(it, cmd.farmId) }
-        cmd.itemId?.let { DemoItemFarms.requireBelongsToFarm(it, cmd.farmId) }
+        cmd.machineId?.let { machineFarms.requireBelongsToFarm(it, cmd.farmId) }
+        cmd.itemId?.let { itemFarms.requireBelongsToFarm(it, cmd.farmId) }
         requireAreaHa(cmd.areaHa)
         return repo.save(
             OperationEntity(

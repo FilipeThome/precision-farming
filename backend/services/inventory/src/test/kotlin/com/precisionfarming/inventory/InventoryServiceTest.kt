@@ -2,6 +2,7 @@ package com.precisionfarming.inventory
 
 import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.inventory.application.InventoryService
 import com.precisionfarming.inventory.application.MovementCmd
@@ -177,6 +178,35 @@ class InventoryServiceTest {
         assertEquals("UNIT_CHANGE_UNSUPPORTED", ex.code)
         assertEquals(BigDecimal("100"), entity.quantity)
         assertEquals("KG", entity.unit)
+    }
+
+    @Test
+    fun createRejectsUnknownUnit() {
+        val farmId = UUID.randomUUID()
+        val scope = AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER")
+        val ex = assertThrows(com.precisionfarming.common.DomainException::class.java) {
+            svc.create(scope, UpsertItem(farmId, "Urea", "FERTILIZER", "FOO", BigDecimal("100")))
+        }
+        assertEquals("UNIT_UNSUPPORTED", ex.code)
+    }
+
+    @Test
+    fun getReturnsInScopeItem() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val dto = svc.get(scopeFor(item), item.id)
+        assertEquals(item.id, dto.id)
+        assertEquals(item.farmId, dto.farmId)
+    }
+
+    @Test
+    fun getRejectsOutOfScopeItem() {
+        val item = item(quantity = "10", reserved = "0")
+        every { items.findById(item.id) } returns Optional.of(item)
+        val other = AccessScope(DemoTenant.ID, setOf(UUID.randomUUID()), "OPERATOR")
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            svc.get(other, item.id)
+        }
     }
 
     @Test

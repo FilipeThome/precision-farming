@@ -2,67 +2,89 @@ package com.precisionfarming.asset.infrastructure
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.precisionfarming.common.ConflictException
-import com.precisionfarming.common.ForbiddenException
-import com.precisionfarming.common.NotFoundException
-import com.precisionfarming.common.UnauthorizedException
+import com.precisionfarming.common.ServiceUnavailableException
+import com.precisionfarming.security.CallerBearer
+import com.precisionfarming.security.TimedRestClient
+import com.precisionfarming.security.UpstreamErrorMapper
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.client.SimpleClientHttpRequestFactory
+import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientResponseException
-import org.springframework.web.context.request.RequestContextHolder
-import org.springframework.web.context.request.ServletRequestAttributes
-import java.time.Duration
 import java.util.UUID
 
-fun interface MachinePhotoGuard {
-    fun requireMachinePhoto(fileId: UUID, farmId: UUID)
+interface MachinePhotoGuard {
+    fun requireAssignable(fileId: UUID, farmId: UUID, machineId: UUID?)
+    fun bind(fileId: UUID, machineId: UUID)
+    fun unbind(fileId: UUID)
 }
 
 @Component
 class RemoteMachinePhotoGuard(
-    @Value("\${app.clients.file:http://localhost:8091}") private val fileUrl: String,
+    private val fileUrl: String,
+    private val http: RestClient,
 ) : MachinePhotoGuard {
-    private val http = RestClient.builder()
-        .requestFactory(
-            SimpleClientHttpRequestFactory().apply {
-                setConnectTimeout(Duration.ofSeconds(3))
-                setReadTimeout(Duration.ofSeconds(10))
-            },
-        )
-        .build()
+    @Autowired
+    constructor(
+        @Value("\${app.clients.file:http://localhost:8091}") fileUrl: String,
+    ) : this(fileUrl, TimedRestClient.create())
 
-    override fun requireMachinePhoto(fileId: UUID, farmId: UUID) {
+    override fun requireAssignable(fileId: UUID, farmId: UUID, machineId: UUID?) {
         val meta = fetch(fileId)
         if (meta.kind != "MACHINE_PHOTO") {
             throw ConflictException("FILE_KIND_UNSUPPORTED", "File is not a machine photo")
         }
-        if (meta.farmId != farmId) {
-            throw ForbiddenException("File does not belong to farm", "FARM_SCOPE_DENIED")
+        val fileFarm = meta.farmId ?: throw ServiceUnavailableException()
+        UpstreamErrorMapper.requireSameFarm(fileFarm, farmId, "File does not belong to farm")
+        when {
+            machineId == null && meta.entityId != null ->
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            machineId != null && meta.entityId != null && meta.entityId != machineId ->
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
         }
+    }
+
+    override fun bind(fileId: UUID, machineId: UUID) {
+        postBinding(fileId, machineId)
+    }
+
+    override fun unbind(fileId: UUID) {
+        postBinding(fileId, null)
     }
 
     private fun fetch(fileId: UUID): FileRef {
         return try {
             http.get().uri("$fileUrl/api/v1/files/$fileId")
-                .header("Authorization", bearer())
+                .header("Authorization", CallerBearer.header())
                 .retrieve()
                 .body(FileRef::class.java)
-                ?: throw NotFoundException("FILE_NOT_FOUND", "File not found")
-        } catch (ex: RestClientResponseException) {
-            if (ex.statusCode.value() == 404) {
-                throw NotFoundException("FILE_NOT_FOUND", "File not found")
-            }
-            throw ForbiddenException("File does not belong to farm", "FARM_SCOPE_DENIED")
+                ?: UpstreamErrorMapper.missingBody()
+        } catch (ex: Exception) {
+            UpstreamErrorMapper.map(ex, "FILE_NOT_FOUND", "File not found")
         }
     }
 
-    private fun bearer(): String {
-        val request = (RequestContextHolder.getRequestAttributes() as? ServletRequestAttributes)?.request
-            ?: throw UnauthorizedException("Missing bearer token")
-        return request.getHeader("Authorization") ?: throw UnauthorizedException("Missing bearer token")
+    private fun postBinding(fileId: UUID, entityId: UUID?) {
+        try {
+            http.post().uri("$fileUrl/api/v1/files/$fileId/binding")
+                .header("Authorization", CallerBearer.header())
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BindingBody(entityId))
+                .retrieve()
+                .toBodilessEntity()
+        } catch (ex: RestClientResponseException) {
+            if (ex.statusCode.value() == 409) {
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            }
+            UpstreamErrorMapper.map(ex, "FILE_NOT_FOUND", "File not found")
+        } catch (ex: Exception) {
+            UpstreamErrorMapper.map(ex, "FILE_NOT_FOUND", "File not found")
+        }
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private data class FileRef(val farmId: UUID?, val kind: String?)
+    private data class FileRef(val farmId: UUID?, val kind: String?, val entityId: UUID?)
+
+    private data class BindingBody(val entityId: UUID?)
 }

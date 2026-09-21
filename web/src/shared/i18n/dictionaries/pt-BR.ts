@@ -556,6 +556,10 @@ export const ptBR = {
   'form.field.title': 'Título',
   'form.field.priority': 'Prioridade',
   'form.none': 'Nenhum',
+  'form.validation.fieldNotInFarm': 'O talhão selecionado não pertence à fazenda.',
+  'form.validation.machineNotInFarm': 'A máquina selecionada não pertence à fazenda.',
+  'form.validation.plannedWindow': 'Informe o início e o fim, ou deixe ambos em branco.',
+  'form.validation.plannedOrder': 'A data de início deve ser anterior ou igual à data de fim.',
 } as const
 
 export type MessageKey = keyof typeof ptBR

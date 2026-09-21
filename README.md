@@ -44,23 +44,25 @@ docker compose up -d
 cd web && npm install && npm run dev
 ```
 
-## Subir local (Docker Compose por serviço)
+## Subir local (Docker Compose)
 
 Imagens **multi-stage Alpine** (JDK/Node no builder; JRE/nginx no runtime). Mobile não entra no Compose.
 
+Caminho suportado: os scripts fazem stage do zip Gradle (SHA-256), copiam `deploy/compose/*.env.example` se faltar, **sempre buildam**, e sobem com `pull_policy: never`. Perfil padrão: **core** (não `all`).
+
 ```powershell
 docker compose up -d
-.\scripts\compose-up.ps1 -Profile core -Build
-# ou stack completo:
-# .\scripts\compose-up.ps1 -Profile all -Build
+.\scripts\compose-up.ps1
+# stack completo:
+# .\scripts\compose-up.ps1 all
 ```
 
 Linux / macOS:
 
 ```bash
 chmod +x scripts/compose-up.sh
-./scripts/compose-up.sh --build          # todos os containers (profile all)
-# ./scripts/compose-up.sh core --build   # só core
+./scripts/compose-up.sh            # profile core
+# ./scripts/compose-up.sh all      # todos os containers
 ```
 
 Detalhes: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`.

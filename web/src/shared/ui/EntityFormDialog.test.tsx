@@ -41,4 +41,41 @@ describe('EntityFormDialog', () => {
     )
     expect(screen.getByRole('button', { name: 'Salvando…' })).toBeDisabled()
   })
+
+  it('does not call onSubmit while pending', () => {
+    const onSubmit = vi.fn()
+    render(
+      <EntityFormDialog
+        open
+        title="Nova fazenda"
+        fields={[{ name: 'name', label: 'Nome', type: 'text' }]}
+        values={{ name: 'Alfa' }}
+        onChange={() => undefined}
+        onSubmit={onSubmit}
+        onClose={() => undefined}
+        pending
+      />,
+    )
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
+
+  it('disables Save and blocks submit when submitDisabled', () => {
+    const onSubmit = vi.fn()
+    render(
+      <EntityFormDialog
+        open
+        title="Nova fazenda"
+        fields={[{ name: 'name', label: 'Nome', type: 'text' }]}
+        values={{ name: 'Alfa' }}
+        onChange={() => undefined}
+        onSubmit={onSubmit}
+        onClose={() => undefined}
+        submitDisabled
+      />,
+    )
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeDisabled()
+    fireEvent.submit(screen.getByRole('dialog').querySelector('form')!)
+    expect(onSubmit).not.toHaveBeenCalled()
+  })
 })

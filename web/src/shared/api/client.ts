@@ -57,16 +57,23 @@ async function parseError(res: Response, correlationId: string): Promise<ApiErro
   )
 }
 
-let inflightRefresh: Promise<boolean> | null = null
+let inflight: Promise<boolean> | null = null
+let allowLogout = true
 
 type RefreshOptions = { logoutOnFailure?: boolean }
 
 async function refreshSession(options: RefreshOptions = {}): Promise<boolean> {
-  if (inflightRefresh) return inflightRefresh
-  const logoutOnFailure = options.logoutOnFailure ?? true
-  inflightRefresh = (async () => {
+  const wantLogout = options.logoutOnFailure ?? true
+  if (inflight) {
+    if (!wantLogout) allowLogout = false
+    return inflight
+  }
+  allowLogout = wantLogout
+  inflight = (async () => {
     const refreshToken = useAuthStore.getState().refreshToken
     if (!refreshToken) return false
+    // Rotate-on-use: drop the jti before HTTP so a retry cannot revokeAll.
+    useAuthStore.getState().clearRefresh()
     try {
       const data = await apiRequest<TokenResponse>('/api/v1/auth/refresh', {
         method: 'POST',
@@ -77,7 +84,7 @@ async function refreshSession(options: RefreshOptions = {}): Promise<boolean> {
       useAuthStore.getState().setSession(data)
       return true
     } catch {
-      if (logoutOnFailure) {
+      if (allowLogout) {
         useAuthStore.getState().clearSession()
         queryClient.clear()
       }
@@ -85,9 +92,10 @@ async function refreshSession(options: RefreshOptions = {}): Promise<boolean> {
     }
   })()
   try {
-    return await inflightRefresh
+    return await inflight
   } finally {
-    inflightRefresh = null
+    inflight = null
+    allowLogout = true
   }
 }
 

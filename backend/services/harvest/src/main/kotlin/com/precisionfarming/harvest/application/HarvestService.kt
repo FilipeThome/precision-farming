@@ -2,12 +2,13 @@ package com.precisionfarming.harvest.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DemoCatalog
-import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.FieldFarmGuard
 import com.precisionfarming.harvest.domain.HarvestPlanStatus
+import com.precisionfarming.harvest.domain.HarvestWindow
 import com.precisionfarming.harvest.domain.LoadStatus
+import com.precisionfarming.harvest.domain.StorageOccupancy
 import com.precisionfarming.harvest.infrastructure.HarvestPlanEntity
 import com.precisionfarming.harvest.infrastructure.HarvestPlanJpaRepository
 import com.precisionfarming.harvest.infrastructure.HarvestYieldEntity
@@ -32,7 +33,14 @@ data class HarvestPlanDto(
     val id: UUID, val farmId: UUID, val fieldId: UUID, val crop: String, val plannedStart: Instant,
     val plannedEnd: Instant, val expectedTHa: BigDecimal, val status: String,
 )
-data class CreateHarvestPlan(val farmId: UUID, val fieldId: UUID, val crop: String, val expectedTHa: BigDecimal)
+data class CreateHarvestPlan(
+    val farmId: UUID,
+    val fieldId: UUID,
+    val crop: String,
+    val expectedTHa: BigDecimal,
+    val plannedStart: Instant? = null,
+    val plannedEnd: Instant? = null,
+)
 data class HarvestYieldDto(
     val id: UUID, val farmId: UUID, val fieldId: UUID, val fieldName: String?, val planId: UUID?, val recordedAt: Instant,
     val yieldTHa: BigDecimal, val moisturePct: BigDecimal?, val areaHa: BigDecimal?,
@@ -62,11 +70,11 @@ class HarvestService(
     fun createPlan(scope: AccessScope, cmd: CreateHarvestPlan): HarvestPlanDto {
         scope.requireFarm(cmd.farmId)
         fieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
-        val now = Instant.now()
+        val window = HarvestWindow.resolve(cmd.plannedStart, cmd.plannedEnd, Instant.now())
         return plans.save(
             HarvestPlanEntity(
                 UUID.randomUUID(), cmd.farmId, cmd.fieldId, cmd.crop,
-                now.plus(1, ChronoUnit.DAYS), now.plus(5, ChronoUnit.DAYS), cmd.expectedTHa, HarvestPlanStatus.PLANNED.name,
+                window.start, window.end, cmd.expectedTHa, HarvestPlanStatus.PLANNED.name,
             ),
         ).toDto()
     }
@@ -91,9 +99,9 @@ class HarvestService(
     @Transactional
     fun createUnit(scope: AccessScope, cmd: UpsertStorageUnit): StorageUnitDto {
         scope.requireFarm(cmd.farmId)
-        validateCapacity(cmd.capacityT, cmd.usedT)
+        StorageOccupancy.requireFits(cmd.capacityT, BigDecimal.ZERO)
         return units.save(
-            StorageUnitEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.capacityT, cmd.usedT, cmd.type),
+            StorageUnitEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.capacityT, BigDecimal.ZERO, cmd.type),
         ).toDto()
     }
 
@@ -102,20 +110,20 @@ class HarvestService(
         val e = units.findById(id).orElseThrow { NotFoundException("UNIT_NOT_FOUND", "Storage unit not found") }
         scope.requireEntityFarm(e.farmId)
         scope.requireFarm(cmd.farmId)
-        validateCapacity(cmd.capacityT, cmd.usedT)
         val farmChanged = e.farmId != cmd.farmId
         e.farmId = cmd.farmId
         e.name = cmd.name
         e.type = cmd.type
         e.capacityT = cmd.capacityT
-        e.usedT = cmd.usedT
-        val saved = units.save(e)
+        val unitLots = lots.findByUnitId(id)
         if (farmChanged) {
-            val moved = lots.findByUnitId(id)
-            moved.forEach { it.farmId = cmd.farmId }
-            if (moved.isNotEmpty()) lots.saveAll(moved)
+            unitLots.forEach { it.farmId = cmd.farmId }
+            if (unitLots.isNotEmpty()) lots.saveAll(unitLots)
         }
-        return saved.toDto()
+        val used = StorageOccupancy.usedT(unitLots.map { it.tons })
+        StorageOccupancy.requireFits(e.capacityT, used)
+        e.usedT = used
+        return units.save(e).toDto()
     }
     fun listLots(scope: AccessScope, farmId: UUID?) =
         lots.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -190,12 +198,12 @@ class HarvestService(
             StorageLotEntity(DemoIds.uuid("slot-010"), DemoIds.uuid("sunit-004"), DemoIds.uuid("farm-003"), "COTTON", BigDecimal("420"), "STANDARD", now.minus(9, ChronoUnit.DAYS)),
         )
         lots.saveAll(lotRows)
-    }
-
-    private fun validateCapacity(capacityT: BigDecimal, usedT: BigDecimal) {
-        if (capacityT <= BigDecimal.ZERO || usedT < BigDecimal.ZERO || usedT > capacityT) {
-            throw DomainException("STORAGE_CAPACITY_INVALID", "usedT must be between 0 and capacityT")
+        unitRows.forEach { unit ->
+            val used = StorageOccupancy.usedT(lots.findByUnitId(unit.id).map { it.tons })
+            StorageOccupancy.requireFits(unit.capacityT, used)
+            unit.usedT = used
         }
+        units.saveAll(unitRows)
     }
 
     private fun HarvestPlanEntity.toDto() = HarvestPlanDto(id, farmId, fieldId, crop, plannedStart, plannedEnd, expectedTHa, status)

@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.Optional
 import java.util.UUID
 
@@ -35,32 +37,46 @@ class HarvestServiceTest {
     private val scope = AccessScope(DemoTenant.ID, setOf(farmId), "FARM_MANAGER")
 
     @Test
-    fun createAndPatchStorageUnit() {
+    fun createUnitIgnoresClientUsedT() {
+        every { units.save(any<StorageUnitEntity>()) } answers { firstArg() }
+        val created = svc.createUnit(
+            scope,
+            UpsertStorageUnit(farmId, "SILO_NEW", "SILO", BigDecimal("2000"), BigDecimal("50")),
+        )
+        assertEquals(BigDecimal.ZERO, created.usedT)
+        assertEquals(BigDecimal("2000"), created.capacityT)
+    }
+
+    @Test
+    fun patchUnitComputesUsedTFromLots() {
         every { units.save(any<StorageUnitEntity>()) } answers { firstArg() }
         val created = svc.createUnit(
             scope,
             UpsertStorageUnit(farmId, "SILO_NEW", "SILO", BigDecimal("2000"), BigDecimal.ZERO),
         )
-        assertEquals("SILO_NEW", created.name)
         every { units.findById(created.id) } returns Optional.of(
             StorageUnitEntity(created.id, farmId, created.name, created.capacityT, created.usedT, created.type),
+        )
+        every { lots.findByUnitId(created.id) } returns listOf(
+            StorageLotEntity(UUID.randomUUID(), created.id, farmId, "SOY", BigDecimal("7"), "STANDARD", Instant.EPOCH),
+            StorageLotEntity(UUID.randomUUID(), created.id, farmId, "SOY", BigDecimal("3"), "STANDARD", Instant.EPOCH),
         )
         val patched = svc.patchUnit(
             scope,
             created.id,
-            UpsertStorageUnit(farmId, "SILO_NEW", "SILO", BigDecimal("2500"), BigDecimal("10")),
+            UpsertStorageUnit(farmId, "SILO_NEW", "SILO", BigDecimal("2500"), BigDecimal("999")),
         )
         assertEquals(BigDecimal("2500"), patched.capacityT)
         assertEquals(BigDecimal("10"), patched.usedT)
     }
 
     @Test
-    fun patchUnitMovesLotsWithTheUnitFarm() {
+    fun patchUnitMovesLotsAndRecomputesUsedT() {
         val farmB = UUID.randomUUID()
         val both = AccessScope(DemoTenant.ID, setOf(farmId, farmB), "FARM_MANAGER")
         val unitId = UUID.randomUUID()
         val lot = StorageLotEntity(
-            UUID.randomUUID(), unitId, farmId, "SOY", BigDecimal("12"), "STANDARD", java.time.Instant.EPOCH,
+            UUID.randomUUID(), unitId, farmId, "SOY", BigDecimal("12"), "STANDARD", Instant.EPOCH,
         )
         every { units.findById(unitId) } returns Optional.of(
             StorageUnitEntity(unitId, farmId, "SILO", BigDecimal("2000"), BigDecimal("12"), "SILO"),
@@ -71,16 +87,17 @@ class HarvestServiceTest {
         val patched = svc.patchUnit(
             both,
             unitId,
-            UpsertStorageUnit(farmB, "SILO", "SILO", BigDecimal("2000"), BigDecimal("12")),
+            UpsertStorageUnit(farmB, "SILO", "SILO", BigDecimal("2000"), BigDecimal("999")),
         )
         assertEquals(farmB, patched.farmId)
         assertEquals(farmB, lot.farmId)
+        assertEquals(BigDecimal("12"), patched.usedT)
     }
 
     @Test
-    fun rejectsUsedAboveCapacity() {
+    fun createUnitRejectsNonPositiveCapacity() {
         val ex = assertThrows(DomainException::class.java) {
-            svc.createUnit(scope, UpsertStorageUnit(farmId, "SILO", "SILO", BigDecimal("10"), BigDecimal("20")))
+            svc.createUnit(scope, UpsertStorageUnit(farmId, "SILO", "SILO", BigDecimal.ZERO, BigDecimal("20")))
         }
         assertEquals("STORAGE_CAPACITY_INVALID", ex.code)
     }
@@ -95,6 +112,20 @@ class HarvestServiceTest {
         )
         assertEquals(fieldId, created.fieldId)
         assertEquals(farmId, created.farmId)
+    }
+
+    @Test
+    fun createPlanHonorsDates() {
+        every { plans.save(any<HarvestPlanEntity>()) } answers { firstArg() }
+        val fieldId = UUID.randomUUID()
+        val start = Instant.parse("2026-10-01T00:00:00Z")
+        val end = start.plus(10, ChronoUnit.DAYS)
+        val created = svc.createPlan(
+            scope,
+            CreateHarvestPlan(farmId, fieldId, "SOY", BigDecimal("3.2"), start, end),
+        )
+        assertEquals(start, created.plannedStart)
+        assertEquals(end, created.plannedEnd)
     }
 
     @Test

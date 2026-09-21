@@ -46,7 +46,7 @@ export function FieldFormDialog({ open, field, onClose }: Props) {
       open={open}
       title={field ? t('form.edit') : t('form.new')}
       fields={[
-        farmField,
+        ...(field ? [] : [farmField]),
         { name: 'name', label: t('form.field.name'), type: 'text', required: true },
         { name: 'crop', label: t('form.field.crop'), type: 'select', required: true, options: crops },
         { name: 'variety', label: t('form.field.variety'), type: 'text' },
@@ -55,13 +55,16 @@ export function FieldFormDialog({ open, field, onClose }: Props) {
         { name: 'areaHa', label: t('form.field.areaHa'), type: 'number', required: true, step: '0.1', min: '0' },
       ]}
       values={values}
-      onChange={(name, value) => setValues((prev) => ({ ...prev, [name]: value }))}
+      onChange={(name, value) => {
+        if (field && name === 'farmId') return
+        setValues((prev) => ({ ...prev, [name]: value }))
+      }}
       pending={commands.create.isPending || commands.patch.isPending}
       error={failure ? queryError(failure).message : null}
       onClose={onClose}
       onSubmit={() => {
         const body = {
-          farmId: values.farmId,
+          farmId: field ? field.farmId : values.farmId,
           name: values.name.trim(),
           crop: values.crop,
           variety: values.variety.trim() || null,

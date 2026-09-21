@@ -4,6 +4,7 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoTenant
+import com.precisionfarming.security.MachineFarmGuard
 import com.precisionfarming.telemetry.application.TelemetryMetrics
 import com.precisionfarming.telemetry.application.TelemetrySample
 import com.precisionfarming.telemetry.application.TelemetryService
@@ -21,7 +22,8 @@ import java.util.UUID
 
 class TelemetryDomainTest {
     private val repo = mockk<TelemetryJpaRepository>()
-    private val svc = TelemetryService(repo)
+    private val machineFarms = mockk<MachineFarmGuard>(relaxUnitFun = true)
+    private val svc = TelemetryService(repo, machineFarms)
     private val scope = AccessScope(DemoTenant.ID, setOf(DemoIds.uuid("farm-001")), "OPERATOR")
 
     @Test
@@ -83,8 +85,11 @@ class TelemetryDomainTest {
     fun metricsUnknownMachineIsNotFound() {
         val from = Instant.parse("2026-09-01T00:00:00Z")
         val to = from.plus(2, ChronoUnit.DAYS)
+        val machineId = UUID.randomUUID()
+        every { machineFarms.requireRead(any(), machineId) } throws
+            com.precisionfarming.common.NotFoundException("MACHINE_NOT_FOUND", "Not found")
         val ex = assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
-            svc.metrics(scope, UUID.randomUUID(), from, to)
+            svc.metrics(scope, machineId, from, to)
         }
         assertEquals("MACHINE_NOT_FOUND", ex.code)
     }

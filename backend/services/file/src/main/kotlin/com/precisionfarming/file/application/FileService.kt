@@ -1,6 +1,8 @@
 package com.precisionfarming.file.application
 
+import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.file.domain.FileUploadRules
 import com.precisionfarming.file.infrastructure.FileJpaRepository
@@ -30,8 +32,10 @@ data class FileMetaDto(
     val quality: String?,
     val contentType: String?,
     val sizeBytes: Long?,
-    val entityId: UUID?,
+    val     entityId: UUID?,
 )
+
+data class BindFile(val entityId: UUID?)
 
 data class FileContent(
     val path: Path,
@@ -82,6 +86,7 @@ class FileService(
     }
 
     @Transactional
+    @Suppress("UNUSED_PARAMETER")
     fun upload(scope: AccessScope, farmId: UUID, kind: String, entityId: UUID?, bytes: ByteArray): FileMetaDto {
         scope.requireFarm(farmId)
         val validated = FileUploadRules.validate(kind, bytes)
@@ -103,13 +108,37 @@ class FileService(
                     quality = null,
                     contentType = validated.contentType,
                     sizeBytes = bytes.size.toLong(),
-                    entityId = entityId,
+                    entityId = null,
                 ),
             ).toDto()
         } catch (ex: Exception) {
             Files.deleteIfExists(path)
             throw ex
         }
+    }
+
+    @Transactional
+    fun bind(scope: AccessScope, id: UUID, cmd: BindFile): FileMetaDto {
+        val e = repo.findById(id).orElseThrow { NotFoundException("FILE_NOT_FOUND", "File not found") }
+        val farmId = e.farmId ?: throw NotFoundException("FILE_NOT_FOUND", "File not found")
+        scope.requireEntityFarm(farmId)
+        if (e.kind != FileUploadRules.KIND_MACHINE_PHOTO) {
+            throw DomainException("FILE_KIND_UNSUPPORTED", "Unsupported file kind")
+        }
+        val target = cmd.entityId
+        if (target != null) {
+            if (e.entityId != null && e.entityId != target) {
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            }
+            val existing = repo.findByKindAndEntityId(FileUploadRules.KIND_MACHINE_PHOTO, target)
+            if (existing != null && existing.id != e.id) {
+                throw ConflictException("FILE_ALREADY_BOUND", "File is already bound")
+            }
+            e.entityId = target
+        } else {
+            e.entityId = null
+        }
+        return repo.save(e).toDto()
     }
 
     fun listLayers(scope: AccessScope, farmId: UUID?) =

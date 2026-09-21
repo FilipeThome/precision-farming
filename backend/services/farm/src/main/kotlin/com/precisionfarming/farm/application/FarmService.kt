@@ -2,6 +2,7 @@ package com.precisionfarming.farm.application
 
 import tools.jackson.databind.JsonNode
 import tools.jackson.databind.json.JsonMapper
+import com.precisionfarming.common.ConflictException
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.DomainException
@@ -16,7 +17,6 @@ import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.farm.infrastructure.AuthMembershipClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.UnauthorizedException
-import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.security.UserFarmGrants
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
@@ -116,13 +116,11 @@ class FarmService(
     fun deleteFarm(scope: AccessScope, id: UUID) {
         scope.requireFarm(id)
         if (!farms.existsById(id)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
-        val fieldIds = fields.findByFarmId(id).map { it.id }
         seasons.deleteByFarmId(id)
         fields.deleteByFarmId(id)
         farms.deleteById(id)
         memberships.revoke(id)
         UserFarmGrants.revoke(id)
-        fieldIds.forEach(DemoFieldFarms::unregister)
     }
 
     fun listFields(scope: AccessScope, farmId: UUID?) =
@@ -140,27 +138,25 @@ class FarmService(
         if (!farms.existsById(cmd.farmId)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
         val geom = parseMulti(cmd.geometry)
         val entity = FieldEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.areaHa, cmd.crop, cmd.variety, geom, geom.centroid)
-        val saved = fields.save(entity).toDto()
-        DemoFieldFarms.register(saved.id, saved.farmId)
-        return saved
+        return fields.save(entity).toDto()
     }
 
     @Transactional
     fun patchField(scope: AccessScope, id: UUID, cmd: UpsertField): FieldDto {
         val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
         scope.requireEntityFarm(e.farmId)
+        if (cmd.farmId != e.farmId) {
+            throw ConflictException("FIELD_FARM_IMMUTABLE", "Field cannot move to another farm")
+        }
         scope.requireFarm(cmd.farmId)
         val geom = parseMulti(cmd.geometry)
-        e.farmId = cmd.farmId
         e.name = cmd.name
         e.areaHa = cmd.areaHa
         e.crop = cmd.crop
         e.variety = cmd.variety
         e.geometry = geom
         e.centroid = geom.centroid
-        val saved = fields.save(e).toDto()
-        DemoFieldFarms.register(saved.id, saved.farmId)
-        return saved
+        return fields.save(e).toDto()
     }
 
     @Transactional
@@ -168,7 +164,6 @@ class FarmService(
         val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
         scope.requireEntityFarm(e.farmId)
         fields.deleteById(id)
-        DemoFieldFarms.unregister(id)
     }
 
     fun listSeasons(scope: AccessScope, farmId: UUID?) =

@@ -46,6 +46,18 @@ describe('i18n dictionaries', () => {
     }
   })
 
+  it('includes form validation keys in both locales', () => {
+    for (const key of [
+      'form.validation.fieldNotInFarm',
+      'form.validation.machineNotInFarm',
+      'form.validation.plannedWindow',
+      'form.validation.plannedOrder',
+    ] as const) {
+      expect(ptBR[key], key).toBeTruthy()
+      expect(enUS[key], key).toBeTruthy()
+    }
+  })
+
   it('no longer ships demo/seed copy', () => {
     const all = [...Object.values(ptBR), ...Object.values(enUS)].join('\n')
     expect(all).not.toMatch(/precisionfarming\.demo/i)
