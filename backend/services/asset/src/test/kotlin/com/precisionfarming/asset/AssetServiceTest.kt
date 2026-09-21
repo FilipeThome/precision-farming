@@ -17,6 +17,7 @@ import com.precisionfarming.security.DemoTenant
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertThrows
@@ -133,6 +134,60 @@ class AssetServiceTest {
             svc.create(scope, UpsertMachine(farmId, "Other", "TRACTOR", "John Deere", "8R 410", "IDLE", photo))
         }
         assertEquals("FILE_ALREADY_BOUND", ex.code)
+    }
+
+    @Test
+    fun replacePhotoUnbindsPreviousThenBindsNext() {
+        every { repo.save(any<MachineEntity>()) } answers { firstArg() }
+        val previous = UUID.randomUUID()
+        val next = UUID.randomUUID()
+        val created = svc.create(
+            scope,
+            UpsertMachine(farmId, "JD 8R", "TRACTOR", "John Deere", "8R 410", "IDLE", previous),
+        )
+        every { repo.findById(created.id) } returns Optional.of(
+            MachineEntity(created.id, farmId, created.name, created.type, created.manufacturer, created.model, created.status, previous),
+        )
+        val patched = svc.patch(
+            scope,
+            created.id,
+            UpsertMachine(farmId, "JD 8R", "TRACTOR", "John Deere", "8R 410", "IDLE", next),
+        )
+        assertEquals(next, patched.photoFileId)
+        verifyOrder {
+            photos.unbind(previous)
+            photos.bind(next, created.id)
+        }
+    }
+
+    @Test
+    fun replacePhotoRestoresPreviousWhenBindFails() {
+        every { repo.save(any<MachineEntity>()) } answers { firstArg() }
+        val previous = UUID.randomUUID()
+        val next = UUID.randomUUID()
+        val created = svc.create(
+            scope,
+            UpsertMachine(farmId, "JD 8R", "TRACTOR", "John Deere", "8R 410", "IDLE", previous),
+        )
+        lateinit var entity: MachineEntity
+        every { repo.findById(created.id) } returns Optional.of(
+            MachineEntity(created.id, farmId, created.name, created.type, created.manufacturer, created.model, created.status, previous),
+        )
+        every { repo.save(any<MachineEntity>()) } answers { firstArg<MachineEntity>().also { entity = it } }
+        every { photos.bind(next, created.id) } throws ServiceUnavailableException()
+        assertThrows(ServiceUnavailableException::class.java) {
+            svc.patch(
+                scope,
+                created.id,
+                UpsertMachine(farmId, "JD 8R", "TRACTOR", "John Deere", "8R 410", "IDLE", next),
+            )
+        }
+        assertEquals(previous, entity.photoFileId)
+        verifyOrder {
+            photos.unbind(previous)
+            photos.bind(next, created.id)
+            photos.bind(previous, created.id)
+        }
     }
 
     @Test

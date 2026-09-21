@@ -88,16 +88,19 @@ class AssetService(
         e.photoFileId = nextPhoto
         repo.save(e)
         try {
+            if (previousPhoto != null && previousPhoto != nextPhoto) {
+                photos.unbind(previousPhoto)
+            }
             if (nextPhoto != null && nextPhoto != previousPhoto) {
                 photos.bind(nextPhoto, id)
             }
         } catch (ex: Exception) {
             e.photoFileId = previousPhoto
             repo.save(e)
+            if (previousPhoto != null && previousPhoto != nextPhoto) {
+                runCatching { photos.bind(previousPhoto, id) }
+            }
             throw ex
-        }
-        if (previousPhoto != null && previousPhoto != nextPhoto) {
-            photos.unbind(previousPhoto)
         }
         return e.toDto()
     }
