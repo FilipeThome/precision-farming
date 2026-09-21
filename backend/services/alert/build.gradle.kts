@@ -6,9 +6,6 @@ plugins {
     alias(libs.plugins.spring.dep.mgmt)
 }
 
-java {
-    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
-}
 
 dependencies {
     implementation(project(":backend:libs:common"))
@@ -18,7 +15,7 @@ dependencies {
     implementation(libs.spring.boot.validation)
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.boot.security)
-    implementation(libs.flyway.core)
+    implementation(libs.spring.boot.flyway)
     implementation(libs.flyway.postgres)
     implementation(libs.postgresql)
     implementation(libs.jackson.kotlin)

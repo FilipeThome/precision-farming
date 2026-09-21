@@ -45,10 +45,6 @@ plugins {{
     alias(libs.plugins.spring.dep.mgmt)
 }}
 
-java {{
-    toolchain {{ languageVersion.set(JavaLanguageVersion.of(21)) }}
-}}
-
 dependencies {{
     implementation(project(":backend:libs:common"))
     implementation(project(":backend:libs:security"))
@@ -57,7 +53,7 @@ dependencies {{
     implementation(libs.spring.boot.validation)
     implementation(libs.spring.boot.actuator)
     implementation(libs.spring.boot.security)
-    implementation(libs.flyway.core)
+    implementation(libs.spring.boot.flyway)
     implementation(libs.flyway.postgres)
     implementation(libs.postgresql)
     implementation(libs.jackson.kotlin)
@@ -407,7 +403,7 @@ def main() -> None:
         w(base / "src/main/resources/db/migration/V1__init.sql", SQL[name])
         w(base / f"src/test/kotlin/{PKG.replace('.', '/')}/{name}/{pascal(name)}DomainTest.kt", generic_test(name))
         w(base / "Dockerfile", f"""
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:26-jre-alpine
 WORKDIR /app
 COPY build/libs/{name}-service-*.jar app.jar
 ENV SERVER_PORT=8080

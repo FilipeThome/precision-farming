@@ -4,10 +4,10 @@ Protótipo executável de gestão agrícola de precisão: **microserviços Kotli
 
 ## Stack
 
-- Backend: Spring Boot 3.5, Java 21 (virtual threads), Spring Cloud Gateway
+- Backend: Spring Boot 4.1, Java 26 (virtual threads), Kotlin 2.4, Spring Cloud Gateway
 - Dados: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose; portas só em `127.0.0.1` — prod não deve publicar)
 - Web: React + TypeScript + Vite + Tailwind
-- Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS)
+- Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS). Gradle/JDK 26, Android jvmTarget 26, compileSdk 37
 - Auth: JWT + refresh. Demo: `manager@precisionfarming.demo` / `Precision@123`
 - Segredos demo: `.env.example` define `ALLOW_DEMO_SECRETS=true`; sem isso (e sem profile `local`) o boot recusa JWT/DB demo
 
@@ -71,7 +71,7 @@ O mapa web usa Leaflet com imagens de satélite Esri (sem chave do Google Maps).
 
 - [001 Microserviços](docs/adr/001-microservices.md)
 - [002 KMP](docs/adr/002-kmp-mobile.md)
-- [003 Spring Boot 3.5](docs/adr/003-spring-boot-35.md)
+- [003 Spring Boot 4 / Java 26](docs/adr/003-spring-boot-4.md)
 
 ## Seed
 

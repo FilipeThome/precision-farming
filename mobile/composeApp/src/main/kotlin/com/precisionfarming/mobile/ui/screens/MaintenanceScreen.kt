@@ -18,20 +18,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.MaintenanceWorkOrderDto
+import com.precisionfarming.mobile.data.Session
+import com.precisionfarming.mobile.data.WorkOrderCreate
+import com.precisionfarming.mobile.data.canWriteFleet
 import com.precisionfarming.mobile.data.completeWorkOrder
+import com.precisionfarming.mobile.data.createWorkOrder
+import com.precisionfarming.mobile.data.machines
 import com.precisionfarming.mobile.data.maintenanceWorkOrders
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.EntityFormSheet
+import com.precisionfarming.mobile.ui.components.FormField
+import com.precisionfarming.mobile.ui.components.FormOption
 import com.precisionfarming.mobile.ui.components.LoadState
+import com.precisionfarming.mobile.ui.components.ScreenHeader
 import com.precisionfarming.mobile.ui.components.toLoadState
 import kotlinx.coroutines.launch
-import com.precisionfarming.mobile.ui.components.ScreenHeader
 
 @Composable
 fun MaintenanceScreen(onBack: () -> Unit) {
     var state by remember { mutableStateOf<LoadState<MaintenanceWorkOrderDto>>(LoadState.Loading) }
     var msg by remember { mutableStateOf<String?>(null) }
+    var creating by remember { mutableStateOf(false) }
+    var values by remember { mutableStateOf(mapOf<String, String>()) }
+    var machineChoices by remember { mutableStateOf(listOf<FormOption>()) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var pending by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val canWrite = canWriteFleet(Session.role)
     fun reload() {
         scope.launch {
             state = LoadState.Loading
@@ -45,7 +59,21 @@ fun MaintenanceScreen(onBack: () -> Unit) {
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ScreenHeader(S.t("maintenance.title"), onBack)
+        ScreenHeader(S.t("maintenance.title"), onBack, actions = {
+            if (canWrite) {
+                TextButton(onClick = {
+                    creating = true
+                    error = null
+                    values = mapOf("machineId" to "", "title" to "", "priority" to "MEDIUM")
+                    scope.launch {
+                        val rows = runCatching { machines(FarmFilter.farmId) }.getOrDefault(emptyList())
+                        machineChoices = rows.map { FormOption(it.id, it.name) }
+                        val first = machineChoices.firstOrNull()?.value
+                        if (first != null) values = values + ("machineId" to first)
+                    }
+                }) { Text(S.t("form.new")) }
+            }
+        })
         msg?.let { Text(it) }
         when (val s = state) {
             is LoadState.Loading -> Text(S.t("common.loading"))
@@ -70,5 +98,44 @@ fun MaintenanceScreen(onBack: () -> Unit) {
             }
         }
         TextButton(onClick = { reload() }) { Text(S.t("common.refresh")) }
+    }
+    if (creating) {
+        EntityFormSheet(
+            title = S.t("form.new"),
+            fields = listOf(
+                FormField("machineId", S.t("form.field.machine"), options = machineChoices),
+                FormField("title", S.t("form.field.title")),
+                FormField("priority", S.t("form.field.priority")),
+            ),
+            values = values,
+            onChange = { k, v -> values = values + (k to v) },
+            pending = pending,
+            error = error,
+            onDismiss = { creating = false },
+            onSave = {
+                val farmId = FarmFilter.farmId
+                if (farmId.isNullOrBlank()) {
+                    error = S.t("form.needFarm")
+                    return@EntityFormSheet
+                }
+                scope.launch {
+                    pending = true
+                    runCatching {
+                        createWorkOrder(
+                            WorkOrderCreate(
+                                farmId,
+                                values["machineId"].orEmpty(),
+                                values["title"].orEmpty(),
+                                values["priority"].orEmpty(),
+                            ),
+                        )
+                    }.onSuccess {
+                        creating = false
+                        reload()
+                    }.onFailure { error = it.message }
+                    pending = false
+                }
+            },
+        )
     }
 }

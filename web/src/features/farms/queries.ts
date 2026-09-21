@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { fetchFarms } from './api'
+import { createFarm, fetchFarms, patchFarm, type FarmBody } from './api'
 
 export const farmKeys = {
   all: ['farms'] as const,
@@ -12,4 +12,17 @@ export function useFarmsQuery() {
     queryFn: fetchFarms,
     staleTime: 30_000,
   })
+}
+
+export function useFarmCommands() {
+  const client = useQueryClient()
+  const invalidate = () => {
+    void client.invalidateQueries({ queryKey: ['farms'] })
+  }
+  const create = useMutation({ mutationFn: createFarm, onSuccess: invalidate })
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: FarmBody }) => patchFarm(id, body),
+    onSuccess: invalidate,
+  })
+  return { create, patch }
 }

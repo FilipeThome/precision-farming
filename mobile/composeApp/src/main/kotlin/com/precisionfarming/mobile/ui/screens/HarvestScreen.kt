@@ -19,19 +19,27 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.FarmFilter
+import com.precisionfarming.mobile.data.HarvestPlanCreate
 import com.precisionfarming.mobile.data.HarvestPlanDto
 import com.precisionfarming.mobile.data.LogisticsLoadDto
 import com.precisionfarming.mobile.data.MeDto
+import com.precisionfarming.mobile.data.Session
 import com.precisionfarming.mobile.data.StorageLotDto
 import com.precisionfarming.mobile.data.StorageUnitDto
+import com.precisionfarming.mobile.data.StorageUnitUpsert
 import com.precisionfarming.mobile.data.YieldRecordDto
 import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.data.canManageFarmOps
+import com.precisionfarming.mobile.data.canWriteMasterData
+import com.precisionfarming.mobile.data.createHarvestPlan
+import com.precisionfarming.mobile.data.createStorageUnit
 import com.precisionfarming.mobile.data.dispatchLoad
+import com.precisionfarming.mobile.data.fields
 import com.precisionfarming.mobile.data.harvestPlans
 import com.precisionfarming.mobile.data.harvestYield
 import com.precisionfarming.mobile.data.logisticsLoads
 import com.precisionfarming.mobile.data.me
+import com.precisionfarming.mobile.data.patchStorageUnit
 import com.precisionfarming.mobile.data.storageLots
 import com.precisionfarming.mobile.data.storageUnits
 import com.precisionfarming.mobile.i18n.DomainLabels
@@ -39,6 +47,9 @@ import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
+import com.precisionfarming.mobile.ui.components.EntityFormSheet
+import com.precisionfarming.mobile.ui.components.FormField
+import com.precisionfarming.mobile.ui.components.FormOption
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.SectionTabs
 import com.precisionfarming.mobile.ui.components.toLoadState
@@ -66,8 +77,15 @@ fun HarvestScreen(
     var meDto by remember { mutableStateOf<MeDto?>(null) }
     var meFailed by remember { mutableStateOf(false) }
     var msg by remember { mutableStateOf<String?>(null) }
+    var harvestForm by remember { mutableStateOf<String?>(null) }
+    var editingUnit by remember { mutableStateOf<StorageUnitDto?>(null) }
+    var formValues by remember { mutableStateOf(mapOf<String, String>()) }
+    var fieldChoices by remember { mutableStateOf(listOf<FormOption>()) }
+    var formError by remember { mutableStateOf<String?>(null) }
+    var formPending by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val tabs = HarvestTab.entries
+    val canWrite = canWriteMasterData(Session.role)
     fun reload() {
         scope.launch {
             val farmId = FarmFilter.farmId
@@ -113,7 +131,28 @@ fun HarvestScreen(
             .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ScreenHeader(S.t("harvest.detail.title"), onBack)
+        ScreenHeader(S.t("harvest.detail.title"), onBack, actions = {
+            val showNew = canWrite && (tabs[tab] == HarvestTab.PLANS || (tabs[tab] == HarvestTab.STORAGE && storageSub == 0))
+            if (showNew) {
+                TextButton(onClick = {
+                    formError = null
+                    editingUnit = null
+                    if (tabs[tab] == HarvestTab.PLANS) {
+                        harvestForm = "plan"
+                        formValues = mapOf("fieldId" to "", "crop" to "SOY", "expectedTHa" to "")
+                        scope.launch {
+                            fieldChoices = runCatching { fields(FarmFilter.farmId) }.getOrDefault(emptyList())
+                                .map { FormOption(it.id, it.name ?: it.id) }
+                            val first = fieldChoices.firstOrNull()?.value
+                            if (first != null) formValues = formValues + ("fieldId" to first)
+                        }
+                    } else {
+                        harvestForm = "unit"
+                        formValues = mapOf("name" to "", "type" to "SILO", "capacityT" to "")
+                    }
+                }) { Text(S.t("form.new")) }
+            }
+        })
         SectionTabs(
             labels = listOf(S.t("tab.plans"), S.t("tab.yield"), S.t("tab.logistics"), S.t("tab.storage")),
             selectedIndex = tab,
@@ -178,14 +217,28 @@ fun HarvestScreen(
                 )
                 if (storageSub == 0) {
                     HarvestList(units) { u ->
-                        EntityCard(
-                            headline = u.name ?: u.id,
-                            supporting = listOfNotNull(
-                                DomainLabels.label(u.type),
-                                u.usedT?.let { "${S.t("charts.used")} $it" },
-                                u.capacityT?.let { "${S.t("charts.capacity")} $it" },
-                            ).joinToString(" · "),
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            EntityCard(
+                                headline = u.name ?: u.id,
+                                supporting = listOfNotNull(
+                                    DomainLabels.label(u.type),
+                                    u.usedT?.let { "${S.t("charts.used")} $it" },
+                                    u.capacityT?.let { "${S.t("charts.capacity")} $it" },
+                                ).joinToString(" · "),
+                            )
+                            if (canWrite) {
+                                TextButton(onClick = {
+                                    editingUnit = u
+                                    harvestForm = "unit-edit"
+                                    formValues = mapOf(
+                                        "name" to (u.name ?: ""),
+                                        "type" to (u.type ?: "SILO"),
+                                        "capacityT" to (u.capacityT?.toString() ?: ""),
+                                    )
+                                    formError = null
+                                }) { Text(S.t("form.edit")) }
+                            }
+                        }
                     }
                 } else {
                     HarvestList(lots) { lot ->
@@ -218,6 +271,68 @@ fun HarvestScreen(
                 onDismiss = onClearSelected,
             ) {}
         }
+    }
+    if (harvestForm != null) {
+        val isPlan = harvestForm == "plan"
+        EntityFormSheet(
+            title = if (harvestForm == "unit-edit") S.t("form.edit") else S.t("form.new"),
+            fields = if (isPlan) {
+                listOf(
+                    FormField("fieldId", S.t("form.field.field"), options = fieldChoices),
+                    FormField("crop", S.t("form.field.crop")),
+                    FormField("expectedTHa", S.t("form.field.expectedTHa")),
+                )
+            } else {
+                listOf(
+                    FormField("name", S.t("form.field.name")),
+                    FormField("type", S.t("form.field.type")),
+                    FormField("capacityT", S.t("form.field.capacityT")),
+                )
+            },
+            values = formValues,
+            onChange = { k, v -> formValues = formValues + (k to v) },
+            pending = formPending,
+            error = formError,
+            onDismiss = { harvestForm = null; editingUnit = null },
+            onSave = {
+                val farmId = FarmFilter.farmId
+                if (farmId.isNullOrBlank()) {
+                    formError = S.t("form.needFarm")
+                    return@EntityFormSheet
+                }
+                scope.launch {
+                    formPending = true
+                    runCatching {
+                        when (harvestForm) {
+                            "plan" -> createHarvestPlan(
+                                HarvestPlanCreate(
+                                    farmId,
+                                    formValues["fieldId"].orEmpty(),
+                                    formValues["crop"].orEmpty(),
+                                    formValues["expectedTHa"]?.toDoubleOrNull() ?: 0.0,
+                                ),
+                            )
+                            else -> {
+                                val unit = editingUnit
+                                val body = StorageUnitUpsert(
+                                    farmId,
+                                    formValues["name"].orEmpty(),
+                                    formValues["type"].orEmpty(),
+                                    formValues["capacityT"]?.toDoubleOrNull() ?: 0.0,
+                                    unit?.usedT ?: 0.0,
+                                )
+                                if (unit == null) createStorageUnit(body) else patchStorageUnit(unit.id, body)
+                            }
+                        }
+                    }.onSuccess {
+                        harvestForm = null
+                        editingUnit = null
+                        reload()
+                    }.onFailure { formError = it.message }
+                    formPending = false
+                }
+            },
+        )
     }
 }
 

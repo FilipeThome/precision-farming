@@ -7,9 +7,9 @@ import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.security.DemoItemFarms
 import com.precisionfarming.security.DemoMachineFarms
+import com.precisionfarming.security.FieldFarmGuard
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.SagaEntity
@@ -45,6 +45,7 @@ class OperationService(
     private val sagas: SagaJpaRepository,
     private val inventory: InventorySagaClient,
     private val txManager: PlatformTransactionManager,
+    private val fieldFarms: FieldFarmGuard,
 ) {
     private fun <T> inTx(block: () -> T): T = TransactionTemplate(txManager).execute { block() }!!
 
@@ -85,7 +86,7 @@ class OperationService(
     @Transactional
     fun create(scope: AccessScope, cmd: CreateOperation): OperationDto {
         scope.requireFarm(cmd.farmId)
-        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
+        fieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         cmd.machineId?.let { DemoMachineFarms.requireBelongsToFarm(it, cmd.farmId) }
         cmd.itemId?.let { DemoItemFarms.requireBelongsToFarm(it, cmd.farmId) }
         requireAreaHa(cmd.areaHa)

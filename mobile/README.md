@@ -17,9 +17,17 @@ Gate iOS targets with `HostManager.hostIsMac`.
 
 Offline: enqueue mutations with `clientOperationId`, then `POST /api/v1/sync/push`. Google Maps via expect/actual — never a static satellite PNG.
 
+## Toolchain
+
+- **Gradle 9.7.1** (repo-root wrapper). The mobile Gradle project is **separate** — use `./gradlew -p mobile`, not `:mobile:…`.
+- **JDK 26** for the Gradle daemon and `jvmToolchain` (Foojay resolver in `mobile/settings.gradle.kts` downloads it when missing).
+- **Android `jvmTarget` 26** — AGP 9.4 D8 accepted class file major 70. `minSdk 26` is **Android 8.0**, not Java 26; keep it unless a library requires a bump.
+- Kotlin **2.4.20** (Compose compiler + serialization plugins match). AGP **9.4.0**, `compileSdk`/`targetSdk` **37**.
+- Details: [ADR-002](../docs/adr/002-kmp-mobile.md).
+
 ## Ubuntu: SDK, emulator, tests
 
-JDK 17+ (21 is fine). The mobile Gradle project is **separate** — use `./gradlew -p mobile`, not `:mobile:…`.
+JDK 26 (Temurin or Foojay). The mobile Gradle project is **separate** — use `./gradlew -p mobile`, not `:mobile:…`.
 
 ### 1. KVM (fast emulator)
 
@@ -58,8 +66,8 @@ yes | sdkmanager --licenses
 sdkmanager \
   "platform-tools" \
   "emulator" \
-  "platforms;android-35" \
-  "build-tools;35.0.0" \
+  "platforms;android-37" \
+  "build-tools;36.0.0" \
   "system-images;android-35;google_apis;x86_64"
 ```
 
@@ -111,4 +119,4 @@ Maps stay a status screen until `ANDROID_GOOGLE_MAPS_API_KEY` is wired into the 
 
 ### Android Studio (optional)
 
-Open the `mobile/` folder (not the monorepo root), install API 35 + an AVD in SDK Manager, run `composeApp`.
+Open the `mobile/` folder (not the monorepo root), install API 37 + an AVD in SDK Manager, run `composeApp`.

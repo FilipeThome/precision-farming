@@ -52,11 +52,11 @@ class LogisticsLoadEntity(
 @Table(name = "storage_units")
 class StorageUnitEntity(
     @Id val id: UUID,
-    @Column(name = "farm_id") val farmId: UUID,
-    val name: String,
-    @Column(name = "capacity_t") val capacityT: BigDecimal,
+    @Column(name = "farm_id") var farmId: UUID,
+    var name: String,
+    @Column(name = "capacity_t") var capacityT: BigDecimal,
     @Column(name = "used_t") var usedT: BigDecimal,
-    val type: String,
+    var type: String,
 )
 
 @Entity

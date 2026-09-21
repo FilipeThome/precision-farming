@@ -2,6 +2,7 @@ package com.precisionfarming.asset.application
 
 import com.precisionfarming.asset.infrastructure.MachineEntity
 import com.precisionfarming.asset.infrastructure.MachineJpaRepository
+import com.precisionfarming.asset.infrastructure.MachinePhotoGuard
 import com.precisionfarming.asset.infrastructure.WorkOrderEntity
 import com.precisionfarming.asset.infrastructure.WorkOrderJpaRepository
 import com.precisionfarming.common.DemoIds
@@ -21,10 +22,13 @@ import java.util.UUID
 data class MachineDto(
     val id: UUID, val farmId: UUID, val name: String, val type: String,
     val manufacturer: String, val model: String, val status: String,
+    val photoFileId: UUID?,
+    val photoUrl: String?,
 )
 data class UpsertMachine(
     val farmId: UUID, val name: String, val type: String,
     val manufacturer: String, val model: String, val status: String,
+    val photoFileId: UUID? = null,
 )
 data class WorkOrderDto(
     val id: UUID, val farmId: UUID, val machineId: UUID, val title: String,
@@ -36,6 +40,7 @@ data class CreateWorkOrder(val farmId: UUID, val machineId: UUID, val title: Str
 class AssetService(
     private val repo: MachineJpaRepository,
     private val workOrders: WorkOrderJpaRepository,
+    private val photos: MachinePhotoGuard,
 ) {
     fun list(scope: AccessScope, farmId: UUID?) =
         repo.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -49,8 +54,12 @@ class AssetService(
     @Transactional
     fun create(scope: AccessScope, cmd: UpsertMachine): MachineDto {
         scope.requireFarm(cmd.farmId)
+        cmd.photoFileId?.let { photos.requireMachinePhoto(it, cmd.farmId) }
         val saved = repo.save(
-            MachineEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status),
+            MachineEntity(
+                UUID.randomUUID(), cmd.farmId, cmd.name, cmd.type, cmd.manufacturer, cmd.model, cmd.status,
+                cmd.photoFileId,
+            ),
         ).toDto()
         DemoMachineFarms.register(saved.id, saved.farmId)
         return saved
@@ -61,8 +70,14 @@ class AssetService(
         val e = repo.findById(id).orElseThrow { NotFoundException("MACHINE_NOT_FOUND", "Machine not found") }
         scope.requireEntityFarm(e.farmId)
         scope.requireFarm(cmd.farmId)
+        val movedFarm = e.farmId != cmd.farmId
         e.farmId = cmd.farmId; e.name = cmd.name; e.type = cmd.type
         e.manufacturer = cmd.manufacturer; e.model = cmd.model; e.status = cmd.status
+        e.photoFileId = when {
+            movedFarm && (cmd.photoFileId == null || cmd.photoFileId == e.photoFileId) -> null
+            else -> cmd.photoFileId
+        }
+        e.photoFileId?.let { photos.requireMachinePhoto(it, cmd.farmId) }
         val saved = repo.save(e).toDto()
         DemoMachineFarms.register(saved.id, saved.farmId)
         return saved
@@ -157,7 +172,12 @@ class AssetService(
         )
     }
 
-    private fun MachineEntity.toDto() = MachineDto(id, farmId, name, type, manufacturer, model, status)
+    private fun MachineEntity.toDto() = MachineDto(
+        id, farmId, name, type, manufacturer, model, status, photoFileId, photoUrl(photoFileId),
+    )
+
+    private fun photoUrl(photoFileId: UUID?) =
+        photoFileId?.let { "/api/v1/files/$it/content" }
     private fun WorkOrderEntity.toDto() = WorkOrderDto(id, farmId, machineId, title, priority, status, createdAt, completedAt)
 }
 

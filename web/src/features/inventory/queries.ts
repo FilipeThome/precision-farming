@@ -1,6 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { fetchInventory, fetchInventoryMovements } from './api'
+import {
+  createInventoryItem,
+  fetchInventory,
+  fetchInventoryMovements,
+  patchInventoryItem,
+  type InventoryPatchBody,
+} from './api'
 
 export const inventoryKeys = {
   all: (farmId?: string | null) => ['inventory', farmId ?? 'all'] as const,
@@ -22,4 +28,15 @@ export function useInventoryMovementsQuery(itemId?: string | null) {
     enabled: Boolean(itemId),
     staleTime: 30_000,
   })
+}
+
+export function useInventoryCommands() {
+  const client = useQueryClient()
+  const invalidate = () => void client.invalidateQueries({ queryKey: ['inventory'] })
+  const create = useMutation({ mutationFn: createInventoryItem, onSuccess: invalidate })
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: InventoryPatchBody }) => patchInventoryItem(id, body),
+    onSuccess: invalidate,
+  })
+  return { create, patch }
 }

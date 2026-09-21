@@ -1,5 +1,6 @@
 import { useInventoryQuery } from '@/features/inventory/queries'
 import { useMachineMetricsQuery } from '@/features/machines/queries'
+import { useMachinePhoto } from '@/features/machines/useMachinePhoto'
 import { useMachineWorkSummaryQuery } from '@/features/operations/queries'
 import type { Machine } from '@/shared/api/types'
 import { useI18n } from '@/shared/i18n/useI18n'
@@ -27,6 +28,7 @@ export function MachineInspector({ machine, farmId }: Props) {
   const metrics = useMachineMetricsQuery(machine.id)
   const work = useMachineWorkSummaryQuery(machine.id)
   const inventory = useInventoryQuery(farmId)
+  const photo = useMachinePhoto(machine.photoFileId)
   const { t } = useI18n()
   const { number, label, dateTime } = useFormat()
   const metricsErr = metrics.error ? queryError(metrics.error) : null
@@ -43,7 +45,13 @@ export function MachineInspector({ machine, farmId }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-3">
-        <EntityTile kind="machine" machineType={machine.type} size="lg" label={label(machine.id, machine.name)} />
+        <EntityTile
+          kind="machine"
+          machineType={machine.type}
+          size="lg"
+          label={label(machine.id, machine.name)}
+          photoUrl={photo.data}
+        />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge value={machine.status} />

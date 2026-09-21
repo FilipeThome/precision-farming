@@ -112,7 +112,7 @@ class AuthServiceTest {
         id = UUID.randomUUID(),
         name = "Admin",
         email = "admin@precisionfarming.demo",
-        passwordHash = encoder.encode("Precision@123"),
+        passwordHash = checkNotNull(encoder.encode("Precision@123")),
         role = role,
         status = status,
     )

@@ -87,7 +87,11 @@ export function HarvestLogisticsGrid({ items }: { items: LogisticsLoad[] }) {
   )
 }
 
-export function HarvestStorageGrid({ items }: { items: StorageUnit[] }) {
+export function HarvestStorageGrid({
+  items,
+  selectedId,
+  onSelect,
+}: { items: StorageUnit[] } & Selectable) {
   const { t } = useI18n()
   const { number, label } = useFormat()
   return (
@@ -105,6 +109,8 @@ export function HarvestStorageGrid({ items }: { items: StorageUnit[] }) {
               : label(row.type)
           }
           kind="storage"
+          selected={row.id === selectedId}
+          onSelect={() => onSelect?.(row.id)}
         />
       ))}
     </div>

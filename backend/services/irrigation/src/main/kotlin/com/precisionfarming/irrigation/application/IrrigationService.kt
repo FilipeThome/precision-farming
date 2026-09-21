@@ -1,8 +1,9 @@
 package com.precisionfarming.irrigation.application
 
 import com.precisionfarming.common.DemoIds
+import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
-import com.precisionfarming.security.DemoFieldFarms
+import com.precisionfarming.security.FieldFarmGuard
 import com.precisionfarming.irrigation.domain.IrrigationSimulator
 import com.precisionfarming.irrigation.domain.SimulationInput
 import com.precisionfarming.irrigation.infrastructure.IrrigationAssetEntity
@@ -25,6 +26,14 @@ data class IrrigationAssetDto(
     val id: UUID, val farmId: UUID, val fieldId: UUID?, val name: String, val type: String,
     val status: String, val capacityMmH: BigDecimal?,
 )
+data class UpsertIrrigationAsset(
+    val farmId: UUID,
+    val fieldId: UUID?,
+    val name: String,
+    val type: String,
+    val status: String,
+    val capacityMmH: BigDecimal?,
+)
 data class IrrigationRecommendationDto(
     val id: UUID, val farmId: UUID, val fieldId: UUID, val assetId: UUID?, val recommendedMm: BigDecimal,
     val windowStart: Instant, val windowEnd: Instant, val reason: String, val status: String,
@@ -41,16 +50,45 @@ class IrrigationService(
     private val recommendations: IrrigationRecommendationJpaRepository,
     private val simulations: IrrigationSimulationJpaRepository,
     private val simulator: IrrigationSimulator,
+    private val fieldFarms: FieldFarmGuard,
 ) {
     fun listAssets(scope: AccessScope, farmId: UUID?) =
         assets.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+
+    @Transactional
+    fun createAsset(scope: AccessScope, cmd: UpsertIrrigationAsset): IrrigationAssetDto {
+        scope.requireFarm(cmd.farmId)
+        cmd.fieldId?.let { fieldFarms.requireBelongsToFarm(it, cmd.farmId) }
+        return assets.save(
+            IrrigationAssetEntity(
+                UUID.randomUUID(), cmd.farmId, cmd.fieldId, cmd.name, cmd.type, cmd.status, cmd.capacityMmH,
+            ),
+        ).toDto()
+    }
+
+    @Transactional
+    fun patchAsset(scope: AccessScope, id: UUID, cmd: UpsertIrrigationAsset): IrrigationAssetDto {
+        val e = assets.findById(id).orElseThrow {
+            NotFoundException("IRRIGATION_ASSET_NOT_FOUND", "Irrigation asset not found")
+        }
+        scope.requireEntityFarm(e.farmId)
+        scope.requireFarm(cmd.farmId)
+        cmd.fieldId?.let { fieldFarms.requireBelongsToFarm(it, cmd.farmId) }
+        e.farmId = cmd.farmId
+        e.fieldId = cmd.fieldId
+        e.name = cmd.name
+        e.type = cmd.type
+        e.status = cmd.status
+        e.capacityMmH = cmd.capacityMmH
+        return assets.save(e).toDto()
+    }
     fun listRecommendations(scope: AccessScope, farmId: UUID?) =
         recommendations.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
 
     @Transactional
     fun simulate(scope: AccessScope, cmd: SimulateRequest): SimulationDto {
         scope.requireFarm(cmd.farmId)
-        DemoFieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
+        fieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         val result = simulator.simulate(SimulationInput(cmd.farmId, cmd.fieldId, cmd.mm, cmd.areaHa))
         return simulations.save(
             IrrigationSimulationEntity(
