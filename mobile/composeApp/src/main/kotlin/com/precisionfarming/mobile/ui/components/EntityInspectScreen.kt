@@ -40,6 +40,8 @@ fun <T> EntityInspectScreen(
     sheetSubtitle: (T) -> String? = { null },
     extraKeys: Any? = null,
     header: @Composable () -> Unit = {},
+    listAction: @Composable () -> Unit = {},
+    sheetAction: @Composable (T) -> Unit = {},
 ) {
     var state by remember { mutableStateOf<LoadState<T>>(LoadState.Loading) }
     val scope = rememberCoroutineScope()
@@ -57,7 +59,7 @@ fun <T> EntityInspectScreen(
         Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        item { ScreenHeader(title, onBack) }
+        item { ScreenHeader(title, onBack, actions = listAction) }
         item { header() }
         when (val s = state) {
             is LoadState.Loading -> item { Text(S.t("common.loading")) }
@@ -83,6 +85,7 @@ fun <T> EntityInspectScreen(
             subtitle = row?.let(sheetSubtitle),
             found = row != null,
             onDismiss = onClearSelected,
+            actions = { if (row != null) sheetAction(row) },
         ) {
             if (row != null) inspector(row)
         }

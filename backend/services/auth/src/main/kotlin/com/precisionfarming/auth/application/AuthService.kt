@@ -171,7 +171,7 @@ class AuthService(
                         id = DemoIds.uuid(email),
                         name = name,
                         email = email,
-                        passwordHash = passwordEncoder.encode("Precision@123"),
+                        passwordHash = checkNotNull(passwordEncoder.encode("Precision@123")),
                         role = role,
                         status = UserStatus.ACTIVE,
                     )

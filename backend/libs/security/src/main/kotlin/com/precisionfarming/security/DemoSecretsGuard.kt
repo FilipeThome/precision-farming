@@ -14,7 +14,7 @@ class DemoSecretsGuard(
     private val env: Environment,
     private val props: JwtProperties,
 ) : ApplicationRunner {
-    override fun run(args: ApplicationArguments?) {
+    override fun run(args: ApplicationArguments) {
         val app = env.getProperty("spring.application.name").orEmpty()
         val isAuth = app == "auth-service"
         if (props.jwtPrivateKey.isNotBlank() && !isAuth) {

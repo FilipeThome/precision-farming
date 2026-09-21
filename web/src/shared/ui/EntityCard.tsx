@@ -10,13 +10,14 @@ type Props = {
   /** Icon tile kind; when omitted no tile is rendered. */
   kind?: EntityKind
   machineType?: string | null
+  photoUrl?: string | null
   tone?: EntityTone
   children?: ReactNode
   selected?: boolean
   onSelect?: () => void
 }
 
-export function EntityCard({ title, subtitle, meta, kind, machineType, tone, children, selected, onSelect }: Props) {
+export function EntityCard({ title, subtitle, meta, kind, machineType, photoUrl, tone, children, selected, onSelect }: Props) {
   const interactive = Boolean(onSelect)
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -38,7 +39,7 @@ export function EntityCard({ title, subtitle, meta, kind, machineType, tone, chi
       onClick={onSelect}
       onKeyDown={onKeyDown}
     >
-      {kind ? <EntityTile kind={kind} machineType={machineType} tone={tone} /> : null}
+      {kind ? <EntityTile kind={kind} machineType={machineType} tone={tone} photoUrl={photoUrl} /> : null}
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <h2 className="font-display text-[13px] font-bold text-ag-n-900">{title}</h2>
         {subtitle ? <p className="text-[12px] text-ag-n-600">{subtitle}</p> : null}

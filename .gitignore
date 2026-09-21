@@ -16,3 +16,4 @@ secrets.properties
 xcuserdata/
 *.xcuserstate
 _spec_extract.txt
+data/files/

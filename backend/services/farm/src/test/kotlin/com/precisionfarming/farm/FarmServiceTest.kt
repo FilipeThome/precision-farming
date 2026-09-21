@@ -11,6 +11,7 @@ import com.precisionfarming.farm.infrastructure.FieldEntity
 import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.security.DemoFieldFarms
 import com.precisionfarming.security.DemoTenant
 import com.precisionfarming.security.UserFarmGrants
 import io.mockk.every
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import java.math.BigDecimal
+import java.util.Optional
 import java.util.UUID
 
 class FarmServiceTest {
@@ -92,5 +94,33 @@ class FarmServiceTest {
             )
         }
         assertEquals("INVALID_GEOMETRY", ex.code)
+    }
+
+    @Test
+    fun patchFieldUpdatesDemoFieldFarmMap() {
+        val farmA = UUID.randomUUID()
+        val farmB = UUID.randomUUID()
+        lateinit var saved: FieldEntity
+        every { farms.existsById(farmA) } returns true
+        every { fields.save(any()) } answers { firstArg<FieldEntity>().also { saved = it } }
+        every { fields.findById(any()) } answers { Optional.of(saved) }
+        val polygon =
+            """{"type":"Polygon","coordinates":[[[-50.92,-17.79],[-50.88,-17.79],[-50.88,-17.75],[-50.92,-17.75],[-50.92,-17.79]]]}"""
+        val created = svc.createField(
+            scope(farmA),
+            UpsertField(farmA, "Talhão Norte", BigDecimal("10"), "Soja", null, polygon),
+        )
+        try {
+            assertEquals(farmA, DemoFieldFarms.farmId(created.id))
+            val patched = svc.patchField(
+                AccessScope(DemoTenant.ID, setOf(farmA, farmB), "ADMIN"),
+                created.id,
+                UpsertField(farmB, "Talhão Norte", BigDecimal("10"), "Soja", null, polygon),
+            )
+            assertEquals(farmB, patched.farmId)
+            assertEquals(farmB, DemoFieldFarms.farmId(created.id))
+        } finally {
+            DemoFieldFarms.unregister(created.id)
+        }
     }
 }

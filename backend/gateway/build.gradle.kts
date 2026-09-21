@@ -5,13 +5,10 @@ plugins {
     alias(libs.plugins.spring.dep.mgmt)
 }
 
-java {
-    toolchain { languageVersion.set(JavaLanguageVersion.of(21)) }
-}
 
 dependencyManagement {
     imports {
-        mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
+        mavenBom("org.springframework.cloud:spring-cloud-dependencies:${libs.versions.spring.cloud.get()}")
     }
 }
 

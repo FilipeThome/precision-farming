@@ -1,11 +1,17 @@
+import { useState } from 'react'
+
+import { FieldFormDialog } from '@/features/fields/components/FieldFormDialog'
 import { FieldInspector } from '@/features/fields/components/FieldInspector'
 import { useFieldsQuery } from '@/features/fields/queries'
+import { useCanWriteMasterData } from '@/shared/auth/roles'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { useSelectedId } from '@/shared/lib/useSelectedId'
+import { Button } from '@/shared/ui/Button'
 import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { EntityCard } from '@/shared/ui/EntityCard'
+import { InspectorEditButton } from '@/shared/ui/InspectorEditButton'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
@@ -18,10 +24,22 @@ export function FieldsPage() {
   const { number, label } = useFormat()
   const { selectedId, setSelectedId } = useSelectedId()
   const selected = (fields.data ?? []).find((field) => field.id === selectedId)
+  const canWrite = useCanWriteMasterData()
+  const [form, setForm] = useState<'create' | 'edit' | null>(null)
 
   return (
     <section>
-      <PageHeader title={t('fields.title')} description={t('fields.description')} />
+      <PageHeader
+        title={t('fields.title')}
+        description={t('fields.description')}
+        actions={
+          canWrite ? (
+            <Button type="button" onClick={() => setForm('create')}>
+              {t('form.new')}
+            </Button>
+          ) : null
+        }
+      />
       <QueryPageState
         isLoading={fields.isLoading}
         isError={fields.isError}
@@ -52,8 +70,18 @@ export function FieldsPage() {
         subtitle={selected ? undefined : t('inspector.notFoundHint')}
         onClose={() => setSelectedId(null)}
       >
-        {selected ? <FieldInspector field={selected} /> : null}
+        {selected ? (
+          <>
+            <FieldInspector field={selected} />
+            {canWrite ? <InspectorEditButton onEdit={() => setForm('edit')} /> : null}
+          </>
+        ) : null}
       </DetailDrawer>
+      <FieldFormDialog
+        open={form !== null}
+        field={form === 'edit' ? selected ?? null : null}
+        onClose={() => setForm(null)}
+      />
     </section>
   )
 }

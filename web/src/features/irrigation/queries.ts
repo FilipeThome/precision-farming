@@ -1,6 +1,12 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { fetchIrrigationAssets, fetchIrrigationRecommendations } from './api'
+import {
+  createIrrigationAsset,
+  fetchIrrigationAssets,
+  fetchIrrigationRecommendations,
+  patchIrrigationAsset,
+  type IrrigationAssetBody,
+} from './api'
 
 type QueryToggle = { enabled?: boolean }
 
@@ -26,4 +32,15 @@ export function useIrrigationRecommendationsQuery(farmId?: string | null, option
     staleTime: 30_000,
     enabled: options?.enabled ?? true,
   })
+}
+
+export function useIrrigationAssetCommands() {
+  const client = useQueryClient()
+  const invalidate = () => void client.invalidateQueries({ queryKey: ['irrigation', 'assets'] })
+  const create = useMutation({ mutationFn: createIrrigationAsset, onSuccess: invalidate })
+  const patch = useMutation({
+    mutationFn: ({ id, body }: { id: string; body: IrrigationAssetBody }) => patchIrrigationAsset(id, body),
+    onSuccess: invalidate,
+  })
+  return { create, patch }
 }

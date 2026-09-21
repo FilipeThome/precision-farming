@@ -1,4 +1,8 @@
+import { useState } from 'react'
+
+import { HarvestPlanFormDialog } from '@/features/harvest/components/HarvestPlanFormDialog'
 import { HarvestPlanInspector } from '@/features/harvest/components/HarvestPlanInspector'
+import { StorageUnitFormDialog } from '@/features/harvest/components/StorageUnitFormDialog'
 import {
   HarvestLogisticsGrid,
   HarvestLotsGrid,
@@ -14,6 +18,7 @@ import {
   useStorageUnitsQuery,
   useYieldQuery,
 } from '@/features/harvest/queries'
+import { useCanWriteMasterData } from '@/shared/auth/roles'
 import { storageOccupancy, yieldByField } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
@@ -24,6 +29,7 @@ import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
 import { DetailDrawer } from '@/shared/ui/DetailDrawer'
+import { InspectorEditButton } from '@/shared/ui/InspectorEditButton'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { SectionTabs } from '@/shared/ui/SectionTabs'
@@ -53,10 +59,28 @@ export function HarvestPage() {
   const err = queryError(active.error)
   const selectedPlan = (plans.data ?? []).find((row) => row.id === selectedId)
   const selectedLot = (lots.data ?? []).find((row) => row.id === selectedId)
+  const selectedUnit = (storage.data ?? []).find((row) => row.id === selectedId)
+  const canWrite = useCanWriteMasterData()
+  const [form, setForm] = useState<'plan' | 'unit-create' | 'unit-edit' | null>(null)
+  const showNew =
+    canWrite && (tab === 'plans' || (tab === 'storage' && storageView === 'units'))
 
   return (
     <section>
-      <PageHeader title={t('harvest.title')} description={t('harvest.description')} />
+      <PageHeader
+        title={t('harvest.title')}
+        description={t('harvest.description')}
+        actions={
+          showNew ? (
+            <Button
+              type="button"
+              onClick={() => setForm(tab === 'plans' ? 'plan' : 'unit-create')}
+            >
+              {t('form.new')}
+            </Button>
+          ) : null
+        }
+      />
       <SectionTabs
         active={tab}
         onChange={(next) => patchParams({ selected: null, tab: next })}
@@ -145,24 +169,38 @@ export function HarvestPage() {
           <HarvestLotsGrid items={lots.data ?? []} selectedId={selectedId} onSelect={setSelectedId} />
         ) : null}
         {tab === 'storage' && storageView === 'units' ? (
-          <HarvestStorageGrid items={storage.data ?? []} />
+          <HarvestStorageGrid items={storage.data ?? []} selectedId={selectedId} onSelect={setSelectedId} />
         ) : null}
       </QueryPageState>
       <DetailDrawer
-        open={Boolean(selectedId) && (tab === 'plans' || (tab === 'storage' && storageView === 'lots'))}
+        open={
+          Boolean(selectedId) &&
+          (tab === 'plans' ||
+            (tab === 'storage' && storageView === 'lots') ||
+            (tab === 'storage' && storageView === 'units'))
+        }
         title={
           selectedPlan
             ? label(selectedPlan.crop, selectedPlan.fieldId ?? selectedPlan.id)
             : selectedLot
               ? label(selectedLot.crop)
-              : t('inspector.notFound')
+              : selectedUnit
+                ? label(selectedUnit.name, selectedUnit.id)
+                : t('inspector.notFound')
         }
-        subtitle={!selectedPlan && !selectedLot ? t('inspector.notFoundHint') : undefined}
+        subtitle={!selectedPlan && !selectedLot && !selectedUnit ? t('inspector.notFoundHint') : undefined}
         onClose={() => setSelectedId(null)}
       >
         {selectedPlan ? <HarvestPlanInspector plan={selectedPlan} farmId={farmId} /> : null}
         {selectedLot ? <StorageLotInspector lot={selectedLot} /> : null}
+        {selectedUnit && canWrite ? <InspectorEditButton onEdit={() => setForm('unit-edit')} /> : null}
       </DetailDrawer>
+      <HarvestPlanFormDialog open={form === 'plan'} onClose={() => setForm(null)} />
+      <StorageUnitFormDialog
+        open={form === 'unit-create' || form === 'unit-edit'}
+        unit={form === 'unit-edit' ? selectedUnit ?? null : null}
+        onClose={() => setForm(null)}
+      />
     </section>
   )
 }

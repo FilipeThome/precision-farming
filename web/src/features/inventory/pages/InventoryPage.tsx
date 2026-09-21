@@ -1,14 +1,20 @@
+import { useState } from 'react'
+
+import { InventoryFormDialog } from '@/features/inventory/components/InventoryFormDialog'
 import { InventoryInspector } from '@/features/inventory/components/InventoryInspector'
 import { useInventoryQuery } from '@/features/inventory/queries'
+import { useCanWriteMasterData } from '@/shared/auth/roles'
 import { inventoryStockBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { useSelectedId } from '@/shared/lib/useSelectedId'
+import { Button } from '@/shared/ui/Button'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'
 import { BarChartBlock } from '@/shared/ui/charts'
 import { DetailDrawer } from '@/shared/ui/DetailDrawer'
 import { EntityCard } from '@/shared/ui/EntityCard'
+import { InspectorEditButton } from '@/shared/ui/InspectorEditButton'
 import { PageHeader } from '@/shared/ui/PageHeader'
 import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { useUiStore } from '@/shared/ui/uiStore'
@@ -21,10 +27,22 @@ export function InventoryPage() {
   const { number, label } = useFormat()
   const { selectedId, setSelectedId } = useSelectedId()
   const selected = (inventory.data ?? []).find((item) => item.id === selectedId)
+  const canWrite = useCanWriteMasterData()
+  const [form, setForm] = useState<'create' | 'edit' | null>(null)
 
   return (
     <section>
-      <PageHeader title={t('inventory.title')} description={t('inventory.description')} />
+      <PageHeader
+        title={t('inventory.title')}
+        description={t('inventory.description')}
+        actions={
+          canWrite ? (
+            <Button type="button" onClick={() => setForm('create')}>
+              {t('form.new')}
+            </Button>
+          ) : null
+        }
+      />
       <QueryPageState
         isLoading={inventory.isLoading}
         isError={inventory.isError}
@@ -67,8 +85,18 @@ export function InventoryPage() {
         subtitle={selected ? undefined : t('inspector.notFoundHint')}
         onClose={() => setSelectedId(null)}
       >
-        {selected ? <InventoryInspector item={selected} /> : null}
+        {selected ? (
+          <>
+            <InventoryInspector item={selected} />
+            {canWrite ? <InspectorEditButton onEdit={() => setForm('edit')} /> : null}
+          </>
+        ) : null}
       </DetailDrawer>
+      <InventoryFormDialog
+        open={form !== null}
+        item={form === 'edit' ? selected ?? null : null}
+        onClose={() => setForm(null)}
+      />
     </section>
   )
 }

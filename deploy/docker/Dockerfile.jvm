@@ -11,14 +11,14 @@
 ARG GRADLE_PROJECT=:backend:services:auth
 ARG MODULE_DIR=backend/services/auth
 
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM eclipse-temurin:26-jdk-alpine AS builder
 ARG GRADLE_PROJECT
 ARG MODULE_DIR
 WORKDIR /src
 
 RUN apk add --no-cache bash
 
-COPY gradlew settings.gradle.kts ./
+COPY gradlew settings.gradle.kts build.gradle.kts ./
 COPY gradle ./gradle
 COPY backend ./backend
 
@@ -28,7 +28,7 @@ RUN chmod +x gradlew \
   && JAR="$(ls ${MODULE_DIR}/build/libs/*.jar | grep -v -- '-plain' | head -n 1)" \
   && cp "$JAR" /out/app.jar
 
-FROM eclipse-temurin:21-jre-alpine AS runtime
+FROM eclipse-temurin:26-jre-alpine AS runtime
 RUN apk add --no-cache curl \
   && addgroup -S app && adduser -S app -G app
 WORKDIR /app

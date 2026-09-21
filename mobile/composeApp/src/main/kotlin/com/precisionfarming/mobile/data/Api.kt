@@ -10,8 +10,13 @@ import io.ktor.client.request.HttpRequestBuilder
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.ktor.client.request.forms.MultiPartFormDataContent
+import io.ktor.client.request.forms.formData
+import io.ktor.http.Headers
+import io.ktor.http.HttpHeaders
 import io.ktor.client.statement.bodyAsBytes
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -28,19 +33,23 @@ object Session {
         private set
     var userId: String? = null
         private set
+    var role: String? = null
+        private set
 
     private val _signedIn = MutableStateFlow(false)
     val signedIn: StateFlow<Boolean> = _signedIn.asStateFlow()
 
-    fun set(accessToken: String?, userId: String?) {
+    fun set(accessToken: String?, userId: String?, role: String? = this.role) {
         this.accessToken = accessToken
         this.userId = userId
+        this.role = role
         _signedIn.value = !accessToken.isNullOrBlank() && !userId.isNullOrBlank()
     }
 
     fun clear() {
         accessToken = null
         userId = null
+        role = null
         _signedIn.value = false
     }
 }
@@ -76,6 +85,9 @@ val api = HttpClient(OkHttp) {
 data class LoginRequest(val email: String, val password: String)
 
 @Serializable
+data class RefreshRequest(val refreshToken: String)
+
+@Serializable
 data class TokenResponse(
     val accessToken: String,
     val refreshToken: String,
@@ -105,6 +117,7 @@ data class FieldDto(
     val areaHa: Double? = null,
     val crop: String? = null,
     val variety: String? = null,
+    val geometry: String? = null,
 )
 
 @Serializable
@@ -128,6 +141,8 @@ data class MachineDto(
     val farmId: String? = null,
     val manufacturer: String? = null,
     val model: String? = null,
+    val photoFileId: String? = null,
+    val photoUrl: String? = null,
 )
 
 @Serializable
@@ -559,9 +574,22 @@ suspend fun login(email: String, password: String): TokenResponse {
         contentType(ContentType.Application.Json)
         setBody(LoginRequest(email, password))
     }.body()
-    Session.set(res.accessToken, res.userId)
-    TokenStore.save(res.accessToken, res.userId)
+    Session.set(res.accessToken, res.userId, res.role)
+    TokenStore.save(res.accessToken, res.userId, res.role, res.refreshToken)
     return res
+}
+
+suspend fun refreshSession(): Boolean {
+    val refresh = TokenStore.readRefresh() ?: return false
+    return runCatching {
+        val res: TokenResponse = api.post("/api/v1/auth/refresh") {
+            contentType(ContentType.Application.Json)
+            setBody(RefreshRequest(refresh))
+        }.body()
+        Session.set(res.accessToken, res.userId, res.role)
+        TokenStore.save(res.accessToken, res.userId, res.role, res.refreshToken)
+        true
+    }.getOrDefault(false)
 }
 
 suspend fun me() = api.get("/api/v1/auth/me").body<MeDto>()
@@ -753,4 +781,151 @@ fun syncDeviceId(): String {
     val userId = Session.userId
     if (userId.isNullOrBlank()) error("Missing userId for sync device binding — sign in again")
     return "$userId:android"
+}
+
+@Serializable
+data class FarmUpsert(val name: String, val location: String, val areaHa: Double, val timezone: String)
+
+@Serializable
+data class FieldUpsert(
+    val farmId: String,
+    val name: String,
+    val areaHa: Double,
+    val crop: String,
+    val variety: String?,
+    val geometry: String,
+)
+
+@Serializable
+data class SeasonUpsert(
+    val farmId: String,
+    val name: String,
+    val crop: String,
+    val startDate: String,
+    val endDate: String?,
+    val status: String,
+)
+
+@Serializable
+data class MachineUpsert(
+    val farmId: String,
+    val name: String,
+    val type: String,
+    val manufacturer: String,
+    val model: String,
+    val status: String,
+    val photoFileId: String? = null,
+)
+
+@Serializable
+data class InventoryCreate(
+    val farmId: String,
+    val name: String,
+    val category: String,
+    val unit: String,
+    val quantity: Double,
+)
+
+@Serializable
+data class InventoryPatch(val farmId: String, val name: String, val category: String, val unit: String)
+
+@Serializable
+data class IrrigationAssetUpsert(
+    val farmId: String,
+    val fieldId: String?,
+    val name: String,
+    val type: String,
+    val status: String,
+    val capacityMmH: Double?,
+)
+
+@Serializable
+data class HarvestPlanCreate(val farmId: String, val fieldId: String, val crop: String, val expectedTHa: Double)
+
+@Serializable
+data class StorageUnitUpsert(
+    val farmId: String,
+    val name: String,
+    val type: String,
+    val capacityT: Double,
+    val usedT: Double,
+)
+
+@Serializable
+data class WorkOrderCreate(val farmId: String, val machineId: String, val title: String, val priority: String)
+
+@Serializable
+data class FileMetaDto(val id: String, val farmId: String? = null, val kind: String? = null)
+
+private suspend inline fun <reified T, reified B : Any> postJson(path: String, body: B): T =
+    api.post(path) {
+        contentType(ContentType.Application.Json)
+        setBody(body)
+    }.body()
+
+private suspend inline fun <reified T, reified B : Any> patchJson(path: String, body: B): T =
+    api.patch(path) {
+        contentType(ContentType.Application.Json)
+        setBody(body)
+    }.body()
+
+suspend fun createFarm(body: FarmUpsert): FarmDto {
+    val farm = postJson<FarmDto, FarmUpsert>("/api/v1/farms", body)
+    if (!refreshSession()) {
+        throw IllegalStateException("SESSION_REFRESH_FAILED")
+    }
+    return farm
+}
+suspend fun patchFarm(id: String, body: FarmUpsert): FarmDto = patchJson("/api/v1/farms/$id", body)
+suspend fun createField(body: FieldUpsert): FieldDto = postJson("/api/v1/fields", body)
+suspend fun patchField(id: String, body: FieldUpsert): FieldDto = patchJson("/api/v1/fields/$id", body)
+suspend fun createSeason(body: SeasonUpsert): SeasonDto = postJson("/api/v1/seasons", body)
+suspend fun patchSeason(id: String, body: SeasonUpsert): SeasonDto = patchJson("/api/v1/seasons/$id", body)
+suspend fun createMachine(body: MachineUpsert): MachineDto = postJson("/api/v1/machines", body)
+suspend fun patchMachine(id: String, body: MachineUpsert): MachineDto = patchJson("/api/v1/machines/$id", body)
+suspend fun createInventoryItem(body: InventoryCreate): InventoryItemDto = postJson("/api/v1/inventory", body)
+suspend fun patchInventoryItem(id: String, body: InventoryPatch): InventoryItemDto = patchJson("/api/v1/inventory/$id", body)
+suspend fun createIrrigationAsset(body: IrrigationAssetUpsert): IrrigationAssetDto =
+    postJson("/api/v1/irrigation/assets", body)
+suspend fun patchIrrigationAsset(id: String, body: IrrigationAssetUpsert): IrrigationAssetDto =
+    patchJson("/api/v1/irrigation/assets/$id", body)
+suspend fun createHarvestPlan(body: HarvestPlanCreate): HarvestPlanDto = postJson("/api/v1/harvest/plans", body)
+suspend fun createStorageUnit(body: StorageUnitUpsert): StorageUnitDto = postJson("/api/v1/storage/units", body)
+suspend fun patchStorageUnit(id: String, body: StorageUnitUpsert): StorageUnitDto =
+    patchJson("/api/v1/storage/units/$id", body)
+suspend fun createWorkOrder(body: WorkOrderCreate): MaintenanceWorkOrderDto =
+    postJson("/api/v1/maintenance/work-orders", body)
+
+suspend fun fileContent(id: String): ByteArray =
+    api.get("/api/v1/files/$id/content").bodyAsBytes()
+
+suspend fun uploadMachinePhoto(farmId: String, entityId: String?, bytes: ByteArray, mimeType: String): FileMetaDto =
+    api.post("/api/v1/files") {
+        setBody(
+            MultiPartFormDataContent(
+                formData {
+                    append("farmId", farmId)
+                    append("kind", "MACHINE_PHOTO")
+                    if (!entityId.isNullOrBlank()) append("entityId", entityId)
+                    append(
+                        "file",
+                        bytes,
+                        Headers.build {
+                            append(HttpHeaders.ContentType, mimeType)
+                            append(HttpHeaders.ContentDisposition, "filename=machine.jpg")
+                        },
+                    )
+                },
+            ),
+        )
+    }.body()
+
+suspend fun saveMachineWithPhoto(id: String?, body: MachineUpsert, photoBytes: ByteArray?, mimeType: String?): MachineDto {
+    var photoFileId = body.photoFileId
+    if (photoBytes != null && mimeType != null) {
+        val meta = uploadMachinePhoto(body.farmId, id, photoBytes, mimeType)
+        photoFileId = meta.id
+    }
+    val next = body.copy(photoFileId = photoFileId)
+    return if (id == null) createMachine(next) else patchMachine(id, next)
 }

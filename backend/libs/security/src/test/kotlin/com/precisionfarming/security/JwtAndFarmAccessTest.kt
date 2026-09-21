@@ -242,6 +242,20 @@ class JwtAndFarmAccessTest {
     }
 
     @Test
+    fun unknownFieldIsRejectedWithoutBinding() {
+        val farm = DemoIds.uuid("farm-001")
+        val created = UUID.randomUUID()
+        assertThrows(com.precisionfarming.common.NotFoundException::class.java) {
+            DemoFieldFarms.requireBelongsToFarm(created, farm)
+        }
+        assertEquals(null, DemoFieldFarms.farmId(created))
+        assertEquals(DemoIds.uuid("farm-001"), DemoFieldFarms.farmId(DemoIds.uuid("field-001")))
+        assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
+            DemoFieldFarms.requireBelongsToFarm(DemoIds.uuid("field-001"), DemoIds.uuid("farm-002"))
+        }
+    }
+
+    @Test
     fun serviceTokenRequiresFarmIds() {
         assertThrows(IllegalArgumentException::class.java) {
             jwtIssuer.createServiceToken(UUID.randomUUID(), emptyList())

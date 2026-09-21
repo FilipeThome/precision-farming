@@ -40,7 +40,8 @@ class OperationServiceTest {
         override fun commit(status: TransactionStatus) {}
         override fun rollback(status: TransactionStatus) {}
     }
-    private val svc = OperationService(repo, sagas, inventory, tx)
+    private val fieldFarms = mockk<com.precisionfarming.security.FieldFarmGuard>(relaxUnitFun = true)
+    private val svc = OperationService(repo, sagas, inventory, tx, fieldFarms)
 
     private fun scopeFor(op: OperationEntity) = AccessScope(DemoTenant.ID, setOf(op.farmId), "OPERATOR")
 

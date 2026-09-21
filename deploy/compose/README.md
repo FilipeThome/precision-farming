@@ -6,7 +6,7 @@ Optimized multi-stage images live under `deploy/docker/`. Per-service overlays a
 
 | Target | Builder | Runtime |
 | --- | --- | --- |
-| JVM services / gateway | `eclipse-temurin:21-jdk-alpine` + Gradle `bootJar` | `eclipse-temurin:21-jre-alpine` (jar only, non-root) |
+| JVM services / gateway | `eclipse-temurin:26-jdk-alpine` + Gradle `bootJar` | `eclipse-temurin:26-jre-alpine` (jar only, non-root) |
 | Web | `node:22-alpine` (`npm ci` + `npm run build`) | `nginx:1.27-alpine` (static `dist/` only) |
 
 Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `build/`, `.git`).

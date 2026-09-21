@@ -6,6 +6,7 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoItemFarms
+import com.precisionfarming.inventory.domain.InventoryUnits
 import com.precisionfarming.inventory.infrastructure.ItemEntity
 import com.precisionfarming.inventory.infrastructure.ItemJpaRepository
 import com.precisionfarming.inventory.infrastructure.MovementEntity
@@ -25,6 +26,7 @@ data class ItemDto(
     val unit: String, val quantity: BigDecimal, val reserved: BigDecimal,
 )
 data class UpsertItem(val farmId: UUID, val name: String, val category: String, val unit: String, val quantity: BigDecimal)
+data class PatchItem(val farmId: UUID, val name: String, val category: String, val unit: String)
 data class MovementCmd(val itemId: UUID, val type: String, val quantity: BigDecimal, val reference: String?)
 data class MovementDto(
     val id: UUID,
@@ -55,6 +57,23 @@ class InventoryService(
         val saved = items.save(
             ItemEntity(UUID.randomUUID(), cmd.farmId, cmd.name, cmd.category, cmd.unit, cmd.quantity),
         ).toDto()
+        DemoItemFarms.register(saved.id, saved.farmId)
+        return saved
+    }
+
+    @Transactional
+    fun patch(scope: AccessScope, id: UUID, cmd: PatchItem): ItemDto {
+        val item = items.findById(id).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
+        scope.requireEntityFarm(item.farmId)
+        scope.requireFarm(cmd.farmId)
+        item.farmId = cmd.farmId
+        item.name = cmd.name
+        item.category = cmd.category
+        val stock = InventoryUnits.apply(item.unit, cmd.unit, item.quantity, item.reserved)
+        item.unit = stock.unit
+        item.quantity = stock.quantity
+        item.reserved = stock.reserved
+        val saved = items.save(item).toDto()
         DemoItemFarms.register(saved.id, saved.farmId)
         return saved
     }

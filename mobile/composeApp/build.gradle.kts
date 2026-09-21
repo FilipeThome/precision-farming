@@ -1,45 +1,54 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-    id("org.jetbrains.kotlin.plugin.serialization") version "2.1.21"
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
+
+val jdkVersion = libs.versions.jdk.get().toInt()
+val androidJvmTarget = libs.versions.jvmTarget.get()
 
 android {
     namespace = "com.precisionfarming.mobile"
-    compileSdk = 35
+    compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig {
         applicationId = "com.precisionfarming.mobile"
-        minSdk = 26
-        targetSdk = 35
+        minSdk = libs.versions.minSdk.get().toInt()
+        targetSdk = libs.versions.targetSdk.get().toInt()
         versionCode = 1
         versionName = "0.1.0"
     }
     buildFeatures { compose = true }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.toVersion(androidJvmTarget)
+        targetCompatibility = JavaVersion.toVersion(androidJvmTarget)
     }
-    kotlinOptions { jvmTarget = "17" }
+}
+
+kotlin {
+    jvmToolchain(jdkVersion)
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(androidJvmTarget))
+    }
 }
 
 dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2025.01.00")
+    val composeBom = platform(libs.androidx.compose.bom)
     implementation(composeBom)
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-core")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.activity:activity-compose:1.10.1")
-    implementation("androidx.navigation:navigation-compose:2.8.8")
-    implementation("io.ktor:ktor-client-okhttp:3.1.2")
-    implementation("io.ktor:ktor-client-content-negotiation:3.1.2")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:3.1.2")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-    implementation("androidx.security:security-crypto:1.1.0-alpha06")
-    implementation("androidx.core:core-ktx:1.15.0")
-    testImplementation("junit:junit:4.13.2")
-    // Matches the kotlinx-coroutines-core version resolved through the Compose BOM (1.10.1).
-    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.1")
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.core)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
+    implementation(libs.ktor.serialization.kotlinx.json)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.core.ktx)
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
 }

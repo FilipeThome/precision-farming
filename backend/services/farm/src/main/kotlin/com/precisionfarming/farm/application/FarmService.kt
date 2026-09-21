@@ -1,7 +1,7 @@
 package com.precisionfarming.farm.application
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.ObjectMapper
+import tools.jackson.databind.JsonNode
+import tools.jackson.databind.json.JsonMapper
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DemoCatalog
 import com.precisionfarming.common.DomainException
@@ -82,7 +82,7 @@ class FarmService(
 ) {
     private val gf = GeometryFactory(PrecisionModel(), 4326)
     private val wktReader = WKTReader(gf)
-    private val json = ObjectMapper()
+    private val json = JsonMapper.builder().build()
 
     fun listFarms(scope: AccessScope) = farms.findAllById(scope.farmIds).map { it.toDto() }
 
@@ -156,7 +156,9 @@ class FarmService(
         e.variety = cmd.variety
         e.geometry = geom
         e.centroid = geom.centroid
-        return fields.save(e).toDto()
+        val saved = fields.save(e).toDto()
+        DemoFieldFarms.register(saved.id, saved.farmId)
+        return saved
     }
 
     @Transactional
@@ -164,6 +166,7 @@ class FarmService(
         val e = fields.findById(id).orElseThrow { NotFoundException("FIELD_NOT_FOUND", "Field not found") }
         scope.requireEntityFarm(e.farmId)
         fields.deleteById(id)
+        DemoFieldFarms.unregister(id)
     }
 
     fun listSeasons(scope: AccessScope, farmId: UUID?) =
@@ -312,7 +315,7 @@ class FarmService(
 
     private fun parseGeoJson(text: String): Geometry {
         val node = json.readTree(text)
-        val type = node.path("type").asText()
+        val type = node.path("type").asString()
         val coordinates = node.get("coordinates")
             ?: throw DomainException("INVALID_GEOMETRY", "GeoJSON coordinates are required")
         return when (type) {
@@ -321,17 +324,19 @@ class FarmService(
                 if (!coordinates.isArray || coordinates.isEmpty) {
                     throw DomainException("INVALID_GEOMETRY", "MultiPolygon coordinates are empty")
                 }
-                gf.createMultiPolygon(coordinates.map { polygonFromRings(it) }.toTypedArray())
+                gf.createMultiPolygon(arrayElements(coordinates).map { polygonFromRings(it) }.toTypedArray())
             }
             else -> throw DomainException("INVALID_GEOMETRY", "Expected Polygon or MultiPolygon")
         }
     }
 
+    private fun arrayElements(node: JsonNode): List<JsonNode> = List(node.size()) { node[it] }
+
     private fun polygonFromRings(rings: JsonNode): Polygon {
         if (!rings.isArray || rings.isEmpty) {
             throw DomainException("INVALID_GEOMETRY", "Polygon rings are required")
         }
-        val parsed = rings.map { ringToLinearRing(it) }
+        val parsed = arrayElements(rings).map { ringToLinearRing(it) }
         return gf.createPolygon(parsed.first(), parsed.drop(1).toTypedArray())
     }
 
@@ -339,7 +344,7 @@ class FarmService(
         if (!ring.isArray || ring.size() < 4) {
             throw DomainException("INVALID_GEOMETRY", "A linear ring needs at least 4 positions")
         }
-        val points = ring.map { pos ->
+        val points = arrayElements(ring).map { pos ->
             if (!pos.isArray || pos.size() < 2) {
                 throw DomainException("INVALID_GEOMETRY", "Each position needs longitude and latitude")
             }
