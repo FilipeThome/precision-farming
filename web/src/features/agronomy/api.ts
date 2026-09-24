@@ -1,9 +1,11 @@
 import { apiGet, apiPost } from '@/shared/api/client'
 import type {
   AgronomyRecommendation,
+  MoaRotation,
   Prescription,
   ScoutingRecord,
   SoilSample,
+  SpraySavings,
 } from '@/shared/api/types'
 
 export async function fetchScouting(farmId?: string | null): Promise<ScoutingRecord[]> {
@@ -22,6 +24,22 @@ export async function fetchPrescriptions(farmId?: string | null): Promise<Prescr
   return apiGet<Prescription[]>('/api/v1/prescriptions', { farmId: farmId ?? undefined })
 }
 
+export async function fetchPrescription(id: string): Promise<Prescription> {
+  return apiGet<Prescription>(`/api/v1/prescriptions/${id}`)
+}
+
 export async function approvePrescription(id: string): Promise<Prescription> {
   return apiPost<Prescription>(`/api/v1/prescriptions/${id}/approve`)
+}
+
+export async function rejectPrescription(id: string): Promise<Prescription> {
+  return apiPost<Prescription>(`/api/v1/prescriptions/${id}/reject`)
+}
+
+export async function fetchSpraySavings(prescriptionId: string): Promise<SpraySavings> {
+  return apiGet<SpraySavings>(`/api/v1/prescriptions/${prescriptionId}/spray-savings`)
+}
+
+export async function fetchMoaRotation(fieldId: string): Promise<MoaRotation> {
+  return apiGet<MoaRotation>('/api/v1/prescriptions/moa-rotation', { fieldId })
 }

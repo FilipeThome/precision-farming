@@ -40,7 +40,11 @@ class ApiCommandExecutor(
             when (command.type) {
                 OpCommandType.START -> startOp(command.operationId, command.clientOperationId)
                 OpCommandType.PAUSE -> pauseOp(command.operationId, command.reason.orEmpty(), command.clientOperationId)
-                OpCommandType.COMPLETE -> completeOp(command.operationId, command.clientOperationId)
+                OpCommandType.COMPLETE -> completeOp(
+                    command.operationId,
+                    command.clientOperationId,
+                    command.actualLiters,
+                )
             }
             ExecResult.Ok
         } catch (e: CancellationException) {
@@ -61,10 +65,7 @@ class ApiCommandExecutor(
                             clientOperationId = command.clientOperationId,
                             type = "OPERATION_${command.type.name}",
                             createdAt = command.createdAt,
-                            payload = buildMap {
-                                put("operationId", command.operationId)
-                                command.reason?.let { put("reason", it) }
-                            },
+                            payload = auditPayload(command),
                         ),
                     ),
                 )
@@ -89,6 +90,13 @@ class ApiCommandExecutor(
         }
         return ExecResult.Rejected(status.toString())
     }
+}
+
+/** Audit trail map for `/sync/push` after a successful replay. */
+fun auditPayload(command: QueuedCommand): Map<String, String> = buildMap {
+    put("operationId", command.operationId)
+    command.reason?.let { put("reason", it) }
+    command.actualLiters?.let { put("actualLiters", it.toString()) }
 }
 
 /** 409 after a timeout: treat as success when the server already moved into the command's state. */

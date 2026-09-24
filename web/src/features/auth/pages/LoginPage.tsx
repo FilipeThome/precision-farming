@@ -4,7 +4,6 @@ import { useNavigate } from 'react-router'
 import { useLoginMutation } from '@/features/auth/queries'
 import { ApiError } from '@/shared/api/client'
 import { useAuthStore } from '@/shared/auth/store'
-import { BrandLogo } from '@/shared/brand/BrandLogo'
 import { LocaleToggle } from '@/shared/i18n/LocaleToggle'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from '@/shared/ui/Button'
@@ -39,15 +38,20 @@ export function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ag-n-50 p-6">
       <Card className="w-full max-w-md p-8">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3 text-ag-g-800">
-            <BrandLogo variant="mark" decorative className="h-10 w-10 shrink-0" />
-            <div>
-              <h1 className="font-display text-xl font-bold">{t('chrome.brand')}</h1>
-              <p className="text-sm text-pf-muted">{t('login.subtitle')}</p>
+        <div className="mb-4">
+          <div className="flex items-center gap-3">
+            <img
+              src="/brand/precision-farming-logo.svg"
+              alt=""
+              className="block h-auto min-w-0 w-[min(100%,16rem)] max-w-[calc(100%-6.75rem)]"
+              draggable={false}
+            />
+            <div className="ml-auto shrink-0">
+              <LocaleToggle />
             </div>
           </div>
-          <LocaleToggle />
+          <h1 className="sr-only">{t('chrome.brand')}</h1>
+          <p className="text-sm text-pf-muted">{t('login.subtitle')}</p>
         </div>
         <form onSubmit={onSubmit} className="flex flex-col gap-4">
           <label htmlFor="email" className="flex flex-col gap-1 text-sm">

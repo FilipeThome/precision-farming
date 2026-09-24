@@ -43,6 +43,7 @@ import com.precisionfarming.mobile.data.FieldDto
 import com.precisionfarming.mobile.data.InventoryItemDto
 import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.data.OperationDto
+import com.precisionfarming.mobile.data.PrescriptionDto
 import com.precisionfarming.mobile.data.TimeFormat
 import com.precisionfarming.mobile.data.TodayOps
 import com.precisionfarming.mobile.data.byId
@@ -59,13 +60,18 @@ import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.data.offline.OpCommand
 import com.precisionfarming.mobile.data.offline.SyncState
 import com.precisionfarming.mobile.data.operations
+import com.precisionfarming.mobile.data.prescription
+import com.precisionfarming.mobile.data.prescriptions
+import com.precisionfarming.mobile.data.selectPrescription
 import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.ActualLitersSheet
 import com.precisionfarming.mobile.ui.components.AgCard
 import com.precisionfarming.mobile.ui.components.KpiCard
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.PauseReasonSheet
+import com.precisionfarming.mobile.ui.components.PrescriptionSummary
 import com.precisionfarming.mobile.ui.components.ScreenHeader
 import com.precisionfarming.mobile.ui.components.StatusTag
 import com.precisionfarming.mobile.ui.components.TagTone
@@ -86,6 +92,7 @@ private data class RunBundle(
     val fields: List<FieldDto>,
     val machines: List<MachineDto>,
     val items: List<InventoryItemDto>,
+    val prescription: PrescriptionDto?,
 )
 
 /**
@@ -96,6 +103,7 @@ private data class RunBundle(
 fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
     var state by remember { mutableStateOf<LoadState<RunBundle>>(LoadState.Loading) }
     var pauseSheet by remember { mutableStateOf(false) }
+    var completeSheet by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     fun reload() {
         scope.launch {
@@ -108,12 +116,23 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                     val fieldJob = async { runCatching { fields(farmId) }.getOrDefault(emptyList()) }
                     val machineJob = async { runCatching { machines(farmId) }.getOrDefault(emptyList()) }
                     val itemJob = async { runCatching { inventory(farmId) }.getOrDefault(emptyList()) }
+                    val rxJob = async { runCatching { prescriptions(farmId) }.getOrDefault(emptyList()) }
+                    val op = opJob.await().byId(operationId) { it.id }
+                    val list = rxJob.await()
+                    val selected = selectPrescription(op?.prescriptionId, op?.fieldId, list)
+                    val rxId = op?.prescriptionId
+                    val resolved = when {
+                        selected != null -> selected
+                        !rxId.isNullOrBlank() -> runCatching { prescription(rxId) }.getOrNull()
+                        else -> null
+                    }
                     RunBundle(
-                        operation = opJob.await().byId(operationId) { it.id },
+                        operation = op,
                         farms = farmJob.await(),
                         fields = fieldJob.await(),
                         machines = machineJob.await(),
                         items = itemJob.await(),
+                        prescription = resolved,
                     )
                 }
             }.fold(
@@ -184,6 +203,8 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
 
                     TimerCard(shown, zone)
 
+                    PrescriptionSummary(b.prescription)
+
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         KpiCard(
                             S.t("run.area"),
@@ -249,7 +270,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                         }
                         if (shown.canComplete()) {
                             Button(
-                                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(op.id, shown.status)) },
+                                onClick = { completeSheet = true },
                                 enabled = !busy,
                                 modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                                 shape = RoundedCornerShape(14.dp),
@@ -268,6 +289,19 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                             onConfirm = { reason ->
                                 pauseSheet = false
                                 OfflineRuntime.enqueueAndSync(OpCommand.Pause(op.id, reason, shown.status))
+                            },
+                        )
+                    }
+                    if (completeSheet) {
+                        ActualLitersSheet(
+                            onDismiss = { completeSheet = false },
+                            onConfirm = { liters ->
+                                completeSheet = false
+                                if (liters > 0.0) {
+                                    OfflineRuntime.enqueueAndSync(
+                                        OpCommand.Complete(op.id, shown.status, actualLiters = liters),
+                                    )
+                                }
                             },
                         )
                     }

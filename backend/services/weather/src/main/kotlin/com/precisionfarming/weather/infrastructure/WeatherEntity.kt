@@ -37,6 +37,23 @@ class WeatherWindowEntity(
     val notes: String?,
 )
 
+@Entity
+@Table(name = "planting_gate_configs")
+class PlantingGateEntity(
+    @Id val id: UUID,
+    @Column(name = "farm_id") val farmId: UUID,
+    val municipality: String,
+    val crop: String,
+    @Column(name = "zarc_start_month") val zarcStartMonth: Int,
+    @Column(name = "zarc_start_day") val zarcStartDay: Int,
+    @Column(name = "zarc_end_month") val zarcEndMonth: Int,
+    @Column(name = "zarc_end_day") val zarcEndDay: Int,
+    @Column(name = "void_start_month") val voidStartMonth: Int,
+    @Column(name = "void_start_day") val voidStartDay: Int,
+    @Column(name = "void_end_month") val voidEndMonth: Int,
+    @Column(name = "void_end_day") val voidEndDay: Int,
+)
+
 interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
     fun existsByFarmId(farmId: UUID): Boolean
     fun deleteByFarmId(farmId: UUID): Long
@@ -49,10 +66,19 @@ interface WeatherJpaRepository : JpaRepository<WeatherEntity, UUID> {
         farmId: UUID,
         forecastAt: Instant,
     ): WeatherEntity?
+    fun findByFarmIdAndForecastAtGreaterThanEqualAndForecastAtLessThanEqualOrderByForecastAtAsc(
+        farmId: UUID,
+        from: Instant,
+        to: Instant,
+    ): List<WeatherEntity>
 }
 
 interface WeatherWindowJpaRepository : JpaRepository<WeatherWindowEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<WeatherWindowEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<WeatherWindowEntity>
     fun findByFarmIdInAndWindowTypeIgnoreCase(farmIds: Collection<UUID>, windowType: String): List<WeatherWindowEntity>
+}
+
+interface PlantingGateJpaRepository : JpaRepository<PlantingGateEntity, UUID> {
+    fun findByFarmIdAndCropIgnoreCase(farmId: UUID, crop: String): PlantingGateEntity?
 }

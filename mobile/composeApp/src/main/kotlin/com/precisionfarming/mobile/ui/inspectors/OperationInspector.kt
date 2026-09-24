@@ -26,6 +26,7 @@ import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InventoryItemDto
 import com.precisionfarming.mobile.data.MachineDto
 import com.precisionfarming.mobile.data.OperationDto
+import com.precisionfarming.mobile.data.PrescriptionDto
 import com.precisionfarming.mobile.data.canComplete
 import com.precisionfarming.mobile.data.canPause
 import com.precisionfarming.mobile.data.canStart
@@ -36,11 +37,16 @@ import com.precisionfarming.mobile.data.machines
 import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.data.offline.OpCommand
 import com.precisionfarming.mobile.data.offline.SyncState
+import com.precisionfarming.mobile.data.prescription
+import com.precisionfarming.mobile.data.prescriptions
+import com.precisionfarming.mobile.data.selectPrescription
 import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.ui.components.ActualLitersSheet
 import com.precisionfarming.mobile.ui.components.InspectorKpiItem
 import com.precisionfarming.mobile.ui.components.InspectorKpis
 import com.precisionfarming.mobile.ui.components.PauseReasonSheet
+import com.precisionfarming.mobile.ui.components.PrescriptionSummary
 import com.precisionfarming.mobile.ui.components.StatusTag
 import com.precisionfarming.mobile.ui.components.TagTone
 import com.precisionfarming.mobile.ui.components.toneForStatus
@@ -55,10 +61,20 @@ fun OperationInspector(
 ) {
     var machines by remember { mutableStateOf<List<MachineDto>>(emptyList()) }
     var items by remember { mutableStateOf<List<InventoryItemDto>>(emptyList()) }
+    var rx by remember { mutableStateOf<PrescriptionDto?>(null) }
     var pauseSheet by remember { mutableStateOf(false) }
-    LaunchedEffect(FarmFilter.farmId) {
+    var completeSheet by remember { mutableStateOf(false) }
+    LaunchedEffect(FarmFilter.farmId, operation.id, operation.prescriptionId, operation.fieldId) {
         machines = runCatching { machines(FarmFilter.farmId) }.getOrDefault(emptyList())
         items = runCatching { inventory(FarmFilter.farmId) }.getOrDefault(emptyList())
+        val list = runCatching { prescriptions(FarmFilter.farmId) }.getOrDefault(emptyList())
+        val selected = selectPrescription(operation.prescriptionId, operation.fieldId, list)
+        rx = when {
+            selected != null -> selected
+            !operation.prescriptionId.isNullOrBlank() ->
+                runCatching { prescription(operation.prescriptionId) }.getOrNull()
+            else -> null
+        }
     }
     val queue by OfflineRuntime.queue.state.collectAsState()
     val shown = operation.withQueuedStatus(queue)
@@ -97,6 +113,7 @@ fun OperationInspector(
                 InspectorKpiItem(S.t("operations.kpi.inputs"), inputLabel),
             ),
         )
+        PrescriptionSummary(rx)
         if (!operation.pauseReason.isNullOrBlank()) {
             Text(S.t("operations.pauseMeta", "reason" to DomainLabels.label(operation.pauseReason)))
         }
@@ -126,7 +143,7 @@ fun OperationInspector(
         }
         if (shown.canComplete()) {
             Button(
-                onClick = { OfflineRuntime.enqueueAndSync(OpCommand.Complete(operation.id, shown.status)) },
+                onClick = { completeSheet = true },
                 enabled = !busy,
                 modifier = Modifier.heightIn(min = 48.dp).fillMaxWidth(),
                 shape = MaterialTheme.shapes.small,
@@ -146,6 +163,19 @@ fun OperationInspector(
             onConfirm = { reason ->
                 pauseSheet = false
                 OfflineRuntime.enqueueAndSync(OpCommand.Pause(operation.id, reason, shown.status))
+            },
+        )
+    }
+    if (completeSheet) {
+        ActualLitersSheet(
+            onDismiss = { completeSheet = false },
+            onConfirm = { liters ->
+                completeSheet = false
+                if (liters > 0.0) {
+                    OfflineRuntime.enqueueAndSync(
+                        OpCommand.Complete(operation.id, shown.status, actualLiters = liters),
+                    )
+                }
             },
         )
     }

@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router'
 
+import { EvidencePack } from '@/features/compliance/components/EvidencePack'
 import { TraceabilityChain } from '@/features/compliance/components/TraceabilityChain'
 import { useTraceabilityQuery } from '@/features/compliance/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
@@ -26,7 +27,7 @@ export function TraceabilityLotPage() {
       />
       <Link
         to="/compliance"
-        className="mb-4 inline-flex text-sm font-medium text-pf-teal hover:underline"
+        className="mb-4 inline-flex text-sm font-medium text-pf-teal hover:underline print-hide"
       >
         {t('compliance.lot.back')}
       </Link>
@@ -42,6 +43,7 @@ export function TraceabilityLotPage() {
       >
         <TraceabilityChain events={events} />
       </QueryPageState>
+      {lotCode ? <EvidencePack lotCode={lotCode} /> : null}
     </section>
   )
 }

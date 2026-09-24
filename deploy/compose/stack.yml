@@ -160,6 +160,7 @@ services:
     environment:
       <<: *jvm-env
       DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9094
     depends_on:
       postgres:
         condition: service_healthy

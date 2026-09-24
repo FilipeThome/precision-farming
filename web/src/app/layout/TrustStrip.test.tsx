@@ -11,7 +11,7 @@ const prescription = (id: string, status: string): Prescription => ({
   farmId: 'farm-1',
   fieldId: 'f1',
   product: 'X',
-  rate: 1,
+  plannedDose: 1,
   unit: 'L/ha',
   status,
   createdAt: '2026-09-10T08:00:00Z',

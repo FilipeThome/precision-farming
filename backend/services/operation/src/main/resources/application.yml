@@ -54,10 +54,14 @@ app:
     allow-demo-secrets: ${ALLOW_DEMO_SECRETS:false}
     issuer: precision-farming
   seed: ${APP_SEED:true}
+  kafka:
+    enabled: ${KAFKA_ENABLED:false}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:127.0.0.1:9092}
   clients:
     auth: ${AUTH_URL:http://localhost:8081}
     farm: ${FARM_URL:http://localhost:8082}
     asset: ${ASSET_URL:http://localhost:8083}
     inventory: ${INVENTORY_URL:http://localhost:8087}
+    agronomy: ${AGRONOMY_URL:http://localhost:8095}
     operation: ${OPERATION_URL:http://localhost:8086}
     weather: ${WEATHER_URL:http://localhost:8085}

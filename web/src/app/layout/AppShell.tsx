@@ -15,11 +15,15 @@ export function AppShell() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-ag-n-50">
-      <Rail />
+      <div className="print-hide">
+        <Rail />
+      </div>
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <div className="print-hide">
+          <Topbar />
+        </div>
         {!online ? (
-          <div className="bg-ag-n-800 px-5 py-1.5 text-xs font-medium text-[#e8e6df]" role="status">
+          <div className="print-hide bg-ag-n-800 px-5 py-1.5 text-xs font-medium text-[#e8e6df]" role="status">
             {t('chrome.offlineBanner')}
           </div>
         ) : null}

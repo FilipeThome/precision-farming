@@ -15,7 +15,9 @@ mobile/
 
 Gate iOS targets with `HostManager.hostIsMac`.
 
-Offline: enqueue mutations with `clientOperationId`, then `POST /api/v1/sync/push`. Google Maps via expect/actual — never a static satellite PNG.
+Offline: enqueue mutations with `clientOperationId`, then `POST /api/v1/sync/push`. The map tab plots field centroids in a Leaflet WebView (Esri imagery, same as web) when geometry parses. It is interim until the Google Maps SDK; there is still no static satellite PNG.
+
+The Windows slice stays `composeApp` (no `shared` / `iosApp` split yet). On an in-progress or paused operation the operator sees the linked prescription (`SPOT` or `BROADCAST`, dose, MoA, treated fraction) and must enter actual liters before complete. The offline queue replays `POST /api/v1/operations/{id}/complete` with `{ "actualLiters": ... }`. The server accepts only a positive amount up to the quantity reserved at start and releases the remainder. Planting-gate and EUDR screens are web-only.
 
 ## Toolchain
 

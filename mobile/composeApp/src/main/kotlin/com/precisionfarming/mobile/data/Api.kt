@@ -161,10 +161,19 @@ data class OperationDto(
     val itemId: String? = null,
     val itemQuantity: Double? = null,
     val areaHa: Double? = null,
+    val prescriptionId: String? = null,
+    val actualLiters: Double? = null,
 )
 
 @Serializable
 data class PauseRequest(val reason: String)
+
+@Serializable
+data class CompleteOpRequest(val actualLiters: Double)
+
+/** JSON body for POST /operations/{id}/complete when liters were captured. */
+fun completeOpBody(actualLiters: Double?): CompleteOpRequest? =
+    actualLiters?.let { CompleteOpRequest(it) }
 
 @Serializable
 data class AlertDto(
@@ -337,15 +346,23 @@ data class MaintenanceWorkOrderDto(
 @Serializable
 data class PrescriptionDto(
     val id: String,
-    val farmId: String,
+    val farmId: String = "",
     val fieldId: String,
-    val product: String,
-    val rate: Double,
-    val unit: String,
-    val status: String,
+    val product: String = "",
+    /** Legacy dose field; prefer [plannedDose] when present. */
+    val rate: Double = 0.0,
+    val plannedDose: Double? = null,
+    val unit: String = "",
+    val status: String = "",
+    /** SPOT or BROADCAST — never fabricate when absent. */
+    val mode: String? = null,
+    val treatedFraction: Double? = null,
+    val moaGroup: String? = null,
     val createdAt: String? = null,
     val approvedAt: String? = null,
-)
+) {
+    val dose: Double get() = plannedDose ?: rate
+}
 
 @Serializable
 data class MapLayerDto(
@@ -630,7 +647,15 @@ suspend fun pauseOp(id: String, reason: String, clientOperationId: String? = nul
     idempotency(clientOperationId)
 }
 
-suspend fun completeOp(id: String, clientOperationId: String? = null) = api.post("/api/v1/operations/$id/complete") {
+suspend fun completeOp(
+    id: String,
+    clientOperationId: String? = null,
+    actualLiters: Double? = null,
+) = api.post("/api/v1/operations/$id/complete") {
+    completeOpBody(actualLiters)?.let { body ->
+        contentType(ContentType.Application.Json)
+        setBody(body)
+    }
     idempotency(clientOperationId)
 }
 
@@ -647,6 +672,9 @@ suspend fun recommendations(farmId: String? = null) =
 
 suspend fun prescriptions(farmId: String? = null) =
     api.get("/api/v1/prescriptions") { farmQuery(farmId) }.body<List<PrescriptionDto>>()
+
+suspend fun prescription(id: String) =
+    api.get("/api/v1/prescriptions/$id").body<PrescriptionDto>()
 
 suspend fun approvePrescription(id: String) = api.post("/api/v1/prescriptions/$id/approve")
 
