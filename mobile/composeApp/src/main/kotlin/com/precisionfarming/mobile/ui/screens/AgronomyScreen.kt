@@ -121,7 +121,7 @@ fun AgronomyScreen(onBack: () -> Unit) {
             AgronomyTab.PRESCRIPTIONS -> LoadedList(
                 rx,
                 format = { p ->
-                    listOfNotNull(p.product, "${p.rate} ${p.unit}", p.status)
+                    listOfNotNull(p.product, "${p.dose} ${p.unit}", p.status)
                         .joinToString(" · ")
                         .ifBlank { p.id }
                 },

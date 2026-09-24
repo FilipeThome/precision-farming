@@ -12,6 +12,7 @@ sealed class OpCommand {
     abstract val type: OpCommandType
     open val reason: String? get() = null
     open val fromStatus: String? get() = null
+    open val actualLiters: Double? get() = null
 
     data class Start(
         override val operationId: String,
@@ -31,6 +32,7 @@ sealed class OpCommand {
     data class Complete(
         override val operationId: String,
         override val fromStatus: String? = null,
+        override val actualLiters: Double? = null,
     ) : OpCommand() {
         override val type: OpCommandType get() = OpCommandType.COMPLETE
     }

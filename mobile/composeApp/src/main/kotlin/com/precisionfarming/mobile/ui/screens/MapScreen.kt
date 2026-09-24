@@ -1,7 +1,10 @@
 package com.precisionfarming.mobile.ui.screens
 
+import android.webkit.WebView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -17,10 +20,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.FieldDto
 import com.precisionfarming.mobile.data.MapLayerDto
 import com.precisionfarming.mobile.data.OperationDto
+import com.precisionfarming.mobile.data.centroidOfGeometry
+import com.precisionfarming.mobile.data.fieldLeafletHtml
 import com.precisionfarming.mobile.data.fields
 import com.precisionfarming.mobile.data.mapLayers
 import com.precisionfarming.mobile.data.operations
@@ -83,7 +89,6 @@ fun MapScreen() {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         ScreenHeader(S.t("map.title"))
-        Text(S.t("map.noKey"), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         when (val s = state) {
             is LoadState.Loading -> Text(S.t("common.loading"))
             is LoadState.Err -> Text("${S.t("common.error")}: ${s.message}")
@@ -94,6 +99,39 @@ fun MapScreen() {
                         S.t("common.partialError"),
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                val points = b.fields.mapNotNull { field ->
+                    val centroid = centroidOfGeometry(field.geometry) ?: return@mapNotNull null
+                    (field.name ?: field.id) to centroid
+                }
+                if (points.isEmpty()) {
+                    Text(
+                        S.t("map.noGeometry"),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                } else {
+                    val html = fieldLeafletHtml(points)
+                    // Interim WebView until the Google Maps SDK (ADR-002).
+                    AndroidView(
+                        factory = { context ->
+                            WebView(context).apply {
+                                settings.javaScriptEnabled = true
+                                tag = html
+                                loadDataWithBaseURL("https://unpkg.com", html, "text/html", "UTF-8", null)
+                            }
+                        },
+                        update = { webView ->
+                            if (webView.tag != html) {
+                                webView.tag = html
+                                webView.loadDataWithBaseURL("https://unpkg.com", html, "text/html", "UTF-8", null)
+                            }
+                        },
+                        onRelease = { it.destroy() },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(280.dp),
                     )
                 }
                 FieldStatusList(fields = b.fields, operations = b.operations)

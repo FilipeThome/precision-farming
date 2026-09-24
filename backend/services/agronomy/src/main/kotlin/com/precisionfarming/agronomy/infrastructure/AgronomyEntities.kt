@@ -57,12 +57,21 @@ class PrescriptionEntity(
     @Id val id: UUID,
     @Column(name = "farm_id") val farmId: UUID,
     @Column(name = "field_id") val fieldId: UUID,
-    val product: String,
-    val rate: BigDecimal,
-    val unit: String,
+    var product: String,
+    var rate: BigDecimal,
+    var unit: String,
     var status: String,
     @Column(name = "created_at") val createdAt: Instant,
     @Column(name = "approved_at") var approvedAt: Instant? = null,
+    var mode: String = "BROADCAST",
+    @Column(name = "treated_fraction") var treatedFraction: BigDecimal = BigDecimal.ONE,
+    @Column(name = "active_ingredient") var activeIngredient: String? = null,
+    @Column(name = "moa_group") var moaGroup: String? = null,
+    @Column(name = "receituario_number") var receituarioNumber: String? = null,
+    @Column(name = "responsible_tech_cpf") var responsibleTechCpf: String? = null,
+    @Column(name = "phi_days") var phiDays: Int? = null,
+    @Column(name = "reentry_hours") var reentryHours: Int? = null,
+    @Column(name = "field_area_ha") var fieldAreaHa: BigDecimal? = null,
 )
 
 interface ScoutingJpaRepository : JpaRepository<ScoutingEntity, UUID> {
@@ -83,4 +92,5 @@ interface RecommendationJpaRepository : JpaRepository<RecommendationEntity, UUID
 interface PrescriptionJpaRepository : JpaRepository<PrescriptionEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<PrescriptionEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<PrescriptionEntity>
+    fun findByFieldId(fieldId: UUID): List<PrescriptionEntity>
 }

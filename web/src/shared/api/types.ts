@@ -74,6 +74,10 @@ export type Operation = {
   itemId: string | null
   itemQuantity: number | null
   areaHa: number | null
+  /** Linked prescription when the operation is a spray job. */
+  prescriptionId?: string | null
+  /** Actual product volume applied (liters), when reported. */
+  actualLiters?: number | null
 }
 
 export type MachineMetrics = {
@@ -213,16 +217,104 @@ export type AgronomyRecommendation = {
   createdAt?: string
 }
 
+export type PrescriptionMode = 'BROADCAST' | 'SPOT'
+
 export type Prescription = {
   id: string
   farmId: string
   fieldId: string
   product: string
-  rate: number
+  mode?: PrescriptionMode | string | null
+  treatedFraction?: number | null
+  plannedDose: number
   unit: string
+  activeIngredient?: string | null
+  moaGroup?: string | null
+  receituarioNumber?: string | null
+  responsibleTechCpf?: string | null
+  phiDays?: number | null
+  reentryHours?: number | null
+  fieldAreaHa?: number | null
   status: string
   createdAt: string
   approvedAt: string | null
+}
+
+export type SpraySavings = {
+  prescriptionId: string
+  fieldId: string
+  mode: string
+  fieldAreaHa: number
+  treatedHa: number
+  fullRateHa: number
+  litersFullRate: number
+  litersSpot: number
+  litersAvoided: number
+  litersPerHa: number
+  unit: string
+  simulation?: boolean
+}
+
+export type MoaRotation = {
+  fieldId: string
+  moaGroup: string
+  warning: boolean
+  prescriptionIds: string[]
+  simulation?: boolean
+}
+
+export type EvidencePack = {
+  lotCode: string
+  farmId: string
+  farmName: string
+  fieldId: string
+  fieldName: string
+  polygonGeoJson: unknown
+  inputRefs: unknown
+  receituarioNumber: string | null
+  activeIngredient: string | null
+  moaGroup: string | null
+  responsibleTechCpf: string | null
+  phiDays: number | null
+  deforestationCutoffDate: string | null
+  embargoed: boolean
+  carStatus: string | null
+  simulation?: boolean
+}
+
+export type CreditDossier = {
+  farmId: string
+  carCode: string | null
+  carStatus: string | null
+  embargoed: boolean
+  deforestationCutoffDate: string | null
+  deforestationClear: boolean
+  zarcCompliant: boolean
+  remoteSensingNote: string | null
+  simulation?: boolean
+}
+
+export type PlantingGate = {
+  farmId: string
+  municipality: string | null
+  crop: string
+  date: string
+  decision: 'ALLOWED' | 'BLOCKED' | string
+  reason: 'ZARC_OUT_OF_WINDOW' | 'SANITARY_VOID' | string | null
+  simulation?: boolean
+}
+
+export type ParametricIndexDay = {
+  date: string
+  rainMm: number
+  waterDeficitMm: number
+  frostRisk: boolean | string | number
+}
+
+export type ParametricIndex = {
+  farmId: string
+  simulation?: boolean
+  days: ParametricIndexDay[]
 }
 
 export type WeatherWindow = {

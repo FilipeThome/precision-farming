@@ -1,3 +1,4 @@
+import { PlantingGateCard } from '@/features/seasons/components/PlantingGateCard'
 import type { Season } from '@/shared/api/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
@@ -17,6 +18,7 @@ export function SeasonInspector({ season }: { season: Season }) {
       <p className="text-xs text-pf-muted">
         {date(season.startDate)} – {date(season.endDate)}
       </p>
+      <PlantingGateCard season={season} />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 
+import { MoaWarningsPanel } from '@/features/agronomy/components/MoaWarningsPanel'
 import { PrescriptionList } from '@/features/agronomy/components/PrescriptionList'
 import {
   usePrescriptionsQuery,
@@ -16,7 +17,7 @@ import { QueryPageState } from '@/shared/ui/QueryPageState'
 import { SectionTabs } from '@/shared/ui/SectionTabs'
 import { useUiStore } from '@/shared/ui/uiStore'
 
-type Tab = 'scouting' | 'soil' | 'recommendations' | 'prescriptions'
+type Tab = 'scouting' | 'soil' | 'recommendations' | 'prescriptions' | 'moa'
 
 export function AgronomyPage() {
   const farmId = useUiStore((s) => s.farmId)
@@ -26,7 +27,29 @@ export function AgronomyPage() {
   const scouting = useScoutingQuery(farmId, { enabled: tab === 'scouting' })
   const soil = useSoilSamplesQuery(farmId, { enabled: tab === 'soil' })
   const recommendations = useRecommendationsQuery(farmId, { enabled: tab === 'recommendations' })
-  const prescriptions = usePrescriptionsQuery(farmId, { enabled: tab === 'prescriptions' })
+  const prescriptions = usePrescriptionsQuery(farmId, {
+    enabled: tab === 'prescriptions' || tab === 'moa',
+  })
+
+  if (tab === 'moa') {
+    return (
+      <section>
+        <PageHeader title={t('agronomy.title')} description={t('agronomy.description')} />
+        <SectionTabs
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'scouting', labelKey: 'agronomy.tab.scouting' },
+            { id: 'soil', labelKey: 'agronomy.tab.soil' },
+            { id: 'recommendations', labelKey: 'agronomy.tab.recommendations' },
+            { id: 'prescriptions', labelKey: 'agronomy.tab.prescriptions' },
+            { id: 'moa', labelKey: 'agronomy.tab.moa' },
+          ]}
+        />
+        <MoaWarningsPanel farmId={farmId} />
+      </section>
+    )
+  }
 
   const active =
     tab === 'scouting'
@@ -66,6 +89,7 @@ export function AgronomyPage() {
           { id: 'soil', labelKey: 'agronomy.tab.soil' },
           { id: 'recommendations', labelKey: 'agronomy.tab.recommendations' },
           { id: 'prescriptions', labelKey: 'agronomy.tab.prescriptions' },
+          { id: 'moa', labelKey: 'agronomy.tab.moa' },
         ]}
       />
       <QueryPageState

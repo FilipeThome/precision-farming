@@ -44,7 +44,7 @@ describe('LoginPage', () => {
     renderLogin()
     expect(screen.getByRole('heading', { name: 'Precision Farming' })).toBeInTheDocument()
     const mark = document.querySelector('img')
-    expect(mark).toHaveAttribute('src', '/brand/precision-mark.svg')
+    expect(mark).toHaveAttribute('src', '/brand/precision-farming-logo.svg')
     expect(mark).toHaveAttribute('alt', '')
   })
 

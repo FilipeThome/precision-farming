@@ -139,6 +139,10 @@ spring:
               uri: ${COMPLIANCE_URL:http://localhost:8099}
               predicates:
                 - Path=/api/v1/esg/**
+            - id: compliance
+              uri: ${COMPLIANCE_URL:http://localhost:8099}
+              predicates:
+                - Path=/api/v1/compliance/**
             - id: seed-farm
               uri: ${FARM_URL:http://localhost:8082}
               predicates:

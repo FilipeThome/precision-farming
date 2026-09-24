@@ -130,3 +130,18 @@ textarea:focus-visible,
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+@media print {
+  .print-hide {
+    display: none !important;
+  }
+
+  body {
+    background: white;
+  }
+
+  main {
+    overflow: visible !important;
+    padding: 0 !important;
+  }
+}

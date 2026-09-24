@@ -1,5 +1,6 @@
 package com.precisionfarming.operation.api
 
+import com.precisionfarming.operation.application.CompleteOperation
 import com.precisionfarming.operation.application.CreateOperation
 import com.precisionfarming.operation.application.OperationService
 import com.precisionfarming.security.FarmAccess
@@ -50,7 +51,8 @@ class OperationController(
 
     @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER','OPERATOR')")
     @PostMapping("/{id}/complete")
-    fun complete(@PathVariable id: UUID) = svc.complete(farmAccess.current(), id)
+    fun complete(@PathVariable id: UUID, @RequestBody(required = false) body: CompleteOperation?) =
+        svc.complete(farmAccess.current(), id, body ?: CompleteOperation())
 }
 
 @RestController

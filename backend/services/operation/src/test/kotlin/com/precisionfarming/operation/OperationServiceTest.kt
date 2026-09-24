@@ -5,11 +5,14 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.operation.application.CompleteOperation
 import com.precisionfarming.operation.application.CreateOperation
 import com.precisionfarming.operation.application.OperationService
+import com.precisionfarming.operation.infrastructure.AgronomyPrescriptionClient
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
+import com.precisionfarming.operation.infrastructure.PrescriptionRef
 import com.precisionfarming.operation.infrastructure.SagaEntity
 import com.precisionfarming.operation.infrastructure.SagaJpaRepository
 import com.precisionfarming.security.AccessScope
@@ -17,6 +20,7 @@ import com.precisionfarming.security.DemoTenant
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import io.mockk.verifyOrder
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -35,6 +39,7 @@ class OperationServiceTest {
     private val repo = mockk<OperationJpaRepository>()
     private val sagas = mockk<SagaJpaRepository>()
     private val inventory = mockk<InventorySagaClient>(relaxUnitFun = true)
+    private val agronomy = mockk<AgronomyPrescriptionClient>()
     private val tx = object : PlatformTransactionManager {
         override fun getTransaction(definition: TransactionDefinition?): TransactionStatus = SimpleTransactionStatus()
         override fun commit(status: TransactionStatus) {}
@@ -43,7 +48,7 @@ class OperationServiceTest {
     private val fieldFarms = mockk<com.precisionfarming.security.FieldFarmGuard>(relaxUnitFun = true)
     private val machineFarms = mockk<com.precisionfarming.security.MachineFarmGuard>(relaxUnitFun = true)
     private val itemFarms = mockk<com.precisionfarming.security.ItemFarmGuard>(relaxUnitFun = true)
-    private val svc = OperationService(repo, sagas, inventory, tx, fieldFarms, machineFarms, itemFarms)
+    private val svc = OperationService(repo, sagas, inventory, agronomy, tx, fieldFarms, machineFarms, itemFarms)
 
     private fun scopeFor(op: OperationEntity) = AccessScope(DemoTenant.ID, setOf(op.farmId), "OPERATOR")
 
@@ -59,6 +64,121 @@ class OperationServiceTest {
         assertEquals("IN_PROGRESS", dto.status)
         verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId) }
         verify(exactly = 0) { inventory.move(any(), "RELEASE", any(), any(), any()) }
+        verify(exactly = 0) { agronomy.get(any(), any()) }
+    }
+
+    @Test
+    fun startBlockedWhenPrescriptionNotApproved() {
+        val rxId = UUID.randomUUID()
+        val op = operation("PLANNED").also { it.prescriptionId = rxId }
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers { firstArg<OperationEntity>() }
+        every { agronomy.get(rxId, op.farmId) } returns PrescriptionRef(rxId, op.farmId, op.fieldId, "DRAFT")
+
+        val ex = assertThrows(ConflictException::class.java) { svc.start(scopeFor(op), op.id) }
+        assertEquals("PRESCRIPTION_NOT_APPROVED", ex.code)
+        assertEquals("PLANNED", op.status)
+        verify(exactly = 1) { agronomy.get(rxId, op.farmId) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { repo.save(any()) }
+    }
+
+    @Test
+    fun startRethrowsAgronomyNotFoundWithoutChangingStatus() {
+        val rxId = UUID.randomUUID()
+        val op = operation("PLANNED").also { it.prescriptionId = rxId }
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { agronomy.get(rxId, op.farmId) } throws NotFoundException("PRESCRIPTION_NOT_FOUND", "Prescription not found")
+
+        val ex = assertThrows(NotFoundException::class.java) { svc.start(scopeFor(op), op.id) }
+        assertEquals("PRESCRIPTION_NOT_FOUND", ex.code)
+        assertEquals("PLANNED", op.status)
+        verify(exactly = 0) { repo.save(any()) }
+    }
+
+    @Test
+    fun startWhenApprovedCallsAgronomyThenInventory() {
+        val rxId = UUID.randomUUID()
+        val op = operation("PLANNED").also { it.prescriptionId = rxId }
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers { firstArg<OperationEntity>() }
+        every { agronomy.get(rxId, op.farmId) } returns PrescriptionRef(rxId, op.farmId, op.fieldId, "APPROVED")
+
+        val dto = svc.start(scopeFor(op), op.id)
+
+        assertEquals("IN_PROGRESS", dto.status)
+        verifyOrder {
+            agronomy.get(rxId, op.farmId)
+            inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId)
+        }
+    }
+
+    @Test
+    fun completePersistsActualLitersAndPassesToConsume() {
+        val op = operation("IN_PROGRESS")
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers { firstArg<OperationEntity>() }
+        val actual = BigDecimal("12.5")
+
+        val dto = svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = actual))
+
+        assertEquals("COMPLETED", dto.status)
+        assertEquals(0, actual.compareTo(dto.actualLiters))
+        verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", actual, op.id.toString(), op.farmId) }
+        verify(exactly = 1) {
+            inventory.move(op.itemId!!, "RELEASE", BigDecimal("7.5"), op.id.toString(), op.farmId)
+        }
+    }
+
+    @Test
+    fun completeFailureDoesNotKeepActualLiters() {
+        val op = operation("IN_PROGRESS")
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers { firstArg<OperationEntity>() }
+        every { inventory.move(any(), "CONSUME", any(), any(), any()) } throws RuntimeException("stock down")
+
+        val ex = assertThrows(ConflictException::class.java) {
+            svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("12.5")))
+        }
+        assertEquals("SAGA_FAILED", ex.code)
+        assertEquals("IN_PROGRESS", op.status)
+        assertEquals(null, op.actualLiters)
+        verify(exactly = 0) { inventory.move(any(), "IN", any(), any(), any()) }
+    }
+
+    @Test
+    fun completeRejectsNonPositiveOrHugeLitersBeforeStatusChange() {
+        val op = operation("IN_PROGRESS")
+        every { repo.findById(op.id) } returns Optional.of(op)
+
+        val negative = assertThrows(DomainException::class.java) {
+            svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("-1")))
+        }
+        val huge = assertThrows(DomainException::class.java) {
+            svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("100001")))
+        }
+        assertEquals("ACTUAL_LITERS_INVALID", negative.code)
+        assertEquals("ACTUAL_LITERS_INVALID", huge.code)
+        assertEquals("IN_PROGRESS", op.status)
+        verify(exactly = 0) { repo.save(any()) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun completeRejectsLitersAboveReservedQuantity() {
+        val op = operation("IN_PROGRESS")
+        every { repo.findById(op.id) } returns Optional.of(op)
+
+        val ex = assertThrows(DomainException::class.java) {
+            svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("20.1")))
+        }
+        assertEquals("ACTUAL_LITERS_INVALID", ex.code)
+        assertEquals("IN_PROGRESS", op.status)
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
     }
 
     @Test

@@ -25,7 +25,7 @@ const prescription: Prescription = {
   farmId: 'farm-1',
   fieldId: 'field-1',
   product: 'GLYPHOSATE',
-  rate: 2.5,
+  plannedDose: 2.5,
   unit: 'L/ha',
   status: 'DRAFT',
   createdAt: '2026-09-10T08:00:00Z',
@@ -150,7 +150,7 @@ describe('toDecisionItems – all-optional DTOs and unresolved ids', () => {
   })
 
   it('drops non-finite quantities and confidences', () => {
-    const [p] = toDecisionItems({ prescriptions: [{ ...prescription, rate: Number.NaN }] })
+    const [p] = toDecisionItems({ prescriptions: [{ ...prescription, plannedDose: Number.NaN }] })
     expect(p.quantity).toBeUndefined()
     const [i] = toDecisionItems({ irrigation: [{ id: 'i1', volumeMm: Number.POSITIVE_INFINITY }] })
     expect(i.quantity).toBeUndefined()

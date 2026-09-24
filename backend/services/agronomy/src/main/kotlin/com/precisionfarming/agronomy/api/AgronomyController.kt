@@ -4,7 +4,9 @@ import com.precisionfarming.agronomy.application.AgronomyService
 import com.precisionfarming.agronomy.application.CreatePrescription
 import com.precisionfarming.agronomy.application.CreateScouting
 import com.precisionfarming.agronomy.application.CreateSoilSample
+import com.precisionfarming.agronomy.domain.prescriptionIsoxml as buildPrescriptionIsoxml
 import com.precisionfarming.security.FarmAccess
+import org.springframework.http.MediaType
 import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -45,6 +47,22 @@ class AgronomyController(
     fun listPrescriptions(@RequestParam(required = false) farmId: UUID?) =
         svc.listPrescriptions(farmAccess.current(), farmId)
 
+    /** Declared before /{id} so moa-rotation is not captured as an id. */
+    @GetMapping("/prescriptions/moa-rotation")
+    fun moaRotation(@RequestParam fieldId: UUID) =
+        svc.moaRotation(farmAccess.current(), fieldId)
+
+    @GetMapping("/prescriptions/{id}")
+    fun getPrescription(@PathVariable id: UUID) =
+        svc.getPrescription(farmAccess.current(), id)
+
+    @GetMapping("/prescriptions/{id}/isoxml", produces = [MediaType.APPLICATION_XML_VALUE])
+    fun getPrescriptionIsoxml(@PathVariable id: UUID): String {
+        val rx = svc.getPrescription(farmAccess.current(), id)
+        return buildPrescriptionIsoxml(rx.id, rx.product, rx.plannedDose, rx.unit, rx.treatedFraction)
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PostMapping("/prescriptions")
     fun createPrescription(@RequestBody body: CreatePrescription) =
         svc.createPrescription(farmAccess.current(), body)
@@ -52,6 +70,14 @@ class AgronomyController(
     @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
     @PostMapping("/prescriptions/{id}/approve")
     fun approve(@PathVariable id: UUID) = svc.approvePrescription(farmAccess.current(), id)
+
+    @PreAuthorize("hasAnyRole('ADMIN','FARM_MANAGER')")
+    @PostMapping("/prescriptions/{id}/reject")
+    fun reject(@PathVariable id: UUID) = svc.rejectPrescription(farmAccess.current(), id)
+
+    @GetMapping("/prescriptions/{id}/spray-savings")
+    fun spraySavings(@PathVariable id: UUID) =
+        svc.spraySavings(farmAccess.current(), id)
 }
 
 @RestController

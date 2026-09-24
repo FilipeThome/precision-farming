@@ -47,6 +47,12 @@ springdoc:
     enabled: ${SPRINGDOC_ENABLED:false}
   swagger-ui:
     enabled: ${SPRINGDOC_ENABLED:false}
+weather:
+  provider: ${WEATHER_PROVIDER:demo}
+  mapa:
+    live: ${MAPA_LIVE:false}
+    timeout-ms: 2500
+    datastore-url: https://dados.agricultura.gov.br/api/3/action/datastore_search
 app:
   security:
     jwt-public-key: ${JWT_PUBLIC_KEY:}

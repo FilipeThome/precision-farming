@@ -7,8 +7,10 @@ import {
   type OpsStatusFilter,
 } from '@/features/operations/components/OpsStatusFilters'
 import { useOperationCommands, useOperationsQuery } from '@/features/operations/queries'
+import { ApiError } from '@/shared/api/client'
 import { opsStatusBars } from '@/shared/charts/adapters'
 import { useI18n } from '@/shared/i18n/useI18n'
+import type { MessageKey } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'
 import { useSelectedId } from '@/shared/lib/useSelectedId'
@@ -22,6 +24,19 @@ import { useUiStore } from '@/shared/ui/uiStore'
 
 type ViewMode = 'list' | 'board'
 
+function commandErrorCopy(
+  error: unknown,
+  t: (key: MessageKey) => string,
+): { message: string; correlationId?: string } {
+  if (error instanceof ApiError && error.code === 'PRESCRIPTION_NOT_APPROVED') {
+    return {
+      message: t('operations.error.PRESCRIPTION_NOT_APPROVED'),
+      correlationId: error.correlationId,
+    }
+  }
+  return queryError(error)
+}
+
 export function OperationsPage() {
   const farmId = useUiStore((s) => s.farmId)
   const operations = useOperationsQuery(farmId)
@@ -34,10 +49,8 @@ export function OperationsPage() {
   const { selectedId, setSelectedId } = useSelectedId()
   const selected = (operations.data ?? []).find((op) => op.id === selectedId)
   const err = queryError(operations.error)
-  const commandError =
-    commands.start.error || commands.pause.error || commands.complete.error
-      ? queryError(commands.start.error || commands.pause.error || commands.complete.error)
-      : null
+  const rawCommandError = commands.start.error || commands.pause.error || commands.complete.error
+  const commandError = rawCommandError ? commandErrorCopy(rawCommandError, t) : null
 
   const filtered = (operations.data ?? []).filter(
     (op) => statusFilter === 'ALL' || op.status === statusFilter,

@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.data.TimeFormat
+import com.precisionfarming.mobile.data.formatNumber
 import com.precisionfarming.mobile.data.offline.OfflineRuntime
 import com.precisionfarming.mobile.data.offline.QueuedCommand
 import com.precisionfarming.mobile.data.offline.SyncState
@@ -172,6 +173,7 @@ private fun QueueRow(cmd: QueuedCommand, zone: ZoneId, onDismiss: () -> Unit) {
     val title = listOfNotNull(
         S.t("sync.cmd.${cmd.type.name}"),
         cmd.reason?.let { "“$it”" },
+        cmd.actualLiters?.let { "${formatNumber(it)} L" },
         TimeFormat.clock(cmd.createdAt, zone),
     ).joinToString(" · ")
     val stateLabel = S.t("sync.state.${cmd.state.name}")

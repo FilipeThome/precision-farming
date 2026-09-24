@@ -45,8 +45,9 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 
 - API gateway: http://localhost:8080  
 - Web: http://localhost:5173  
-- Login: `manager@precisionfarming.demo` / `Precision@123`  
+- Login: `manager@precisionfarming.demo` / `Precision@123`
 - Seeds: `APP_SEED=true` in `demo.env` (copied from `demo.env.example` on first compose-up)
+- Weather stays on the deterministic demo series unless the weather service gets `WEATHER_PROVIDER=open-meteo` (Open-Meteo, no API key). The default is `demo`, so Compose does not need outbound weather access.
 - `SPRINGDOC_ENABLED=true` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
 - `AUTH_RATE_LIMIT` applies to auth login/refresh
 
@@ -58,7 +59,7 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 | `fleet` | asset, telemetry |
 | `ops` | operation, inventory, alert |
 | `domains` | agronomy, irrigation, harvest, finance, compliance |
-| `all` | every backend service + gateway + web |
+| `all` | every backend service + gateway + web. Required for the investor loop (weather, agronomy, compliance). `core` alone does not start those services. |
 | per-name | `auth`, `farm`, `gateway`, … |
 
 ## Single service overlay
