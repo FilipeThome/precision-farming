@@ -173,7 +173,7 @@ class WeatherService(
         to: LocalDate?,
     ): ParametricIndexDto {
         scope.requireFarm(farmId)
-        ensureForecast(farmId)
+        if (refreshLive(farmId) == null) ensureForecast(farmId)
         val end = to ?: LocalDate.now(ZoneOffset.UTC)
         val start = from ?: end.minusDays(13)
         val fromInstant = start.atStartOfDay().toInstant(ZoneOffset.UTC)

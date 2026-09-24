@@ -30,6 +30,8 @@ class HttpMapaZarcLookup(
             )
             .build()
     },
+    private val maxPages: Int = MAX_PAGES,
+    private val pageSize: Int = PAGE_SIZE,
 ) : MapaZarcLookup {
 
     private val budgetMs = timeoutMs.coerceIn(1, 3000)
@@ -39,7 +41,8 @@ class HttpMapaZarcLookup(
             val deadlineNs = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(budgetMs.toLong())
             val records = JsonNodeFactory.instance.arrayNode()
             var offset = 0
-            for (pageIndex in 0 until MAX_PAGES) {
+            var complete = false
+            for (pageIndex in 0 until maxPages) {
                 val remainingMs = remainingMs(deadlineNs)
                 if (remainingMs <= 0) break
                 val uri = UriComponentsBuilder.fromUriString(datastoreUrl)
@@ -48,7 +51,7 @@ class HttpMapaZarcLookup(
                             queryParam("resource_id", DEFAULT_RESOURCE_ID)
                         }
                         if (municipality.isNotBlank()) queryParam("q", municipality)
-                        queryParam("limit", PAGE_SIZE)
+                        queryParam("limit", pageSize)
                         queryParam("offset", offset)
                     }
                     .encode()
@@ -56,13 +59,21 @@ class HttpMapaZarcLookup(
                     .toUri()
                 val body = httpFactory(remainingMs).get().uri(uri).retrieve().body(String::class.java) ?: break
                 val page = ObjectMapper().readTree(body).path("result").path("records")
-                if (!page.isArray || page.isEmpty()) break
+                if (!page.isArray) break
+                if (page.isEmpty) {
+                    complete = true
+                    break
+                }
                 page.forEach { records.add(it) }
-                if (page.size() < PAGE_SIZE) break
-                offset += PAGE_SIZE
+                if (page.size() < pageSize) {
+                    complete = true
+                    break
+                }
+                offset += pageSize
                 if (remainingMs(deadlineNs) <= 0) break
             }
-            if (records.isEmpty()) return null
+            // Partial fetch (timeout / page cap / null body mid-stream) must not look "live".
+            if (!complete || records.isEmpty()) return null
             parseMapaZarcWindow(wrapped(records), crop, municipality)
         } catch (_: Exception) {
             null

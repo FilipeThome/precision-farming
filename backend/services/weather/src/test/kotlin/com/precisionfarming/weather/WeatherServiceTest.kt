@@ -57,6 +57,52 @@ class WeatherServiceTest {
     }
 
     @Test
+    fun parametricIndexRefreshesLiveProviderBeforeReading() {
+        val farmId = DemoIds.uuid("farm-001")
+        val at = LocalDate.of(2026, 9, 20).atStartOfDay().toInstant(ZoneOffset.UTC)
+        val liveId = UUID.randomUUID()
+        val provider = object : WeatherProvider {
+            override fun isLive() = true
+            override fun demoForecast(farmId: UUID) = listOf(
+                WeatherDto(
+                    liveId, farmId, at,
+                    BigDecimal("18"), BigDecimal("30"), BigDecimal("1.0"),
+                    BigDecimal("10"), BigDecimal("8"), BigDecimal("60"), "FAVORABLE", "open-meteo",
+                ),
+            )
+        }
+        val live = WeatherService(repo, windows, gates, provider)
+        every { repo.saveAll(any<List<WeatherEntity>>()) } answers { firstArg() }
+        every { repo.findByFarmIdOrderByForecastAtAsc(farmId) } returns listOf(
+            WeatherEntity(
+                liveId, farmId, at,
+                BigDecimal("18"), BigDecimal("30"), BigDecimal("1.0"),
+                BigDecimal("10"), BigDecimal("8"), BigDecimal("60"), "FAVORABLE", "open-meteo",
+            ),
+        )
+        every { repo.deleteAll(any<List<WeatherEntity>>()) } returns Unit
+        every {
+            repo.findByFarmIdAndForecastAtGreaterThanEqualAndForecastAtLessThanEqualOrderByForecastAtAsc(
+                farmId, any(), any(),
+            )
+        } returns listOf(
+            WeatherEntity(
+                liveId, farmId, at,
+                BigDecimal("18"), BigDecimal("30"), BigDecimal("1.0"),
+                BigDecimal("10"), BigDecimal("8"), BigDecimal("60"), "FAVORABLE", "open-meteo",
+            ),
+        )
+        val dto = live.parametricIndex(
+            AccessScope(DemoTenant.ID, setOf(farmId), "OPERATOR"),
+            farmId,
+            LocalDate.of(2026, 9, 20),
+            LocalDate.of(2026, 9, 20),
+        )
+        assertEquals(false, dto.simulation)
+        verify(exactly = 1) { repo.saveAll(any<List<WeatherEntity>>()) }
+    }
+
+    @Test
     fun liveForecastKeepsStoredRowsWhenSaveFails() {
         val farmId = DemoIds.uuid("farm-001")
         val freshId = UUID.randomUUID()
