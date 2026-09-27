@@ -26,6 +26,8 @@ data class QueuedCommand(
     val userId: String? = null,
     /** Status the command was issued from, so projection can tell a stale GET from a later move. */
     val fromStatus: String? = null,
+    /** Liters applied at complete time; replayed in POST /complete body. */
+    val actualLiters: Double? = null,
 ) {
     val isOpen: Boolean get() = state == SyncState.PENDING || state == SyncState.SYNCING
 }

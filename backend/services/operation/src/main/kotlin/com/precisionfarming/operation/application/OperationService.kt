@@ -5,6 +5,7 @@ import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.DomainException
 import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
+import com.precisionfarming.operation.infrastructure.AgronomyPrescriptionClient
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.FieldFarmGuard
@@ -31,23 +32,29 @@ data class OperationDto(
     val plannedStart: Instant?, val plannedEnd: Instant?, val actualStart: Instant?, val actualEnd: Instant?,
     val machineId: UUID?, val pauseReason: String?, val itemId: UUID?, val itemQuantity: BigDecimal?,
     val areaHa: BigDecimal?,
+    val prescriptionId: UUID? = null,
+    val actualLiters: BigDecimal? = null,
 )
 data class CreateOperation(
     val fieldId: UUID, val farmId: UUID, val type: String,
     val plannedStart: Instant?, val plannedEnd: Instant?,
     val machineId: UUID?, val itemId: UUID?, val itemQuantity: BigDecimal?,
     val areaHa: BigDecimal? = null,
+    val prescriptionId: UUID? = null,
 )
+data class CompleteOperation(val actualLiters: BigDecimal? = null)
 
 @Service
 class OperationService(
     private val repo: OperationJpaRepository,
     private val sagas: SagaJpaRepository,
     private val inventory: InventorySagaClient,
+    private val agronomy: AgronomyPrescriptionClient,
     private val txManager: PlatformTransactionManager,
     private val fieldFarms: FieldFarmGuard,
     private val machineFarms: MachineFarmGuard,
     private val itemFarms: ItemFarmGuard,
+    private val events: OperationEvents = NoOpOperationEvents,
 ) {
     private fun <T> inTx(block: () -> T): T = TransactionTemplate(txManager).execute { block() }!!
 
@@ -85,44 +92,65 @@ class OperationService(
         }
     }
 
-    @Transactional
     fun create(scope: AccessScope, cmd: CreateOperation): OperationDto {
         scope.requireFarm(cmd.farmId)
         fieldFarms.requireBelongsToFarm(cmd.fieldId, cmd.farmId)
         cmd.machineId?.let { machineFarms.requireBelongsToFarm(it, cmd.farmId) }
         cmd.itemId?.let { itemFarms.requireBelongsToFarm(it, cmd.farmId) }
         requireAreaHa(cmd.areaHa)
-        return repo.save(
-            OperationEntity(
-                UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
-                cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity, cmd.areaHa,
-            ),
-        ).toDto()
+        // HTTP outside DB transaction
+        cmd.prescriptionId?.let { rxId ->
+            val rx = agronomy.get(rxId, cmd.farmId)
+            if (rx.farmId != cmd.farmId || rx.fieldId != cmd.fieldId) {
+                throw DomainException("PRESCRIPTION_FARM_MISMATCH", "Prescription farm/field does not match operation")
+            }
+        }
+        return inTx {
+            repo.save(
+                OperationEntity(
+                    UUID.randomUUID(), cmd.fieldId, cmd.farmId, cmd.type, "PLANNED",
+                    cmd.plannedStart, cmd.plannedEnd, null, null, cmd.machineId, null, cmd.itemId, cmd.itemQuantity, cmd.areaHa,
+                    cmd.prescriptionId, null,
+                ),
+            ).toDto()
+        }
     }
 
     fun start(scope: AccessScope, id: UUID): OperationDto {
-        val (needsReserve, previousStatus) = inTx {
+        val preview = inTx {
             val op = load(scope, id)
             if (op.status != "PLANNED" && op.status != "PAUSED") {
                 throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
             }
-            val reserve = op.status == "PLANNED"
+            StartCtx(op.status == "PLANNED", op.status, op.prescriptionId, op.farmId, op.fieldId)
+        }
+        preview.prescriptionId?.let { requireApprovedPrescription(it, preview.farmId, preview.fieldId) }
+        val previousStatus = inTx {
+            val op = load(scope, id)
+            if (op.status != "PLANNED" && op.status != "PAUSED") {
+                throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
+            }
             val previous = op.status
             op.status = "STARTING"
             repo.save(op)
             sagas.save(
                 SagaEntity(UUID.randomUUID(), op.id, "StartOperationSaga", "STARTED", null, Instant.now(), Instant.now()),
             )
-            reserve to previous
+            previous
         }
         var reserved = false
         try {
-            if (needsReserve) {
+            if (preview.needsReserve) {
                 reserved = inventoryMove(load(scope, id), "RESERVE")
             }
-            return inTx { persistStart(scope, id, reserved) }
+            val started = inTx { persistStart(scope, id, reserved) }
+            try {
+                events.operationStarted(started.id, started.farmId, started.fieldId, started.prescriptionId)
+            } catch (_: Exception) {
+                // Best-effort: broker failure must not fail or compensate the saga.
+            }
+            return started
         } catch (ex: Exception) {
-            if (ex is ConflictException && ex.code == "OPERATION_STATE_CONFLICT") throw ex
             if (reserved) {
                 try {
                     inventoryMove(load(scope, id), "RELEASE")
@@ -131,8 +159,18 @@ class OperationService(
                 }
             }
             inTx { revertStatus(scope, id, "STARTING", previousStatus) }
-            if (ex is ConflictException && ex.code != "SAGA_FAILED") throw ex
+            if (ex is DomainException) throw ex
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to start operation")
+        }
+    }
+
+    private fun requireApprovedPrescription(prescriptionId: UUID, farmId: UUID, fieldId: UUID) {
+        val rx = agronomy.get(prescriptionId, farmId)
+        if (rx.farmId != farmId || rx.fieldId != fieldId) {
+            throw DomainException("PRESCRIPTION_FARM_MISMATCH", "Prescription farm/field does not match operation")
+        }
+        if (rx.status != "APPROVED") {
+            throw ConflictException("PRESCRIPTION_NOT_APPROVED", "Prescription must be APPROVED to start")
         }
     }
 
@@ -147,7 +185,15 @@ class OperationService(
         return repo.save(op).toDto()
     }
 
-    fun complete(scope: AccessScope, id: UUID): OperationDto {
+    fun complete(scope: AccessScope, id: UUID, cmd: CompleteOperation = CompleteOperation()): OperationDto {
+        val planned = inTx {
+            val op = load(scope, id)
+            if (op.status != "IN_PROGRESS" && op.status != "PAUSED") {
+                throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
+            }
+            op.itemQuantity
+        }
+        val liters = requireActualLiters(cmd.actualLiters, planned)
         val previousStatus = inTx {
             val op = load(scope, id)
             if (op.status != "IN_PROGRESS" && op.status != "PAUSED") {
@@ -162,23 +208,49 @@ class OperationService(
             previous
         }
         var consumed = false
+        var released = false
+        val unused = unusedReservation(planned, liters)
         try {
-            consumed = inventoryMove(load(scope, id), "CONSUME")
-            return inTx { persistComplete(scope, id, consumed) }
+            consumed = inventoryMove(load(scope, id), "CONSUME", liters)
+            if (consumed && unused != null) {
+                inventoryMove(load(scope, id), "RELEASE", unused)
+                released = true
+            }
+            return inTx { persistComplete(scope, id, consumed, liters) }
         } catch (ex: Exception) {
-            if (ex is ConflictException && ex.code == "OPERATION_STATE_CONFLICT") throw ex
             if (consumed) {
                 try {
-                    inventoryMove(load(scope, id), "IN")
-                    inventoryMove(load(scope, id), "RESERVE")
+                    inventoryMove(load(scope, id), "IN", liters)
+                    if (released) inventoryMove(load(scope, id), "RESERVE")
+                    else inventoryMove(load(scope, id), "RESERVE", liters)
                 } catch (compensateEx: Exception) {
                     inTx { markCompensated(id, "CompleteOperationSaga", "${ex.message}; restore failed: ${compensateEx.message}") }
                 }
             }
             inTx { revertStatus(scope, id, "COMPLETING", previousStatus) }
-            if (ex is ConflictException && ex.code != "SAGA_FAILED") throw ex
+            if (ex is DomainException) throw ex
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to complete operation")
         }
+    }
+
+    private fun requireActualLiters(value: BigDecimal?, planned: BigDecimal?): BigDecimal? {
+        if (value == null) return null
+        val cap = when {
+            planned != null && planned.signum() > 0 && planned < MAX_ACTUAL_LITERS -> planned
+            else -> MAX_ACTUAL_LITERS
+        }
+        if (value.signum() <= 0 || value > cap) {
+            throw DomainException(
+                "ACTUAL_LITERS_INVALID",
+                "actualLiters must be positive and at most the reserved quantity",
+            )
+        }
+        return value
+    }
+
+    private fun unusedReservation(planned: BigDecimal?, actual: BigDecimal?): BigDecimal? {
+        if (planned == null || actual == null || planned <= actual) return null
+        return planned.subtract(actual)
     }
 
     private fun persistStart(scope: AccessScope, id: UUID, reserved: Boolean): OperationDto {
@@ -197,7 +269,7 @@ class OperationService(
         return repo.save(op).toDto()
     }
 
-    private fun persistComplete(scope: AccessScope, id: UUID, consumed: Boolean): OperationDto {
+    private fun persistComplete(scope: AccessScope, id: UUID, consumed: Boolean, liters: BigDecimal?): OperationDto {
         val op = load(scope, id)
         if (op.status != "COMPLETING") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
@@ -206,6 +278,7 @@ class OperationService(
             SagaEntity(UUID.randomUUID(), op.id, "CompleteOperationSaga", if (consumed) "INVENTORY_CONSUMED" else "STARTED", null, Instant.now(), Instant.now()),
         )
         op.status = "COMPLETED"
+        if (liters != null) op.actualLiters = liters
         op.actualEnd = Instant.now()
         saga.state = "COMPLETED"
         sagas.save(saga)
@@ -226,11 +299,24 @@ class OperationService(
         )
     }
 
-    private fun inventoryMove(op: OperationEntity, type: String): Boolean {
+    private fun inventoryMove(op: OperationEntity, type: String, consumeLiters: BigDecimal? = null): Boolean {
         val itemId = op.itemId ?: return false
-        val qty = op.itemQuantity ?: return false
+        val qty = consumeQuantity(op, type, consumeLiters) ?: return false
         inventory.move(itemId, type, qty, op.id.toString(), op.farmId)
         return true
+    }
+
+    /**
+     * CONSUME and the compensating IN use the liters of this attempt when present.
+     * RESERVE and RELEASE always use the planned item quantity.
+     */
+    private fun consumeQuantity(op: OperationEntity, type: String, consumeLiters: BigDecimal?): BigDecimal? {
+        if ((type == "RELEASE" || type == "RESERVE") && consumeLiters != null) return consumeLiters
+        if (type == "CONSUME" || type == "IN") {
+            val actual = consumeLiters ?: op.actualLiters
+            if (actual != null && actual.signum() > 0) return actual
+        }
+        return op.itemQuantity
     }
 
     private fun load(scope: AccessScope, id: UUID): OperationEntity {
@@ -244,11 +330,13 @@ class OperationService(
         data class Row(
             val key: String, val field: String, val farm: String, val type: String,
             val status: String, val machine: String?, val item: String, val offsetDays: Long = 1,
+            val prescriptionKey: String? = null,
         )
         val now = Instant.now()
         val rows = listOf(
             Row("op-001", "field-001", "farm-001", "PLANTING", "COMPLETED", "machine-001", "item-001"),
-            Row("op-002", "field-001", "farm-001", "SPRAYING", "IN_PROGRESS", "machine-002", "item-001"),
+            // op-002 is field-001 SPRAYING — linked to rx-spot-001 for investor spray demo
+            Row("op-002", "field-001", "farm-001", "SPRAYING", "IN_PROGRESS", "machine-002", "item-001", prescriptionKey = "rx-spot-001"),
             Row("op-003", "field-002", "farm-001", "FERTILIZING", "PLANNED", "machine-001", "item-002"),
             Row("op-004", "field-003", "farm-001", "INSPECTION", "PLANNED", null, "item-001"),
             Row("op-005", "field-004", "farm-002", "PLANTING", "PAUSED", "machine-004", "item-003"),
@@ -281,6 +369,8 @@ class OperationService(
             Row("op-032", "field-019", "farm-007", "SPRAYING", "IN_PROGRESS", "machine-011", "item-015", 1),
             Row("op-033", "field-022", "farm-008", "INSPECTION", "COMPLETED", "machine-012", "item-016", 3),
             Row("op-034", "field-008", "farm-003", "SPRAYING", "COMPLETED", "machine-013", "item-008", 2),
+            // Insert-missing PLANNED op on field-001 linked to rx-draft-001 (start-failure demo)
+            Row("op-rx-draft", "field-001", "farm-001", "SPRAYING", "PLANNED", "machine-002", "item-001", prescriptionKey = "rx-draft-001"),
         )
         val existing = repo.findAllById(rows.map { DemoIds.uuid(it.key) }).associateBy { it.id }
         repo.saveAll(
@@ -294,6 +384,7 @@ class OperationService(
                 val actualEnd =
                     if (r.status == "COMPLETED") now.minus(r.offsetDays, ChronoUnit.DAYS).plus(6, ChronoUnit.HOURS)
                     else null
+                val rxId = r.prescriptionKey?.let { DemoIds.uuid(it) }
                 if (found != null) {
                     found.fieldId = DemoIds.uuid(r.field)
                     found.farmId = DemoIds.uuid(r.farm)
@@ -305,6 +396,8 @@ class OperationService(
                     found.plannedEnd = plannedEnd
                     found.actualStart = actualStart
                     found.actualEnd = actualEnd
+                    // Do not reset status; only set prescription_id if null
+                    if (found.prescriptionId == null && rxId != null) found.prescriptionId = rxId
                     found
                 } else {
                     OperationEntity(
@@ -315,6 +408,8 @@ class OperationService(
                         DemoIds.uuid(r.item),
                         BigDecimal("20"),
                         area,
+                        rxId,
+                        null,
                     )
                 }
             },
@@ -323,11 +418,20 @@ class OperationService(
 
     private fun OperationEntity.toDto() = OperationDto(
         id, fieldId, farmId, type, status, plannedStart, plannedEnd, actualStart, actualEnd,
-        machineId, pauseReason, itemId, itemQuantity, areaHa,
+        machineId, pauseReason, itemId, itemQuantity, areaHa, prescriptionId, actualLiters,
+    )
+
+    private data class StartCtx(
+        val needsReserve: Boolean,
+        val previousStatus: String,
+        val prescriptionId: UUID?,
+        val farmId: UUID,
+        val fieldId: UUID,
     )
 
     private companion object {
         val MAX_AREA_HA = BigDecimal("100000")
+        val MAX_ACTUAL_LITERS = BigDecimal("100000")
         val FIELD_AREA = mapOf(
             "field-001" to BigDecimal("120.5"),
             "field-002" to BigDecimal("95.0"),

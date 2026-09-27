@@ -87,7 +87,7 @@ function fromPrescription(p: Prescription, fields: Map<string, Field>): Decision
     rawId: p.id,
     source: 'PRESCRIPTION',
     title: p.product,
-    quantity: Number.isFinite(p.rate) ? { value: p.rate, unit: p.unit } : undefined,
+    quantity: Number.isFinite(p.plannedDose) ? { value: p.plannedDose, unit: p.unit } : undefined,
     fieldId: optional(p.fieldId),
     farmId: optional(p.farmId) ?? field?.farmId,
     status: normalizeStatus(p.status),

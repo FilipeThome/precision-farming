@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.springdoc)
     implementation(libs.micrometer.prometheus)
     implementation(libs.spring.boot.amqp)
+    implementation("org.apache.kafka:kafka-clients")
 
     testImplementation(libs.spring.boot.test)
     testImplementation(libs.kotlin.test)

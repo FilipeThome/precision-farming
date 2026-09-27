@@ -338,6 +338,44 @@ class OfflineQueueTest {
     }
 
     @Test
+    fun completePersistsActualLitersAndReplayKeepsThem() = runTest {
+        val store = InMemoryQueueStore()
+        val exec = FakeExecutor(ArrayDeque(listOf(ExecResult.Ok)))
+        val q = queue(store, exec)
+        val queued = q.enqueue(OpCommand.Complete("op-1", fromStatus = "IN_PROGRESS", actualLiters = 12.5))
+        assertEquals(12.5, queued.actualLiters)
+        assertEquals(12.5, store.saved.items.single().actualLiters)
+
+        q.flush()
+        assertEquals(12.5, exec.seen.single().actualLiters)
+        assertEquals(12.5, q.state.value.items.single().actualLiters)
+
+        val restored = queue(InMemoryQueueStore(store.saved), FakeExecutor(ArrayDeque()))
+        assertEquals(12.5, restored.state.value.items.single().actualLiters)
+    }
+
+    @Test
+    fun projectedStatusCompleteMapsToCompleted() {
+        val queue = QueueState(
+            items = listOf(
+                QueuedCommand(
+                    "c1",
+                    "op-1",
+                    OpCommandType.COMPLETE,
+                    createdAt = "2026-01-01T00:00:00Z",
+                    state = SyncState.SYNCED,
+                    syncedAt = "2026-01-01T00:00:01Z",
+                    fromStatus = "IN_PROGRESS",
+                    actualLiters = 8.0,
+                ),
+            ),
+        )
+        assertEquals("COMPLETED", queue.projectedStatus("op-1", "IN_PROGRESS"))
+        assertEquals("COMPLETED", queue.projectedStatus("op-1", "PAUSED"))
+        assertEquals("COMPLETED", queue.projectedStatus("op-1", "COMPLETED"))
+    }
+
+    @Test
     fun conflictAlreadyAppliedWhenServerAlreadyMoved() {
         assertTrue(conflictAlreadyApplied(OpCommandType.START, "IN_PROGRESS"))
         assertTrue(conflictAlreadyApplied(OpCommandType.START, "STARTING"))

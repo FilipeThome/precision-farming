@@ -17,9 +17,9 @@ Repo-root `.dockerignore` keeps context lean (no `mobile/`, `node_modules`, `bui
 2. Prefer repo root + `--project-directory .` so `context` / `env_file` paths resolve correctly
 3. Start infra once: `docker compose --project-directory . up -d` (Postgres, Timescale, Rabbit, Redis, MinIO on `127.0.0.1`)
 
-## Quick start — core demo
+## Quick start — full demo
 
-Supported path: `compose-up` stages the pinned Gradle zip (SHA-256), copies `*.env.example` → runtime `*.env` if missing, **always builds**, then `up --no-build --pull never`. Default profile is **core**.
+Supported path: `compose-up` stages the pinned Gradle zip (SHA-256), copies `*.env.example` → runtime `*.env` if missing, **always builds**, then `up --no-build --pull never`. Default profile is **all**, so every service seeds demo data. Pass `core` for the smaller stack.
 
 ```powershell
 # Windows
@@ -27,12 +27,12 @@ Supported path: `compose-up` stages the pinned Gradle zip (SHA-256), copies `*.e
 ```
 
 ```bash
-# Linux / macOS — core (default)
+# Linux / macOS — all (default; seeds every service)
 chmod +x scripts/compose-up.sh
 ./scripts/compose-up.sh
 
-# full stack
-./scripts/compose-up.sh all
+# smaller stack
+./scripts/compose-up.sh core
 ```
 
 Raw compose is power-user only (zip already staged, `demo.env` present, **always** `--build`). `up -d` without `--build` fails if `:local` images are missing (`pull_policy: never`).
@@ -45,8 +45,9 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 
 - API gateway: http://localhost:8080  
 - Web: http://localhost:5173  
-- Login: `manager@precisionfarming.demo` / `Precision@123`  
+- Login: `manager@precisionfarming.demo` / `Precision@123`
 - Seeds: `APP_SEED=true` in `demo.env` (copied from `demo.env.example` on first compose-up)
+- Weather stays on the deterministic demo series unless the weather service gets `WEATHER_PROVIDER=open-meteo` (Open-Meteo, no API key). The default is `demo`, so Compose does not need outbound weather access.
 - `SPRINGDOC_ENABLED=true` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
 - `AUTH_RATE_LIMIT` applies to auth login/refresh
 
@@ -58,7 +59,7 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 | `fleet` | asset, telemetry |
 | `ops` | operation, inventory, alert |
 | `domains` | agronomy, irrigation, harvest, finance, compliance |
-| `all` | every backend service + gateway + web |
+| `all` | default. Every backend service + gateway + web, each seeding demo data (weather, agronomy, harvest, compliance, and the rest). |
 | per-name | `auth`, `farm`, `gateway`, … |
 
 ## Single service overlay

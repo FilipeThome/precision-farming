@@ -27,6 +27,8 @@ class OperationEntity(
     @Column(name = "item_id") var itemId: UUID?,
     @Column(name = "item_quantity") var itemQuantity: BigDecimal?,
     @Column(name = "area_ha") var areaHa: BigDecimal? = null,
+    @Column(name = "prescription_id") var prescriptionId: UUID? = null,
+    @Column(name = "actual_liters") var actualLiters: BigDecimal? = null,
     @Version var version: Long = 0,
 )
 

@@ -50,6 +50,7 @@ class GatewayRouteTest {
         val yaml = Files.readString(Path.of("src/main/resources/application.yml"))
         assertTrue(yaml.contains("Path=/api/v1/operations/**"))
         assertTrue(yaml.contains("Path=/api/v1/inventory/**"))
+        assertTrue(yaml.contains("Path=/api/v1/compliance/**"))
         assertTrue(yaml.contains("Path=/api/v1/dev/seed/reset/farm"))
         assertTrue(yaml.contains("RewritePath=/api/v1/dev/seed/reset/farm,/api/v1/dev/seed/reset"))
         val seedBlock = yaml.substring(yaml.indexOf("id: seed-farm"))

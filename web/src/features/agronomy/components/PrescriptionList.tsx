@@ -12,6 +12,16 @@ type Props = {
   items: Prescription[]
 }
 
+function modeLabel(
+  mode: string | null | undefined,
+  t: (key: 'decisions.prescription.mode.SPOT' | 'decisions.prescription.mode.BROADCAST') => string,
+  label: (value?: string | null) => string,
+): string {
+  if (mode === 'SPOT') return t('decisions.prescription.mode.SPOT')
+  if (mode === 'BROADCAST') return t('decisions.prescription.mode.BROADCAST')
+  return label(mode)
+}
+
 export function PrescriptionList({ items }: Props) {
   const { t } = useI18n()
   const { number, dateTime, label } = useFormat()
@@ -33,19 +43,22 @@ export function PrescriptionList({ items }: Props) {
             key={row.id}
             title={label(row.product)}
             subtitle={t('agronomy.prescriptions.rate', {
-              rate: number(Number(row.rate), 2),
+              rate: number(Number(row.plannedDose), 2),
               unit: row.unit,
             })}
-            meta={dateTime(row.approvedAt ?? row.createdAt)}
+            meta={[
+              modeLabel(row.mode, t, label),
+              row.moaGroup ? label(row.moaGroup) : null,
+              dateTime(row.approvedAt ?? row.createdAt),
+            ]
+              .filter(Boolean)
+              .join(' · ')}
             kind="inventory"
           >
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <StatusBadge value={row.status} />
               {row.status === 'DRAFT' && canApprove ? (
-                <Button
-                  disabled={approve.isPending}
-                  onClick={() => approve.mutate(row.id)}
-                >
+                <Button disabled={approve.isPending} onClick={() => approve.mutate(row.id)}>
                   {t('agronomy.prescriptions.approve')}
                 </Button>
               ) : null}

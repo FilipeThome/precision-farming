@@ -5,6 +5,7 @@ $root = Resolve-Path "$PSScriptRoot\.."
 Set-Location $root
 # Local demo: allow in-repo JWT/DB defaults (fail-closed without this outside profile `local`).
 if (-not $env:ALLOW_DEMO_SECRETS) { $env:ALLOW_DEMO_SECRETS = "true" }
+if (-not $env:APP_SEED) { $env:APP_SEED = "true" }
 $modules = @(
   "backend:services:auth",
   "backend:services:farm",
@@ -20,6 +21,11 @@ $modules = @(
   "backend:services:reporting",
   "backend:services:sync",
   "backend:services:integration",
+  "backend:services:agronomy",
+  "backend:services:irrigation",
+  "backend:services:harvest",
+  "backend:services:finance",
+  "backend:services:compliance",
   "backend:gateway"
 )
 foreach ($m in $modules) {

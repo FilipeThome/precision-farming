@@ -48,6 +48,8 @@ Adopted Compose hardening: infra ports published as `127.0.0.1:<port>:<container
 | Hardening (review + audit) | [kotlin-architect](443616f0-5fc8-4adc-b79d-298e84871691) | APPROVED WITH AMENDMENTS — machine-summary from/to default rolling 7d + MAX_LIST; telemetry hourly gap-fill; metrics last interval = min(1h, inferred step); listed GETs 404 not 403 (writes stay 403); FarmAccess rejects non-DemoTenant; refresh limiter user-only; /internal loopback/RFC1918 + secret; gateway RewritePath /dev/seed/reset/{service}; no BFF, no inventory.move() in seed |
 | Web hardening (review + audit) | [react-architect](ed3a1e9c-8bf0-4bc5-8a3a-a83f4a68355e) | APPROVE WITH AMENDMENTS — invalidate inventory after op commands; weighted yield (no SUM t/ha); sibling select vs actions on Ops/Alerts; demo hint email-only; machine-summary from/to last 7d; no invented series / new routes |
 | YC mobile inspector increment | [kmp-architect](9054541b-112e-49bb-ba52-a423d01c3d4f) | APPROVED — composeApp only; query ?selected= (not ops/{id}); DetailSheet + Control Tower + yieldMath; no KMP split / Maps SDK / BFF |
+| Investor golden path (demo) | [kotlin-architect](5190db7e-6a90-4dd9-bad2-2b6255b5bd6a) + [react-architect](a23f69fc-9e49-4bb5-9c80-36863adb6fb7) + [kmp-architect](402d6a07-510b-4f99-9c26-2a28aca351f2) | APPROVED WITH AMENDMENTS — SPOT/BROADCAST + spray savings + MoA + live Rx gate on start + actualLiters; evidence pack + credit dossier; ZARC/sanitary void + parametric index; web on existing routes; mobile composeApp offline complete. No new service, no Kafka, no ISOXML, no live MAPA/SEFAZ |
+| Kafka, ISOXML, NF-e, MAPA, mobile map | [kotlin-architect](367c762a-32d7-4a9e-a7de-5821c6759e11) + [infra-architect](7ec21f12-5ed0-4378-b45d-7d1ce0e78d1a) + [kmp-architect](e203c1a9-121e-49ef-a8f2-0da4fa33f8f2) | APPROVED WITH AMENDMENTS — Kafka publish-only after start; ISOXML export; NF-e homologation XML not SEFAZ; MAPA live opt-in with seed fallback; mobile Leaflet WebView |
 
 See `docs/full-spec-implementation-slice.md`.
 
@@ -56,4 +58,4 @@ See `docs/full-spec-implementation-slice.md`.
 - Full transactional outbox + Rabbit command bus as the primary saga transport (HTTP reserve/consume remains the working path).
 - KMP module split `shared` / `androidApp` / `iosApp` + SQLDelight (current Android `composeApp` is the Windows slice).
 - Terraform apply — `infra/` stays a skeleton.
-- Kafka, workflow engine, Copilot/Agents, GeoTIFF/ISOXML, OIDC, Chaos lab UI.
+- Workflow engine, Copilot/Agents, GeoTIFF, OIDC, Chaos lab UI. Kafka saga transport, OEM ISOXML ingest, SEFAZ transmission, and the Google Maps SDK stay out.

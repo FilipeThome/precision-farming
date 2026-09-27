@@ -2,9 +2,14 @@ package com.precisionfarming.compliance.application
 
 import com.precisionfarming.common.DemoIds
 import com.precisionfarming.common.NotFoundException
+import com.precisionfarming.compliance.domain.DEFORESTATION_CUTOFF
 import com.precisionfarming.security.AccessScope
+import com.precisionfarming.compliance.infrastructure.CreditDossierEntity
+import com.precisionfarming.compliance.infrastructure.CreditDossierJpaRepository
 import com.precisionfarming.compliance.infrastructure.EsgMetricEntity
 import com.precisionfarming.compliance.infrastructure.EsgMetricJpaRepository
+import com.precisionfarming.compliance.infrastructure.EvidencePackEntity
+import com.precisionfarming.compliance.infrastructure.EvidencePackJpaRepository
 import com.precisionfarming.compliance.infrastructure.TraceabilityEntity
 import com.precisionfarming.compliance.infrastructure.TraceabilityJpaRepository
 import org.springframework.beans.factory.annotation.Value
@@ -14,6 +19,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
@@ -25,11 +31,42 @@ data class EsgMetricDto(
     val id: UUID, val farmId: UUID, val metric: String, val value: BigDecimal, val unit: String,
     val periodLabel: String, val score: BigDecimal?,
 )
+data class EvidencePackDto(
+    val lotCode: String,
+    val farmId: UUID,
+    val farmName: String,
+    val fieldId: UUID,
+    val fieldName: String,
+    val polygonGeoJson: String,
+    val inputRefs: List<String>,
+    val receituarioNumber: String?,
+    val activeIngredient: String?,
+    val moaGroup: String?,
+    val responsibleTechCpf: String?,
+    val phiDays: Int?,
+    val deforestationCutoffDate: LocalDate,
+    val embargoed: Boolean,
+    val carStatus: String,
+    val simulation: Boolean = true,
+)
+data class CreditDossierDto(
+    val farmId: UUID,
+    val carCode: String,
+    val carStatus: String,
+    val embargoed: Boolean,
+    val deforestationCutoffDate: LocalDate,
+    val deforestationClear: Boolean,
+    val zarcCompliant: Boolean,
+    val remoteSensingNote: String?,
+    val simulation: Boolean = true,
+)
 
 @Service
 class ComplianceService(
     private val traces: TraceabilityJpaRepository,
     private val esg: EsgMetricJpaRepository,
+    private val evidence: EvidencePackJpaRepository,
+    private val dossiers: CreditDossierJpaRepository,
 ) {
     fun listTraceability(scope: AccessScope, farmId: UUID?) =
         traces.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
@@ -42,6 +79,22 @@ class ComplianceService(
 
     fun listEsg(scope: AccessScope, farmId: UUID?) =
         esg.findByFarmIdIn(scope.resolveFarms(farmId)).map { it.toDto() }
+
+    fun getEvidencePack(scope: AccessScope, lotCode: String): EvidencePackDto {
+        val e = evidence.findById(lotCode).orElseThrow {
+            NotFoundException("EVIDENCE_PACK_NOT_FOUND", "Evidence pack not found")
+        }
+        scope.requireFarmRead(e.farmId, "EVIDENCE_PACK_NOT_FOUND", "Evidence pack not found")
+        return e.toDto()
+    }
+
+    fun getCreditDossier(scope: AccessScope, farmId: UUID): CreditDossierDto {
+        val e = dossiers.findById(farmId).orElseThrow {
+            NotFoundException("CREDIT_DOSSIER_NOT_FOUND", "Credit dossier not found")
+        }
+        scope.requireFarmRead(e.farmId, "CREDIT_DOSSIER_NOT_FOUND", "Credit dossier not found")
+        return e.toDto()
+    }
 
     @Transactional
     fun seed() {
@@ -60,7 +113,8 @@ class ComplianceService(
             TraceabilityEntity(DemoIds.uuid("trace-011"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), "LOT-ES-030", "SOY", "TRANSPORT", "LOAD_008_DELIVERED", now.minus(1, ChronoUnit.DAYS)),
             TraceabilityEntity(DemoIds.uuid("trace-012"), DemoIds.uuid("farm-004"), DemoIds.uuid("field-009"), "LOT-PR-040", "SOY", "PLANTING", "PLANTING_EAST_FIELD", now.minus(90, ChronoUnit.DAYS)),
         )
-        traces.saveAll(traceRows)
+        val existingTraces = traces.findAllById(traceRows.map { it.id }).map { it.id }.toSet()
+        traces.saveAll(traceRows.filter { it.id !in existingTraces })
 
         val esgRows = listOf(
             EsgMetricEntity(DemoIds.uuid("esg-001"), DemoIds.uuid("farm-001"), "CO2E_PER_HA", BigDecimal("1.85"), "tCO2e/ha", "2025/26", BigDecimal("78")),
@@ -72,11 +126,90 @@ class ComplianceService(
             EsgMetricEntity(DemoIds.uuid("esg-007"), DemoIds.uuid("farm-006"), "SOIL_HEALTH", BigDecimal("6.8"), "index", "2025/26", BigDecimal("70")),
             EsgMetricEntity(DemoIds.uuid("esg-008"), DemoIds.uuid("farm-008"), "WATER_PER_TON", BigDecimal("405"), "m3/t", "2025/26", BigDecimal("73")),
         )
-        esg.saveAll(esgRows)
+        val existingEsg = esg.findAllById(esgRows.map { it.id }).map { it.id }.toSet()
+        esg.saveAll(esgRows.filter { it.id !in existingEsg })
+
+        // Snapshot only — no join to farm_db. Polygon near -54.57,-19.39 (field-001 seed).
+        val polygon = """{"type":"Polygon","coordinates":[[[-54.575,-19.385],[-54.565,-19.385],[-54.565,-19.395],[-54.575,-19.395],[-54.575,-19.385]]]}"""
+        val evidenceRows = listOf(
+            EvidencePackEntity(
+                lotCode = "LOT-BV-001",
+                farmId = DemoIds.uuid("farm-001"),
+                farmName = "Boa Vista",
+                fieldId = DemoIds.uuid("field-001"),
+                fieldName = "Field 001",
+                polygonGeoJson = polygon,
+                inputRefs = "item-001,rx-spot-001",
+                receituarioNumber = "REC-DEMO-001",
+                activeIngredient = "GLYPHOSATE",
+                moaGroup = "G",
+                responsibleTechCpf = "00000000191", // DEMO_CPF — not a real person
+                phiDays = 7,
+                deforestationCutoffDate = DEFORESTATION_CUTOFF,
+                embargoed = false,
+                carStatus = "ATIVO",
+            ),
+        )
+        val existingEvidence = evidence.findAllById(evidenceRows.map { it.lotCode }).map { it.lotCode }.toSet()
+        evidence.saveAll(evidenceRows.filter { it.lotCode !in existingEvidence })
+
+        val dossierRows = listOf(
+            CreditDossierEntity(
+                farmId = DemoIds.uuid("farm-001"),
+                carCode = "MS-1234567",
+                carStatus = "ATIVO",
+                embargoed = false,
+                deforestationCutoffDate = DEFORESTATION_CUTOFF,
+                deforestationClear = true,
+                zarcCompliant = true,
+                remoteSensingNote = "No deforestation alerts after cutoff (simulation)",
+            ),
+            CreditDossierEntity(
+                farmId = DemoIds.uuid("farm-003"),
+                carCode = "MS-7654321",
+                carStatus = "ATIVO",
+                embargoed = true,
+                deforestationCutoffDate = DEFORESTATION_CUTOFF,
+                deforestationClear = false,
+                zarcCompliant = true,
+                remoteSensingNote = "Embargoed parcel near CAR polygon (simulation)",
+            ),
+        )
+        val existingDossiers = dossiers.findAllById(dossierRows.map { it.farmId }).map { it.farmId }.toSet()
+        dossiers.saveAll(dossierRows.filter { it.farmId !in existingDossiers })
     }
 
     private fun TraceabilityEntity.toDto() = TraceabilityDto(id, farmId, fieldId, lotCode, crop, eventType, summary, occurredAt)
     private fun EsgMetricEntity.toDto() = EsgMetricDto(id, farmId, metric, value, unit, periodLabel, score)
+    private fun EvidencePackEntity.toDto() = EvidencePackDto(
+        lotCode = lotCode,
+        farmId = farmId,
+        farmName = farmName,
+        fieldId = fieldId,
+        fieldName = fieldName,
+        polygonGeoJson = polygonGeoJson,
+        inputRefs = inputRefs.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+        receituarioNumber = receituarioNumber,
+        activeIngredient = activeIngredient,
+        moaGroup = moaGroup,
+        responsibleTechCpf = responsibleTechCpf,
+        phiDays = phiDays,
+        deforestationCutoffDate = deforestationCutoffDate,
+        embargoed = embargoed,
+        carStatus = carStatus,
+        simulation = true,
+    )
+    private fun CreditDossierEntity.toDto() = CreditDossierDto(
+        farmId = farmId,
+        carCode = carCode,
+        carStatus = carStatus,
+        embargoed = embargoed,
+        deforestationCutoffDate = deforestationCutoffDate,
+        deforestationClear = deforestationClear,
+        zarcCompliant = zarcCompliant,
+        remoteSensingNote = remoteSensingNote,
+        simulation = true,
+    )
 }
 
 @Service

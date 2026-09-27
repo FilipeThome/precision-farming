@@ -1,18 +1,21 @@
 # Start Precision Farming local demo stack on Windows (infra + app containers).
 # Mobile is excluded. Requires Docker Compose v2.
+# Infra includes Kafka (PLAINTEXT, 127.0.0.1:9092). App publish stays off unless KAFKA_ENABLED=true.
 #
 # Usage:
-#   .\scripts\compose-up.ps1              # profile=core
+#   .\scripts\compose-up.ps1              # profile=all (every service seeds demo data)
 #   .\scripts\compose-up.ps1 -Build       # same (cache is used; flag kept for compatibility)
-#   .\scripts\compose-up.ps1 core -Build
-#   .\scripts\compose-up.ps1 all
+#   .\scripts\compose-up.ps1 core -Build  # smaller stack; weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration stay down
+#   .\scripts\compose-up.ps1 all          # same as the default
 #
 # Profiles: core | all | fleet | ops | domains
+# Optional flags in deploy/compose/demo.env (copied from *.example on first run):
+#   KAFKA_ENABLED=true   MAPA_LIVE=true   WEATHER_PROVIDER=open-meteo
 
 param(
   [Parameter(Position = 0)]
   [ValidateSet("core", "all", "fleet", "ops", "domains")]
-  [string]$Profile = "core",
+  [string]$Profile = "all",
   [Alias("b")]
   [switch]$Build,
   [Alias("h")]
@@ -22,7 +25,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 if ($Help) {
-  Get-Content $PSCommandPath | Select-Object -Skip 1 -First 13
+  Get-Content $PSCommandPath | Select-Object -Skip 1 -First 16
   exit 0
 }
 
@@ -88,13 +91,14 @@ function Stage-GradleDistribution {
   }
 
   Write-Host "==> Staging Gradle $version distribution for Docker image builds..."
-  $homes = @()
-  if ($env:GRADLE_USER_HOME) { $homes += $env:GRADLE_USER_HOME }
-  $homes += (Join-Path $env:USERPROFILE ".gradle")
-  $homes += (Join-Path $Root ".gradle")
+  $gradleHomes = @()
+  if ($env:GRADLE_USER_HOME) { $gradleHomes += $env:GRADLE_USER_HOME }
+  $gradleHomes += (Join-Path $env:USERPROFILE ".gradle")
+  $gradleHomes += (Join-Path $Root ".gradle")
 
-  foreach ($home in $homes) {
-    $distDir = Join-Path $home "wrapper\dists\gradle-$version-bin"
+  # Do not use $home — PowerShell aliases it to read-only automatic $HOME.
+  foreach ($gradleHome in $gradleHomes) {
+    $distDir = Join-Path $gradleHome "wrapper\dists\gradle-$version-bin"
     if (-not (Test-Path $distDir)) { continue }
     $cached = Get-ChildItem -Path $distDir -Recurse -Filter "gradle-$version-bin.zip" -ErrorAction SilentlyContinue |
       Where-Object { $_.Length -gt 1MB } |
@@ -133,21 +137,98 @@ function Ensure-DemoEnv {
     if (-not (Test-Path $dest)) {
       Copy-Item $example $dest
       Write-Host "==> Copied $($pair.Example) -> $($pair.Dest)"
+      continue
+    }
+    # Append keys present in the example but missing from the runtime env (do not overwrite).
+    $existing = @(
+      Get-Content $dest | ForEach-Object {
+        if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=') { $Matches[1] }
+      } | Where-Object { $_ } | ForEach-Object { $_.ToUpperInvariant() }
+    )
+    $existingSet = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($key in $existing) { [void]$existingSet.Add($key) }
+    $appended = @()
+    foreach ($line in Get-Content $example) {
+      if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)=') {
+        $key = $Matches[1]
+        if (-not $existingSet.Contains($key.ToUpperInvariant())) {
+          $appended += $line
+          [void]$existingSet.Add($key.ToUpperInvariant())
+        }
+      }
+    }
+    if ($appended.Count -gt 0) {
+      Add-Content -Path $dest -Value ""
+      Add-Content -Path $dest -Value "# Added by compose-up from $($pair.Example)"
+      Add-Content -Path $dest -Value $appended
+      Write-Host "==> Appended $($appended.Count) missing key(s) to $($pair.Dest)"
     }
   }
+}
+
+function Get-BuildableServices([string[]]$ComposeArgs) {
+  # Infra images have no build: — exclude so we only batch app images.
+  $infra = [System.Collections.Generic.HashSet[string]]::new(
+    [string[]]@("postgres", "timescaledb", "rabbitmq", "redis", "minio", "kafka")
+  )
+  $names = docker compose @ComposeArgs config --services
+  if ($LASTEXITCODE -ne 0) { throw "compose config --services failed" }
+  $services = @($names | Where-Object { $_ -and -not $infra.Contains($_) })
+  if ($services.Count -eq 0) { throw "No buildable services for profile" }
+  return $services
+}
+
+function Build-AppImages([string[]]$ComposeArgs, [string[]]$Services, [int]$BatchSize = 2) {
+  # Compose v5 / Bake often ignores --parallel and builds every target at once.
+  # Concurrent Gradle JVM image builds then OOM Docker Desktop BuildKit (RPC EOF).
+  $total = $Services.Count
+  for ($i = 0; $i -lt $total; $i += $BatchSize) {
+    $end = [Math]::Min($i + $BatchSize - 1, $total - 1)
+    $batch = @($Services[$i..$end])
+    Write-Host "==> Building images $($i + 1)-$($end + 1)/${total}: $($batch -join ', ')"
+    $attempt = 0
+    while ($true) {
+      $attempt++
+      docker compose @ComposeArgs build @batch
+      if ($LASTEXITCODE -eq 0) { break }
+      if ($attempt -ge 2) {
+        throw "app image build failed ($($batch -join ', '))"
+      }
+      Write-Host "==> BuildKit failed; retrying batch once after brief pause..."
+      Start-Sleep -Seconds 5
+    }
+  }
+}
+
+function Ensure-DomainDatabases {
+  if ($Profile -ne "all" -and $Profile -ne "domains") { return }
+  Write-Host "==> Ensuring domain databases (profile=$Profile)..."
+  $deadline = (Get-Date).AddMinutes(2)
+  while ($true) {
+    docker compose --project-directory $Root -f docker-compose.yml exec -T postgres sh -c 'pg_isready -U "$POSTGRES_USER"'
+    if ($LASTEXITCODE -eq 0) { break }
+    if ((Get-Date) -gt $deadline) { throw "postgres did not become ready" }
+    Start-Sleep -Seconds 2
+  }
+  docker compose --project-directory $Root -f docker-compose.yml cp "scripts/ensure-new-dbs.sql" "postgres:/tmp/ensure-new-dbs.sql"
+  if ($LASTEXITCODE -ne 0) { throw "failed to copy ensure-new-dbs.sql into postgres" }
+  docker compose --project-directory $Root -f docker-compose.yml exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -f /tmp/ensure-new-dbs.sql'
+  if ($LASTEXITCODE -ne 0) { throw "ensure-new-dbs.sql failed" }
 }
 
 Stage-GradleDistribution
 Ensure-DemoEnv
 
-Write-Host "==> Starting infra (postgres, timescaledb, rabbitmq, redis, minio)..."
+Write-Host "==> Starting infra (postgres, timescaledb, rabbitmq, redis, minio, kafka)..."
 docker compose --project-directory $Root -f docker-compose.yml up -d
 if ($LASTEXITCODE -ne 0) { throw "infra compose failed" }
+Ensure-DomainDatabases
 
+# Prefer classic compose build path; Bake ignores COMPOSE_PARALLEL_LIMIT on Compose v5.
 $env:COMPOSE_BAKE = "false"
+$env:COMPOSE_PARALLEL_LIMIT = "2"
 
 $composeArgs = @(
-  "--parallel", "4",
   "--project-directory", $Root,
   "-f", "docker-compose.yml",
   "-f", "deploy/compose/stack.yml",
@@ -155,18 +236,41 @@ $composeArgs = @(
   "--profile", $Profile
 )
 
-Write-Host "==> Building app images profile=$Profile (max 4 in parallel)..."
-docker compose @composeArgs build
-if ($LASTEXITCODE -ne 0) { throw "app image build failed" }
+$services = Get-BuildableServices -ComposeArgs $composeArgs
+Write-Host "==> Building app images profile=$Profile ($($services.Count) services, batches of 2)..."
+Build-AppImages -ComposeArgs $composeArgs -Services $services -BatchSize 2
 
 Write-Host "==> Starting apps profile=$Profile..."
-docker compose @composeArgs up -d --pull never --no-build
+docker compose @composeArgs --parallel 4 up -d --pull never --no-build
 if ($LASTEXITCODE -ne 0) { throw "app compose failed" }
 
 Write-Host ""
+Write-Host "Profile  $Profile"
 Write-Host "Gateway  http://localhost:8080"
 if ($Profile -eq "core" -or $Profile -eq "all") {
   Write-Host "Web      http://localhost:5173"
 }
-Write-Host "Demo     manager@precisionfarming.demo / Precision@123"
+Write-Host ""
+Write-Host "App users (password Precision@123):"
+Write-Host "  admin@precisionfarming.demo        Admin"
+Write-Host "  manager@precisionfarming.demo      Gerente"
+Write-Host "  operator@precisionfarming.demo     Operador"
+Write-Host "  maintenance@precisionfarming.demo  Manutencao"
+Write-Host ""
+Write-Host "Infra (local only, 127.0.0.1):"
+Write-Host "  Postgres   precision / precision       :5432"
+Write-Host "  Timescale  precision / precision       :5433"
+Write-Host "  RabbitMQ   precision / precision       :5672  UI :15672"
+Write-Host "  Redis      no password                 :6379"
+Write-Host "  MinIO      precision / precisionminio  :9000  console :9001"
+Write-Host "  Kafka      PLAINTEXT, no user          :9092"
+Write-Host ""
+Write-Host "Optional (deploy/compose/demo.env):"
+Write-Host "  KAFKA_ENABLED=false          publish precision.operation.started (operation uses kafka:9094)"
+Write-Host "  MAPA_LIVE=false              live ZARC from MAPA CKAN (weather; seed fallback)"
+Write-Host "  WEATHER_PROVIDER=demo        set open-meteo for live forecast"
+if ($Profile -eq "core") {
+  Write-Host ""
+  Write-Host "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them and applies scripts/ensure-new-dbs.sql."
+}
 Write-Host "Done."

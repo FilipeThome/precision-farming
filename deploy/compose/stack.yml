@@ -2,19 +2,19 @@
 # Mobile is intentionally excluded.
 #
 # Supported path (stages Gradle zip, copies *.env.example if missing, always builds):
-#   .\scripts\compose-up.ps1              # profile core
-#   ./scripts/compose-up.sh               # profile core
-#   .\scripts\compose-up.ps1 all
+#   .\scripts\compose-up.ps1              # profile all (default; every service seeds)
+#   ./scripts/compose-up.sh               # profile all
+#   .\scripts\compose-up.ps1 core
 #
 # Raw compose is power-user only: zip already staged, demo.env present, always --build.
 # pull_policy: never — `up -d` without --build fails if :local images are absent.
 #
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
-#     --env-file deploy/compose/demo.env --profile core up -d --build
-#
-# Full backend + web:
-#   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
 #     --env-file deploy/compose/demo.env --profile all up -d --build
+#
+# Smaller stack:
+#   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
+#     --env-file deploy/compose/demo.env --profile core up -d --build
 #
 # Single service (example):
 #   docker compose --project-directory . -f docker-compose.yml -f deploy/compose/stack.yml \
@@ -160,6 +160,7 @@ services:
     environment:
       <<: *jvm-env
       DB_HOST: postgres
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9094
     depends_on:
       postgres:
         condition: service_healthy

@@ -83,7 +83,7 @@ private fun fromPrescription(p: PrescriptionDto, fields: Map<String, FieldDto>):
         rawId = p.id,
         source = DecisionSource.PRESCRIPTION,
         title = p.product,
-        quantity = if (p.rate.isFinite()) DecisionQuantity(p.rate, p.unit) else null,
+        quantity = if (p.dose.isFinite()) DecisionQuantity(p.dose, p.unit) else null,
         fieldId = optional(p.fieldId),
         farmId = optional(p.farmId) ?: field?.farmId,
         status = status,
