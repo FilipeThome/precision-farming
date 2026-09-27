@@ -1,6 +1,7 @@
 rootProject.name = "precision-farming"
 
 pluginManagement {
+    includeBuild("build-logic")
     repositories {
         gradlePluginPortal()
         mavenCentral()

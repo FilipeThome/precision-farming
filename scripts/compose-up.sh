@@ -4,10 +4,10 @@
 # Infra includes Kafka (PLAINTEXT, 127.0.0.1:9092). App publish stays off unless KAFKA_ENABLED=true.
 #
 # Usage:
-#   ./scripts/compose-up.sh              # profile=core
+#   ./scripts/compose-up.sh              # profile=all (every service seeds demo data)
 #   ./scripts/compose-up.sh --build      # same (cache is used; flag kept for compatibility)
-#   ./scripts/compose-up.sh core --build
-#   ./scripts/compose-up.sh all          # investor loop: weather + agronomy + compliance
+#   ./scripts/compose-up.sh core --build # smaller stack; weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration stay down
+#   ./scripts/compose-up.sh all          # same as the default
 #
 # Profiles: core | all | fleet | ops | domains
 # Optional flags in deploy/compose/demo.env (copied from *.example on first run):
@@ -18,7 +18,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-PROFILE="core"
+PROFILE="all"
 BUILD=0
 
 for arg in "$@"; do
@@ -212,11 +212,33 @@ build_app_images() {
   done
 }
 
+ensure_domain_databases() {
+  if [[ "$PROFILE" != "all" && "$PROFILE" != "domains" ]]; then
+    return 0
+  fi
+  echo "==> Ensuring domain databases (profile=${PROFILE})..."
+  local attempt=0
+  until docker compose --project-directory "$ROOT" -f docker-compose.yml exec -T postgres \
+    sh -c 'pg_isready -U "$POSTGRES_USER"'; do
+    attempt=$((attempt + 1))
+    if [[ $attempt -ge 60 ]]; then
+      echo "postgres did not become ready" >&2
+      exit 1
+    fi
+    sleep 2
+  done
+  docker compose --project-directory "$ROOT" -f docker-compose.yml cp \
+    scripts/ensure-new-dbs.sql postgres:/tmp/ensure-new-dbs.sql
+  docker compose --project-directory "$ROOT" -f docker-compose.yml exec -T postgres \
+    sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -f /tmp/ensure-new-dbs.sql'
+}
+
 stage_gradle_distribution
 ensure_demo_env
 
 echo "==> Starting infra (postgres, timescaledb, rabbitmq, redis, minio, kafka)..."
 docker compose --project-directory "$ROOT" -f docker-compose.yml up -d
+ensure_domain_databases
 
 # Prefer classic compose build path; Bake ignores COMPOSE_PARALLEL_LIMIT on Compose v5.
 export COMPOSE_BAKE=false
@@ -262,6 +284,6 @@ echo "  MAPA_LIVE=false              live ZARC from MAPA CKAN (weather; seed fal
 echo "  WEATHER_PROVIDER=demo        set open-meteo for live forecast"
 if [[ "$PROFILE" == "core" ]]; then
   echo
-  echo "Tip: investor demo needs profile 'all' (weather, agronomy, compliance)."
+  echo "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them and applies scripts/ensure-new-dbs.sql."
 fi
 echo "Done."

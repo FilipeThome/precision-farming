@@ -106,7 +106,7 @@ From the repo root:
 
 ```bash
 cp .env.example .env   # if needed
-./scripts/compose-up.sh --build   # profile core: auth, farm, gateway, web
+./scripts/compose-up.sh --build   # profile all: every service seeds demo data
 # gateway already up: curl -sS http://localhost:8080/actuator/health
 
 ./gradlew -p mobile :composeApp:installDebug

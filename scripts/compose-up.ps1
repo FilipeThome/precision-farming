@@ -3,10 +3,10 @@
 # Infra includes Kafka (PLAINTEXT, 127.0.0.1:9092). App publish stays off unless KAFKA_ENABLED=true.
 #
 # Usage:
-#   .\scripts\compose-up.ps1              # profile=core
+#   .\scripts\compose-up.ps1              # profile=all (every service seeds demo data)
 #   .\scripts\compose-up.ps1 -Build       # same (cache is used; flag kept for compatibility)
-#   .\scripts\compose-up.ps1 core -Build
-#   .\scripts\compose-up.ps1 all          # investor loop: weather + agronomy + compliance
+#   .\scripts\compose-up.ps1 core -Build  # smaller stack; weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration stay down
+#   .\scripts\compose-up.ps1 all          # same as the default
 #
 # Profiles: core | all | fleet | ops | domains
 # Optional flags in deploy/compose/demo.env (copied from *.example on first run):
@@ -15,7 +15,7 @@
 param(
   [Parameter(Position = 0)]
   [ValidateSet("core", "all", "fleet", "ops", "domains")]
-  [string]$Profile = "core",
+  [string]$Profile = "all",
   [Alias("b")]
   [switch]$Build,
   [Alias("h")]
@@ -200,12 +200,29 @@ function Build-AppImages([string[]]$ComposeArgs, [string[]]$Services, [int]$Batc
   }
 }
 
+function Ensure-DomainDatabases {
+  if ($Profile -ne "all" -and $Profile -ne "domains") { return }
+  Write-Host "==> Ensuring domain databases (profile=$Profile)..."
+  $deadline = (Get-Date).AddMinutes(2)
+  while ($true) {
+    docker compose --project-directory $Root -f docker-compose.yml exec -T postgres sh -c 'pg_isready -U "$POSTGRES_USER"'
+    if ($LASTEXITCODE -eq 0) { break }
+    if ((Get-Date) -gt $deadline) { throw "postgres did not become ready" }
+    Start-Sleep -Seconds 2
+  }
+  docker compose --project-directory $Root -f docker-compose.yml cp "scripts/ensure-new-dbs.sql" "postgres:/tmp/ensure-new-dbs.sql"
+  if ($LASTEXITCODE -ne 0) { throw "failed to copy ensure-new-dbs.sql into postgres" }
+  docker compose --project-directory $Root -f docker-compose.yml exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql -U "$POSTGRES_USER" -d postgres -v ON_ERROR_STOP=1 -f /tmp/ensure-new-dbs.sql'
+  if ($LASTEXITCODE -ne 0) { throw "ensure-new-dbs.sql failed" }
+}
+
 Stage-GradleDistribution
 Ensure-DemoEnv
 
 Write-Host "==> Starting infra (postgres, timescaledb, rabbitmq, redis, minio, kafka)..."
 docker compose --project-directory $Root -f docker-compose.yml up -d
 if ($LASTEXITCODE -ne 0) { throw "infra compose failed" }
+Ensure-DomainDatabases
 
 # Prefer classic compose build path; Bake ignores COMPOSE_PARALLEL_LIMIT on Compose v5.
 $env:COMPOSE_BAKE = "false"
@@ -254,6 +271,6 @@ Write-Host "  MAPA_LIVE=false              live ZARC from MAPA CKAN (weather; se
 Write-Host "  WEATHER_PROVIDER=demo        set open-meteo for live forecast"
 if ($Profile -eq "core") {
   Write-Host ""
-  Write-Host "Tip: investor demo needs profile 'all' (weather, agronomy, compliance)."
+  Write-Host "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them and applies scripts/ensure-new-dbs.sql."
 }
 Write-Host "Done."

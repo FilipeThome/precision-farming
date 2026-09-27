@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.jpa) apply false
     alias(libs.plugins.spring.boot) apply false
     alias(libs.plugins.spring.dep.mgmt) apply false
+    id("precision-farming.boot-run-demo") apply false
 }
 
 subprojects {
@@ -28,6 +29,17 @@ subprojects {
             )
         }
     }
+
+    // bootRun defaults live in build-logic (BootRunDemoPlugin). bootJar is not touched.
+    plugins.withId("org.springframework.boot") {
+        apply(plugin = "precision-farming.boot-run-demo")
+    }
+}
+
+tasks.register("testBootRunDefaults") {
+    group = "verification"
+    description = "Kotlin tests for bootRun demo env defaults (ALLOW_DEMO_SECRETS opt-out, no bootJar injection)."
+    dependsOn(gradle.includedBuild("build-logic").task(":test"))
 }
 
 tasks.register("seedDemoData") {

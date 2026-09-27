@@ -8,7 +8,7 @@
 - Google Maps keys stay env-only and the Maps SDK is not in this slice. The mobile map is an interim Leaflet WebView with the same Esri imagery as the web map, and only when a field geometry yields a centroid.
 - Virtual threads do not make JDBC non-blocking; Hikari stays small so the database is not flooded.
 - Full-spec LOCAL seed is 8 farms / 22 fields, not the 180-field catalog in §54.
-- Existing PostGIS volumes need `scripts/ensure-new-dbs.sql` (or volume recreate) before agronomy/irrigation/harvest/finance/compliance boot.
+- Profiles `all` and `domains` apply `scripts/ensure-new-dbs.sql` during compose-up. Profile `core` does not; an old PostGIS volume can still miss `finance_db` until that script runs or the volume is recreated.
 - Android compile needs local SDK/`ANDROID_HOME`; CI/dev machines without it skip `:composeApp:compileDebugKotlin`.
 - Kafka is publish-only (`KAFKA_ENABLED=true`) on `precision.operation.started`. It is not the inventory saga bus.
 - ISOXML export is a minimal TASKDATA document, not an OEM file parser. NF-e is homologation XML (`tpAmb=2`), not a SEFAZ submission. Live MAPA ZARC is off unless `MAPA_LIVE=true`.

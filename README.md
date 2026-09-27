@@ -1,38 +1,42 @@
 # Precision Farming MVP
 
-Protótipo executável de gestão agrícola de precisão: **microserviços Kotlin**, **web React** e **mobile KMP/Compose**. Clientes falam apenas com o gateway em `http://localhost:8080`.
+[Português (Brasil)](README.pt-BR.md)
+
+Executable precision-agriculture prototype: **Kotlin microservices**, a **React web** app, and a **KMP/Compose mobile** app. Clients talk only to the gateway at `http://localhost:8080`.
+
+**Author:** Filipe de Brito Thomé
 
 ## Stack
 
 - Backend: Spring Boot 4.1, Java 26 (virtual threads), Kotlin 2.4, Spring Cloud Gateway
-- Dados: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose; portas só em `127.0.0.1` — prod não deve publicar)
+- Data: PostGIS `:5432`, TimescaleDB `:5433`, RabbitMQ, Redis, MinIO (Compose; ports bound to `127.0.0.1` — production must not publish them)
 - Web: React + TypeScript + Vite + Tailwind
-- Mobile: Kotlin Multiplatform / Compose (Android neste Windows; iOS exige macOS). Gradle/JDK 26, Android jvmTarget 26, compileSdk 37
-- Auth: JWT + refresh. Senha demo de todas as personas: `Precision@123`
-- Segredos demo: `.env.example` define `ALLOW_DEMO_SECRETS=true`; sem isso (e sem profile `local`) o boot recusa JWT/DB demo
-- Web e mobile: pt-BR e en-US, com troca de idioma na interface
+- Mobile: Kotlin Multiplatform / Compose (Android on this Windows machine; iOS requires macOS). Gradle/JDK 26, Android jvmTarget 26, compileSdk 37
+- Auth: JWT + refresh. Demo password for every persona: `Precision@123`
+- Demo secrets: `.env.example` sets `ALLOW_DEMO_SECRETS=true`; without that (and without the `local` profile) boot refuses the demo JWT/DB secrets
+- Web and mobile UI: pt-BR and en-US, with an in-app language toggle. Default locale is pt-BR. Seeded alert copy and API error messages are single-language.
 
-Pré-requisitos: JDK 26, Docker Compose v2 e, para a web, Node 22. No Windows use `gradlew.bat`. Android: [mobile/README.md](mobile/README.md). Terraform em `infra/` é esqueleto e não deve ser aplicado.
+Prerequisites: JDK 26, Docker Compose v2, and Node 22 for the web app. On Windows use `gradlew.bat`. Android: [mobile/README.md](mobile/README.md). Terraform under `infra/` is a skeleton and must not be applied.
 
-Aprovações de arquitetura: [docs/architecture-approvals.md](docs/architecture-approvals.md).
+Architecture approvals: [docs/architecture-approvals.md](docs/architecture-approvals.md).
 
-## Personas demo
+## Demo personas
 
-| E-mail | Papel |
+| Email | Role |
 | --- | --- |
 | `admin@precisionfarming.demo` | Admin |
-| `manager@precisionfarming.demo` | Gerente (aprova prescrição) |
-| `operator@precisionfarming.demo` | Operador (executa a ordem, inclusive offline) |
-| `maintenance@precisionfarming.demo` | Manutenção |
+| `manager@precisionfarming.demo` | Manager (approves prescriptions) |
+| `operator@precisionfarming.demo` | Operator (runs the order, including offline) |
+| `maintenance@precisionfarming.demo` | Maintenance |
 
-## Subir local (Gradle / hybrid)
+## Run locally (Gradle / hybrid)
 
 ```bash
 cp .env.example .env
 docker compose up -d
 ./gradlew test
-# ALLOW_DEMO_SECRETS=true (via .env) ou Spring profile `local`
-# terminais separados:
+# bootRun defaults: APP_SEED=true and Spring profile `local` (demo seed + demo secrets).
+# separate terminals:
 ./gradlew :backend:services:auth:bootRun
 ./gradlew :backend:services:farm:bootRun
 ./gradlew :backend:services:asset:bootRun
@@ -56,66 +60,66 @@ docker compose up -d
 cd web && npm install && npm run dev
 ```
 
-## Subir local (Docker Compose)
+## Run locally (Docker Compose)
 
-Imagens **multi-stage Alpine** (JDK/Node no builder; JRE/nginx no runtime). Mobile não entra no Compose.
+**Multi-stage Alpine** images (JDK/Node in the builder; JRE/nginx at runtime). Mobile is not part of Compose.
 
-Caminho suportado: os scripts fazem stage do zip Gradle (SHA-256), copiam `deploy/compose/*.env.example` se faltar, **sempre buildam**, e sobem com `pull_policy: never`. Perfil padrão: **core**.
+Supported path: the scripts stage the Gradle zip (SHA-256), copy `deploy/compose/*.env.example` when missing, **always build**, and start with `pull_policy: never`. Default profile: **all**.
 
-**core** sobe auth, farm, asset, telemetry, operation, inventory, alert, reporting, finance, gateway e web. Clima, agronomia, compliance, irrigação, colheita, IA, sync, integração, notificação e arquivos ficam de fora. O demo do investidor abaixo precisa do perfil **all** (ou dos `bootRun` híbridos). Volume PostGIS antigo: rode `scripts/ensure-new-dbs.sql` antes de agronomia, irrigação, colheita, financeiro e compliance.
+**all** starts every service and seeds its demo data. For profiles **all** and **domains**, compose-up applies `scripts/ensure-new-dbs.sql` so an older PostGIS volume gains `agronomy_db`, `irrigation_db`, `harvest_db`, `finance_db`, and `compliance_db`. **core** is the smaller stack: auth, farm, asset, telemetry, operation, inventory, alert, reporting, finance, gateway, and web. It leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down.
 
 ```powershell
 docker compose up -d
 .\scripts\compose-up.ps1
-# stack completo:
-# .\scripts\compose-up.ps1 all
+# smaller stack (weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration stay down):
+# .\scripts\compose-up.ps1 core
 ```
 
 Linux / macOS:
 
 ```bash
 chmod +x scripts/compose-up.sh
-./scripts/compose-up.sh            # profile core
-# ./scripts/compose-up.sh all      # todos os containers
+./scripts/compose-up.sh            # profile all (default; seeds every service)
+# ./scripts/compose-up.sh core     # smaller stack (weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration stay down)
 ```
 
-Detalhes e a tabela de perfis: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`. Infra local: PostGIS `127.0.0.1:5432`, Timescale `127.0.0.1:5433`, RabbitMQ `5672`, Redis `6379`, MinIO.
+Details and the profile table: [deploy/compose/README.md](deploy/compose/README.md). Gateway `http://localhost:8080`, web `http://localhost:5173`. Local infra: PostGIS `127.0.0.1:5432`, Timescale `127.0.0.1:5433`, RabbitMQ `5672`, Redis `6379`, MinIO.
 
-A web usa Leaflet com satélite Esri, sem chave do Google Maps. O mobile, sem `ANDROID_GOOGLE_MAPS_API_KEY`, mostra o status da chave em vez do mapa.
+The web app uses Leaflet with Esri satellite imagery and does not need a Google Maps key. Without `ANDROID_GOOGLE_MAPS_API_KEY`, mobile shows the key status instead of the map.
 
-A interface web agrupa torre, fazendas, mapa, operações, decisões, dados, colheita, ESG e alertas.
+The web UI groups tower, farms, map, operations, decisions, data, harvest, ESG, and alerts.
 
 ## ADRs
 
-- [001 Microserviços](docs/adr/001-microservices.md)
+- [001 Microservices](docs/adr/001-microservices.md)
 - [002 KMP](docs/adr/002-kmp-mobile.md)
 - [003 Spring Boot 4 / Java 26](docs/adr/003-spring-boot-4.md)
 
 ## Seed
 
-Com `APP_SEED=true` (padrão) cada serviço popula dados demo na subida. Reset: `POST /api/v1/dev/seed/reset` (auth) ou `POST /api/v1/dev/seed/reset/{service}` (farm, machines, telemetry, weather, operation, inventory, alerts, ai, notifications, files, reports, sync, integrations, agronomy, irrigation, harvest, finance, compliance).
+With `APP_SEED=true` (the default) each service loads demo data on startup. Reset: `POST /api/v1/dev/seed/reset` (auth) or `POST /api/v1/dev/seed/reset/{service}` (farm, machines, telemetry, weather, operation, inventory, alerts, ai, notifications, files, reports, sync, integrations, agronomy, irrigation, harvest, finance, compliance).
 
-## Demo do investidor
+## Investor demo
 
-Um ciclo fechado, com dados determinísticos, na fazenda 1 (São Gabriel do Oeste, MS):
+One closed loop, with deterministic data, on farm 1 (São Gabriel do Oeste, MS):
 
-| Peça | Onde ver | Dado demo |
+| Piece | Where to look | Demo data |
 | --- | --- | --- |
-| Prescrição `SPOT` aprovada | Decisões / Agronomia | `rx-spot-001`, fração 0,35, receituário `REC-DEMO-001` |
-| Prescrição rascunho (start recusa) | Operações | `op-rx-draft` ligada a `rx-draft-001` |
-| Economia de pulverização e alerta de MoA | Decisões | `GET /api/v1/prescriptions/{id}/spray-savings`, `GET /api/v1/prescriptions/moa-rotation?fieldId=` |
-| Janela de plantio | Safras | ZARC 1 out–20 dez; vazio sanitário 15 jun–15 set. `GET /api/v1/weather/planting-gate` |
-| Pacote de evidência | Compliance, lote | `LOT-BV-001` em `GET /api/v1/compliance/lots/LOT-BV-001` |
-| Dossiê de crédito | Compliance | fazenda 1 regular; fazenda 3 embargada |
-| Complete com litros | Mobile, ordem em andamento | `POST /api/v1/operations/{id}/complete` com `actualLiters` até a quantidade reservada; o restante volta ao estoque |
+| Approved `SPOT` prescription | Decisions / Agronomy | `rx-spot-001`, fraction 0.35, agronomic prescription `REC-DEMO-001` |
+| Draft prescription (start refused) | Operations | `op-rx-draft` linked to `rx-draft-001` |
+| Spray savings and MoA alert | Decisions | `GET /api/v1/prescriptions/{id}/spray-savings`, `GET /api/v1/prescriptions/moa-rotation?fieldId=` |
+| Planting window | Seasons | ZARC 1 Oct–20 Dec; sanitary void 15 Jun–15 Sep. `GET /api/v1/weather/planting-gate` |
+| Evidence pack | Compliance, lot | `LOT-BV-001` on `GET /api/v1/compliance/lots/LOT-BV-001` |
+| Credit dossier | Compliance | farm 1 regular; farm 3 embargoed |
+| Complete with liters | Mobile, in-progress order | `POST /api/v1/operations/{id}/complete` with `actualLiters` up to the reserved quantity; the remainder returns to stock |
 
-O start de uma ordem ligada a prescrição só segue se o status for `APPROVED`. Números de economia, evidência, ZARC e dossiê vêm marcados como simulação.
+Starting an order linked to a prescription proceeds only when the status is `APPROVED`. Savings, evidence, ZARC, and dossier figures are marked as simulation.
 
-## Clima
+## Weather
 
-O padrão é a série demo (`WEATHER_PROVIDER=demo`), para o stack subir sem internet.
+The default series is demo data (`WEATHER_PROVIDER=demo`), so the stack starts without internet.
 
-Para consumir a Open-Meteo (sem chave; a Weather.com agrícola exige contrato), no `bootRun` do clima:
+To call Open-Meteo (no API key; agricultural Weather.com requires a contract), on the weather `bootRun`:
 
 ```powershell
 $env:WEATHER_PROVIDER = "open-meteo"
@@ -125,9 +129,9 @@ $env:WEATHER_PROVIDER = "open-meteo"
 WEATHER_PROVIDER=open-meteo ./gradlew :backend:services:weather:bootRun
 ```
 
-No Compose, a variável tem de estar no ambiente do serviço `weather` (o `demo.env` não liga isso sozinho). `GET /api/v1/weather/forecast` e `/weather/current` passam a usar essa série (`vintage=open-meteo`). Se a chamada falhar, permanece a série já gravada. A trava de ZARC continua na tabela local.
+In Compose, the variable has to be in the `weather` service environment (`demo.env` does not turn this on by itself). `GET /api/v1/weather/forecast` and `/weather/current` then use that series (`vintage=open-meteo`). If the call fails, the series already stored stays in place. The ZARC gate stays on the local table.
 
-## Testes
+## Tests
 
 ```bash
 ./gradlew test
@@ -135,21 +139,25 @@ cd web && npm test && npm run build
 ./gradlew -p mobile :composeApp:testDebugUnitTest
 ```
 
-O teste do mobile exige Android SDK. Sem `ANDROID_HOME`, essa tarefa não compila.
+The mobile test needs the Android SDK. Without `ANDROID_HOME`, that task does not compile.
 
-## Limitações
+## Limitations
 
-- NDVI é camada **Demo NDVI**, não produto Google.
-- IA é modelo estatístico demo (`demo-gradient-baseline`), não modelo agronômico validado.
-- Telemetria demo não é telemetria de fabricante.
-- Clima ao vivo é Open-Meteo diária. Não há evapotranspiração da Weather.com. O ZARC do MAPA só substitui a janela semeada com `MAPA_LIVE=true` (CKAN de dados abertos, timeout curto; falha mantém o seed).
-- Pacote de evidência e dossiê de crédito são snapshots de seed, não consulta a CAR, PRODES ou SEFAZ. `GET /api/v1/compliance/lots/{lotCode}/nfe` devolve XML de homologação (`tpAmb=2`) com receituário e CPF do RT; não assina e não transmite à SEFAZ.
-- O seed local tem 8 fazendas e 22 talhões, não o catálogo de 180 talhões da especificação.
-- Telemetria demo: 7 dias, intervalo de 15 minutos. O CSV de relatório não junta operação e estoque ao vivo.
-- RabbitMQ está no ar, mas os listeners AMQP seguem desligados. A saga de estoque chama o inventory por HTTP. Kafka (`127.0.0.1:9092`) publica `precision.operation.started` só com `KAFKA_ENABLED=true`, depois do start bem-sucedido; falha do broker não desfaz a saga.
-- `GET /api/v1/prescriptions/{id}/isoxml` exporta um TASKDATA mínimo. Não há parser de arquivo de fabricante.
-- O mapa do mobile é Leaflet + imagem Esri num WebView quando o talhão tem geometria. O SDK do Google Maps continua adiado.
-- Adiado: copilot/agentes, GeoTIFF, OIDC e a tela de chaos lab.
-- iOS: o slice deste Windows é `mobile/composeApp`. `xcodebuild` só em macOS.
+- NDVI is a **Demo NDVI** layer, not a Google product.
+- AI is a demo statistical model (`demo-gradient-baseline`), not a validated agronomic model.
+- Demo telemetry is not manufacturer telemetry.
+- Live weather is daily Open-Meteo. There is no Weather.com evapotranspiration. MAPA ZARC replaces the seeded window only with `MAPA_LIVE=true` (open-data CKAN, short timeout; failure keeps the seed).
+- The evidence pack and credit dossier are seed snapshots, not live CAR, PRODES, or SEFAZ lookups. `GET /api/v1/compliance/lots/{lotCode}/nfe` returns homologation XML (`tpAmb=2`) with the prescription and the technical manager CPF; it does not sign or submit to SEFAZ.
+- The local seed has 8 farms and 22 fields, not the 180-field catalog from the specification.
+- Demo telemetry: 7 days, 15-minute interval. The report CSV does not join live operation and inventory.
+- RabbitMQ is up, but AMQP listeners stay off. The inventory saga calls inventory over HTTP. Kafka (`127.0.0.1:9092`) publishes `precision.operation.started` only with `KAFKA_ENABLED=true`, after a successful start; a broker failure does not roll back the saga.
+- `GET /api/v1/prescriptions/{id}/isoxml` exports a minimal TASKDATA. There is no manufacturer file parser.
+- The mobile map is Leaflet plus an Esri image in a WebView when the field has geometry. The Google Maps SDK is still deferred.
+- Deferred: copilot/agents, GeoTIFF, OIDC, and the chaos lab screen.
+- iOS: the Windows slice is `mobile/composeApp`. `xcodebuild` runs only on macOS.
 
-Lista curta complementar: [docs/known-limitations.md](docs/known-limitations.md).
+Short companion list: [docs/known-limitations.md](docs/known-limitations.md).
+
+---
+
+Copyright © 2026 Filipe de Brito Thomé. All rights reserved.
