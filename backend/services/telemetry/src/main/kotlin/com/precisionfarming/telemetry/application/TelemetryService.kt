@@ -160,8 +160,8 @@ class TelemetryService(
 @Service
 class TelemetrySeed(
     private val svc: TelemetryService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedTelemetry() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedTelemetry() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

@@ -1,5 +1,6 @@
 package com.precisionfarming.mobile.ui.inspectors
 
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,9 +13,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +43,7 @@ import com.precisionfarming.mobile.data.prescriptions
 import com.precisionfarming.mobile.data.selectPrescription
 import com.precisionfarming.mobile.i18n.DomainLabels
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.i18n.commandErrorLabel
 import com.precisionfarming.mobile.ui.components.ActualLitersSheet
 import com.precisionfarming.mobile.ui.components.InspectorKpiItem
 import com.precisionfarming.mobile.ui.components.InspectorKpis
@@ -64,10 +66,10 @@ fun OperationInspector(
     var rx by remember { mutableStateOf<PrescriptionDto?>(null) }
     var pauseSheet by remember { mutableStateOf(false) }
     var completeSheet by remember { mutableStateOf(false) }
-    LaunchedEffect(FarmFilter.farmId, operation.id, operation.prescriptionId, operation.fieldId) {
-        machines = runCatching { machines(FarmFilter.farmId) }.getOrDefault(emptyList())
-        items = runCatching { inventory(FarmFilter.farmId) }.getOrDefault(emptyList())
-        val list = runCatching { prescriptions(FarmFilter.farmId) }.getOrDefault(emptyList())
+    LaunchedEffect(LocalFarmId.current, operation.id, operation.prescriptionId, operation.fieldId) {
+        machines = runCatching { machines(FarmFilter.farmId.value) }.getOrDefault(emptyList())
+        items = runCatching { inventory(FarmFilter.farmId.value) }.getOrDefault(emptyList())
+        val list = runCatching { prescriptions(FarmFilter.farmId.value) }.getOrDefault(emptyList())
         val selected = selectPrescription(operation.prescriptionId, operation.fieldId, list)
         rx = when {
             selected != null -> selected
@@ -119,7 +121,7 @@ fun OperationInspector(
         }
         failed.forEach { f ->
             Text(
-                S.t("run.syncFailed", "error" to (f.lastError ?: S.t("common.error"))),
+                S.t("run.syncFailed", "error" to commandErrorLabel(f.lastError)),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.bodySmall,
             )

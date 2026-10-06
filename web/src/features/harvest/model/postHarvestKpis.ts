@@ -1,4 +1,11 @@
-import type { Field, HarvestPlan, LogisticsLoad, StorageLot, StorageUnit, YieldRecord } from '@/shared/api/types'
+import type {
+  HarvestPlan,
+  LogisticsLoad,
+  StorageLot,
+  StorageUnit,
+  YieldRecord,
+} from '@/features/harvest/types'
+import type { Field } from '@/shared/api/types'
 import type { ChainStepState } from '@/shared/ui/ChainRail'
 
 export type TonsCoverage = { tons: number; withArea: number; total: number }

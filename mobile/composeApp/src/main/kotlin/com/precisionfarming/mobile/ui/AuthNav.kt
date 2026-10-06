@@ -16,7 +16,7 @@ internal object AuthNav {
 
 internal fun NavController.goToLogin() {
     if (!AuthNav.shouldReplace(currentDestination?.route, AuthNav.LOGIN)) return
-    FarmFilter.farmId = null
+    FarmFilter.farmId.value = null
     navigate(AuthNav.LOGIN) {
         popUpTo(AuthNav.HOME) { inclusive = true }
         launchSingleTop = true

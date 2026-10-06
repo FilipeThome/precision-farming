@@ -49,7 +49,9 @@ RUN chmod +x gradlew \
 
 FROM eclipse-temurin:26-jre-alpine AS runtime
 RUN apk add --no-cache curl \
-  && addgroup -S app && adduser -S app -G app
+  && addgroup -S app && adduser -S app -G app \
+  && mkdir -p /data/files \
+  && chown app:app /data/files
 WORKDIR /app
 
 COPY --from=builder /out/app.jar /app/app.jar

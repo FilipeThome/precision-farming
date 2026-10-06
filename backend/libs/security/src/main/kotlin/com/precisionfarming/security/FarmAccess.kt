@@ -24,8 +24,7 @@ class FarmAccess {
             ?.toSet()
             .orEmpty()
         val userId = runCatching { UUID.fromString(jwt.subject) }.getOrNull()
-        val granted = userId?.let { UserFarmGrants.farmIds(it) }.orEmpty()
-        val farmIds = claimed + granted
+        val farmIds = claimed
         if (farmIds.isEmpty()) {
             throw UnauthorizedException("Missing farmIds claim")
         }

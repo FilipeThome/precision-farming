@@ -26,7 +26,13 @@ data class ItemDto(
 )
 data class UpsertItem(val farmId: UUID, val name: String, val category: String, val unit: String, val quantity: BigDecimal)
 data class PatchItem(val farmId: UUID, val name: String, val category: String, val unit: String)
-data class MovementCmd(val itemId: UUID, val type: String, val quantity: BigDecimal, val reference: String?)
+data class MovementCmd(
+    val itemId: UUID,
+    val type: String,
+    val quantity: BigDecimal,
+    val reference: String?,
+    val stepKey: String? = null,
+)
 data class MovementDto(
     val id: UUID,
     val itemId: UUID,
@@ -86,6 +92,13 @@ class InventoryService(
     fun move(scope: AccessScope, cmd: MovementCmd): ItemDto {
         val item = items.findById(cmd.itemId).orElseThrow { NotFoundException("ITEM_NOT_FOUND", "Item not found") }
         scope.requireEntityFarm(item.farmId)
+        val stepKey = cmd.stepKey?.takeIf { it.isNotBlank() }
+        if (stepKey != null && movements.existsByItemIdAndTypeAndStepKey(item.id, cmd.type, stepKey)) {
+            return item.toDto()
+        }
+        if (stepKey != null && !undoTargetExists(item.id, cmd.type, stepKey)) {
+            return item.toDto()
+        }
         when (cmd.type) {
             "RESERVE" -> {
                 if (item.quantity - item.reserved < cmd.quantity) {
@@ -104,8 +117,31 @@ class InventoryService(
             "IN" -> item.quantity += cmd.quantity
             else -> throw ConflictException("UNKNOWN_MOVEMENT", "Unknown movement type")
         }
-        movements.save(MovementEntity(UUID.randomUUID(), item.id, cmd.type, cmd.quantity, Instant.now(), cmd.reference))
-        return items.save(item).toDto()
+        try {
+            movements.save(MovementEntity(UUID.randomUUID(), item.id, cmd.type, cmd.quantity, Instant.now(), cmd.reference, stepKey))
+            val saved = items.save(item).toDto()
+            // The unique step_key index is checked on flush, not on save().
+            movements.flush()
+            return saved
+        } catch (_: org.springframework.dao.DataIntegrityViolationException) {
+            throw ConflictException("STEP_ALREADY_APPLIED", "Movement step already applied")
+        }
+    }
+
+    /** Compensation is a no-op until the forward step is stored, so a lost HTTP success cannot be applied twice. */
+    private fun undoTargetExists(itemId: UUID, type: String, stepKey: String): Boolean {
+        val forward = when {
+            type == "RELEASE" && stepKey.endsWith(":UNDO-RESERVE") ->
+                "RESERVE" to stepKey.removeSuffix(":UNDO-RESERVE") + ":RESERVE"
+            type == "RELEASE" && stepKey.endsWith(":RELEASE-UNUSED") ->
+                "CONSUME" to stepKey.removeSuffix(":RELEASE-UNUSED") + ":CONSUME"
+            type == "IN" && stepKey.endsWith(":UNDO-CONSUME") ->
+                "CONSUME" to stepKey.removeSuffix(":UNDO-CONSUME") + ":CONSUME"
+            type == "RESERVE" && ":RESTORE-RESERVE" in stepKey ->
+                "IN" to stepKey.substringBefore(":RESTORE-RESERVE") + ":UNDO-CONSUME"
+            else -> return true
+        }
+        return movements.existsByItemIdAndTypeAndStepKey(itemId, forward.first, forward.second)
     }
 
     @Transactional
@@ -183,8 +219,8 @@ class InventoryService(
 @Service
 class InventorySeed(
     private val svc: InventoryService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedInventory() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedInventory() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

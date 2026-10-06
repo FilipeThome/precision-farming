@@ -85,7 +85,6 @@ class FileService(
         )
     }
 
-    @Transactional
     @Suppress("UNUSED_PARAMETER")
     fun upload(scope: AccessScope, farmId: UUID, kind: String, entityId: UUID?, bytes: ByteArray): FileMetaDto {
         scope.requireFarm(farmId)
@@ -194,6 +193,6 @@ class FileService(
 }
 
 @Service
-class FileSeed(private val svc: FileService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedFiles() = ApplicationRunner { if (seed) svc.seed() }
+class FileSeed(private val svc: FileService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedFiles() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

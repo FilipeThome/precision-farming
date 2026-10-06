@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/shared/api/client'
-import type { MachineWorkSummary, Operation } from '@/shared/api/types'
+import type { MachineWorkSummary, Operation } from '@/features/operations/types'
 
 export async function fetchOperations(farmId?: string | null): Promise<Operation[]> {
   return apiGet<Operation[]>('/api/v1/operations', { farmId: farmId ?? undefined })

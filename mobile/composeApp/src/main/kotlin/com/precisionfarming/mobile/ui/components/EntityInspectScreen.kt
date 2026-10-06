@@ -1,24 +1,23 @@
 package com.precisionfarming.mobile.ui.components
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.byId
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import kotlinx.coroutines.launch
 import com.precisionfarming.mobile.ui.components.ScreenHeader
@@ -51,7 +50,7 @@ fun <T> EntityInspectScreen(
             state = runCatching { load() }.toLoadState()
         }
     }
-    LaunchedEffect(title, extraKeys, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(title, extraKeys, LocalFarmId.current, LocalAppLocale.current) { reload() }
     val items = (state as? LoadState.Ok)?.items.orEmpty()
     val selected = items.byId(selectedId, idOf)
     val sheetOpen = !selectedId.isNullOrBlank()

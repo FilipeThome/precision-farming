@@ -132,6 +132,6 @@ class IrrigationService(
 }
 
 @Service
-class IrrigationSeed(private val svc: IrrigationService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedIrrigation() = ApplicationRunner { if (seed) svc.seed() }
+class IrrigationSeed(private val svc: IrrigationService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedIrrigation() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

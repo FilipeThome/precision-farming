@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -24,10 +26,10 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -67,7 +69,6 @@ import com.precisionfarming.mobile.data.offline.SyncState
 import com.precisionfarming.mobile.data.operations
 import com.precisionfarming.mobile.data.weatherWindows
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.AgCard
 import com.precisionfarming.mobile.ui.components.EntityTile
@@ -106,7 +107,7 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
             state = runCatching {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 coroutineScope {
                     val meJob = async { runCatching { me() }.getOrNull() }
                     val farmJob = async { farms() }
@@ -133,7 +134,7 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
             )
         }
     }
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
     val queue by OfflineRuntime.queue.state.collectAsState()
     // Reload when a queued command for any operation finishes syncing so statuses reflect the server.
     val syncedCount = queue.items.count { it.state == SyncState.SYNCED }
@@ -157,7 +158,7 @@ fun TodayScreen(onOpen: (String) -> Unit, onOpenRun: (String) -> Unit) {
             }
             is LoadState.Ok -> {
                 val b = s.items.first()
-                val zone = TodayOps.resolveZone(b.farms, FarmFilter.farmId)
+                val zone = TodayOps.resolveZone(b.farms, FarmFilter.farmId.value)
                 val now = Instant.now()
                 Greeting(b.me?.name)
                 val ops = b.operations.map { it.withQueuedStatus(queue) }

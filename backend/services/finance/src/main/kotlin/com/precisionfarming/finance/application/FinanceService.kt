@@ -72,7 +72,7 @@ class FinanceService(
             PnlRowDto(
                 id = "pnl-$fid",
                 farmId = fid,
-                farmName = DemoCatalog.farmName(fid),
+                farmName = costs.findFirstByFarmIdAndFarmNameIsNotNull(fid)?.farmName,
                 revenue = revenue,
                 cost = cost,
                 margin = revenue.subtract(cost),
@@ -113,10 +113,12 @@ class FinanceService(
                     val amount = BigDecimal("${800 + i * 37}")
                     val farmFields = fieldsByFarm.getValue(farm)
                     val fieldId = if (i % 2 == 0) DemoIds.uuid(farmFields[(i - 1) % farmFields.size]) else null
+                    val farmId = DemoIds.uuid(farm)
                     CostEntity(
-                        DemoIds.uuid("cost-%03d".format(i)), DemoIds.uuid(farm),
+                        DemoIds.uuid("cost-%03d".format(i)), farmId,
                         fieldId,
                         cat, "DEMO_ENTRY_$i", amount, "BRL", now.minus(i.toLong(), ChronoUnit.DAYS),
+                        DemoCatalog.farmName(farmId),
                     )
                 }
             },
@@ -130,11 +132,13 @@ class FinanceService(
                     DemoIds.uuid("rev-%03d".format(idx + 1)), farmId, null,
                     "REVENUE", "SOY_RECEIPT", BigDecimal("${220000 + idx * 28000}"), "BRL",
                     now.minus((idx + 2).toLong(), ChronoUnit.DAYS),
+                    DemoCatalog.farmName(farmId),
                 ),
                 CostEntity(
                     DemoIds.uuid("rev-b-%03d".format(idx + 1)), farmId, null,
                     "REVENUE", "CORN_SALE", BigDecimal("${98000 + idx * 14000}"), "BRL",
                     now.minus((idx + 12).toLong(), ChronoUnit.DAYS),
+                    DemoCatalog.farmName(farmId),
                 ),
             )
         }
@@ -212,6 +216,6 @@ class FinanceService(
 }
 
 @Service
-class FinanceSeed(private val svc: FinanceService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedFinance() = ApplicationRunner { if (seed) svc.seed() }
+class FinanceSeed(private val svc: FinanceService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedFinance() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

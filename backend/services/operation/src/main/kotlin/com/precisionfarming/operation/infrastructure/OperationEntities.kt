@@ -6,6 +6,8 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.persistence.Version
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import java.math.BigDecimal
 import java.time.Instant
 import java.util.UUID
@@ -48,5 +50,23 @@ interface OperationJpaRepository : JpaRepository<OperationEntity, UUID> {
     fun findByFarmId(farmId: UUID): List<OperationEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<OperationEntity>
     fun findByMachineIdAndFarmIdIn(machineId: UUID, farmIds: Collection<UUID>): List<OperationEntity>
+
+    @Query(
+        """
+        select o from OperationEntity o
+        where o.machineId = :machineId and o.farmId in :farmIds and (
+          (o.actualStart is not null and o.actualStart >= :from and o.actualStart <= :to)
+          or (o.actualStart is null and o.plannedStart is not null and o.plannedStart >= :from and o.plannedStart <= :to)
+        )
+        """,
+    )
+    fun findWorkInWindow(
+        @Param("machineId") machineId: UUID,
+        @Param("farmIds") farmIds: Collection<UUID>,
+        @Param("from") from: Instant,
+        @Param("to") to: Instant,
+    ): List<OperationEntity>
 }
-interface SagaJpaRepository : JpaRepository<SagaEntity, UUID>
+interface SagaJpaRepository : JpaRepository<SagaEntity, UUID> {
+    fun findFirstByOperationIdAndTypeOrderByCreatedAtDesc(operationId: UUID, type: String): SagaEntity?
+}

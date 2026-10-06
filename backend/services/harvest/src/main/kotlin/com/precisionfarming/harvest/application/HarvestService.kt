@@ -157,6 +157,7 @@ class HarvestService(
             HarvestYieldEntity(DemoIds.uuid("hyield-007"), DemoIds.uuid("farm-007"), DemoIds.uuid("field-019"), DemoIds.uuid("hplan-011"), now.minus(2, ChronoUnit.DAYS), BigDecimal("3.41"), BigDecimal("13.0"), BigDecimal("118")),
             HarvestYieldEntity(DemoIds.uuid("hyield-008"), DemoIds.uuid("farm-006"), DemoIds.uuid("field-018"), null, now.minus(35, ChronoUnit.DAYS), BigDecimal("7.20"), BigDecimal("14.5"), BigDecimal("130")),
         )
+        yieldRows.forEach { row -> row.fieldName = DemoCatalog.fieldName(row.fieldId) }
         yields.saveAll(yieldRows)
 
         val loadRows = listOf(
@@ -207,13 +208,13 @@ class HarvestService(
     }
 
     private fun HarvestPlanEntity.toDto() = HarvestPlanDto(id, farmId, fieldId, crop, plannedStart, plannedEnd, expectedTHa, status)
-    private fun HarvestYieldEntity.toDto() = HarvestYieldDto(id, farmId, fieldId, DemoCatalog.fieldName(fieldId), planId, recordedAt, yieldTHa, moisturePct, areaHa)
+    private fun HarvestYieldEntity.toDto() = HarvestYieldDto(id, farmId, fieldId, fieldName, planId, recordedAt, yieldTHa, moisturePct, areaHa)
     private fun LogisticsLoadEntity.toDto() = LogisticsLoadDto(id, farmId, planId, truckPlate, destination, tons, status, dispatchedAt)
     private fun StorageUnitEntity.toDto() = StorageUnitDto(id, farmId, name, capacityT, usedT, type)
     private fun StorageLotEntity.toDto() = StorageLotDto(id, unitId, farmId, crop, tons, quality, receivedAt)
 }
 
 @Service
-class HarvestSeed(private val svc: HarvestService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedHarvest() = ApplicationRunner { if (seed) svc.seed() }
+class HarvestSeed(private val svc: HarvestService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedHarvest() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

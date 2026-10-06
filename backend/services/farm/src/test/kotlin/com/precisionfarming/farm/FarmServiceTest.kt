@@ -13,7 +13,6 @@ import com.precisionfarming.farm.infrastructure.FieldJpaRepository
 import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.DemoTenant
-import com.precisionfarming.security.UserFarmGrants
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -22,6 +21,10 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.TransactionDefinition
+import org.springframework.transaction.TransactionStatus
+import org.springframework.transaction.support.SimpleTransactionStatus
 import java.math.BigDecimal
 import java.util.Optional
 import java.util.UUID
@@ -31,25 +34,47 @@ class FarmServiceTest {
     private val fields = mockk<FieldJpaRepository>()
     private val seasons = mockk<SeasonJpaRepository>()
     private val memberships = mockk<AuthMembershipClient>(relaxed = true)
-    private val svc = FarmService(farms, fields, seasons, memberships)
+    private val tx = object : PlatformTransactionManager {
+        override fun getTransaction(definition: TransactionDefinition?): TransactionStatus = SimpleTransactionStatus()
+        override fun commit(status: TransactionStatus) {}
+        override fun rollback(status: TransactionStatus) {}
+    }
+    private val svc = FarmService(farms, fields, seasons, memberships, tx)
 
     private fun scope(farmId: UUID, userId: UUID? = null) =
         AccessScope(DemoTenant.ID, setOf(farmId), "ADMIN", userId)
 
     @Test
-    fun createFarmAddsFarmToCreatorGrants() {
+    fun createFarmGrantsMembershipAndDropsTheRowWhenAuthFails() {
         val userId = UUID.randomUUID()
         every { farms.save(any()) } answers { firstArg<FarmEntity>() }
+        every { farms.deleteById(any()) } returns Unit
+        every { memberships.grant(userId, any()) } throws IllegalStateException("auth down")
 
-        val dto = svc.createFarm(
-            scope(UUID.randomUUID(), userId),
-            UpsertFarm("Nova", "MS", BigDecimal.TEN, "America/Campo_Grande"),
-        )
-        try {
-            assertTrue(UserFarmGrants.farmIds(userId).contains(dto.id))
-        } finally {
-            UserFarmGrants.revoke(dto.id, userId)
+        assertThrows(IllegalStateException::class.java) {
+            svc.createFarm(
+                scope(UUID.randomUUID(), userId),
+                UpsertFarm("Nova", "MS", BigDecimal.TEN, "America/Campo_Grande"),
+            )
         }
+        verify { farms.deleteById(any()) }
+    }
+
+    @Test
+    fun createFarmKeepsTheAuthErrorWhenTheCompensatingDeleteFails() {
+        val userId = UUID.randomUUID()
+        every { farms.save(any()) } answers { firstArg<FarmEntity>() }
+        every { farms.deleteById(any()) } throws IllegalStateException("delete down")
+        every { memberships.grant(userId, any()) } throws IllegalStateException("auth down")
+
+        val ex = assertThrows(IllegalStateException::class.java) {
+            svc.createFarm(
+                scope(UUID.randomUUID(), userId),
+                UpsertFarm("Nova", "MS", BigDecimal.TEN, "America/Campo_Grande"),
+            )
+        }
+        assertEquals("auth down", ex.message)
+        assertEquals("delete down", ex.suppressed.single().message)
     }
 
     @Test
@@ -165,5 +190,22 @@ class FarmServiceTest {
         verify { farms.deleteById(farmId) }
         verify { fields.deleteByFarmId(farmId) }
         verify { seasons.deleteByFarmId(farmId) }
+    }
+
+    @Test
+    fun deleteFailureRestoresMembershipAndKeepsTheGrantError() {
+        val userId = UUID.randomUUID()
+        val farmId = UUID.randomUUID()
+        every { farms.existsById(farmId) } returns true
+        every { seasons.deleteByFarmId(farmId) } throws IllegalStateException("db down")
+        every { memberships.grant(userId, farmId) } throws IllegalStateException("auth down")
+
+        val ex = assertThrows(IllegalStateException::class.java) {
+            svc.deleteFarm(scope(farmId, userId), farmId)
+        }
+        assertEquals("db down", ex.message)
+        assertEquals("auth down", ex.suppressed.single().message)
+        verify(exactly = 0) { fields.deleteByFarmId(farmId) }
+        verify(exactly = 0) { farms.deleteById(farmId) }
     }
 }

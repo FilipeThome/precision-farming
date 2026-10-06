@@ -1,5 +1,6 @@
 package com.precisionfarming.mobile.ui.inspectors
 
+import com.precisionfarming.mobile.ui.LocalFarmId
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -10,9 +11,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,13 +47,13 @@ fun MachineInspector(machine: MachineDto, modifier: Modifier = Modifier) {
     var photo by remember { mutableStateOf<ImageBitmap?>(null) }
     var loading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(machine.id, machine.photoFileId, FarmFilter.farmId) {
+    LaunchedEffect(machine.id, machine.photoFileId, LocalFarmId.current) {
         loading = true
         error = null
         val range = rollingWeekIsoRange()
         val metricsResult = runCatching { machineMetrics(machine.id) }
         val workResult = runCatching { machineWorkSummary(machine.id, range.first, range.second) }
-        items = runCatching { inventory(FarmFilter.farmId) }.getOrDefault(emptyList())
+        items = runCatching { inventory(FarmFilter.farmId.value) }.getOrDefault(emptyList())
         photo = machine.photoFileId?.let { id ->
             runCatching {
                 val bytes = fileContent(id)

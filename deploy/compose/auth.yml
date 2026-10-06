@@ -16,6 +16,7 @@ services:
         GRADLE_PROJECT: :backend:services:auth
         MODULE_DIR: backend/services/auth
     image: precision-farming-auth:local
+    pull_policy: never
     restart: unless-stopped
     env_file:
       - deploy/compose/demo.env

@@ -32,6 +32,7 @@ class MovementEntity(
     var quantity: BigDecimal,
     @Column(name = "occurred_at") var occurredAt: Instant,
     var reference: String?,
+    @Column(name = "step_key") var stepKey: String? = null,
 )
 
 interface ItemJpaRepository : JpaRepository<ItemEntity, UUID> {
@@ -41,4 +42,5 @@ interface ItemJpaRepository : JpaRepository<ItemEntity, UUID> {
 
 interface MovementJpaRepository : JpaRepository<MovementEntity, UUID> {
     fun findByItemIdOrderByOccurredAtAsc(itemId: UUID): List<MovementEntity>
+    fun existsByItemIdAndTypeAndStepKey(itemId: UUID, type: String, stepKey: String): Boolean
 }

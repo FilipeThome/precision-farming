@@ -1,5 +1,5 @@
 import { qualityBreakdown } from '@/features/harvest/model/postHarvestKpis'
-import type { StorageLot } from '@/shared/api/types'
+import type { StorageLot } from '@/features/harvest/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { Card } from '@/shared/ui/Card'

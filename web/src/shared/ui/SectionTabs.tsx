@@ -13,12 +13,11 @@ type SectionTabsProps<T extends string> = {
 export function SectionTabs<T extends string>({ tabs, active, onChange }: SectionTabsProps<T>) {
   const { t } = useI18n()
   return (
-    <div className="mb-4 flex flex-wrap gap-2" role="tablist">
+    <div className="mb-4 flex flex-wrap gap-2" role="group">
       {tabs.map((tab) => (
         <Button
           key={tab.id}
-          role="tab"
-          aria-selected={active === tab.id}
+          aria-pressed={active === tab.id}
           variant={active === tab.id ? 'primary' : 'secondary'}
           onClick={() => onChange(tab.id)}
         >

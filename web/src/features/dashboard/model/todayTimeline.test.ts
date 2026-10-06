@@ -26,11 +26,26 @@ function op(over: Partial<Operation>): Operation {
 }
 
 describe('todayRange', () => {
-  it('covers the local calendar day', () => {
+  it('covers the local calendar day through the next local midnight', () => {
     const now = new Date(2026, 8, 10, 15, 30)
     const range = todayRange(now)
     expect(new Date(range.start).getHours()).toBe(0)
-    expect(range.end - range.start).toBe(24 * 3_600_000)
+    expect(range.start).toBe(new Date(2026, 8, 10).getTime())
+    expect(range.end).toBe(new Date(2026, 8, 11).getTime())
+  })
+
+  it('ends at the next local midnight when that day is not 24h long', () => {
+    for (let month = 0; month < 12; month += 1) {
+      for (let day = 1; day <= 28; day += 1) {
+        const start = new Date(2026, month, day).getTime()
+        const end = new Date(2026, month, day + 1).getTime()
+        if (end - start === 24 * 3_600_000) continue
+        const range = todayRange(new Date(2026, month, day, 12))
+        expect(range).toEqual({ start, end })
+        expect(range.end - range.start).not.toBe(24 * 3_600_000)
+        return
+      }
+    }
   })
 
   it('is stable across the whole local day and flips exactly at local midnight', () => {

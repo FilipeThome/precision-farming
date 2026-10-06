@@ -271,8 +271,8 @@ class WeatherService(
 @Service
 class WeatherSeed(
     private val svc: WeatherService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedWeather() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedWeather() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

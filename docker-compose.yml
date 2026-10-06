@@ -11,6 +11,14 @@ services:
   postgres:
     image: postgis/postgis:16-3.5-alpine
     restart: unless-stopped
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    # Official entrypoint treats `postgres` as the server command and still runs initdb.
+    command: ["postgres", "-c", "max_connections=300"]
     environment:
       POSTGRES_USER: ${DB_USER:-precision}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
@@ -31,6 +39,13 @@ services:
   timescaledb:
     image: timescale/timescaledb:2.17.2-pg16
     restart: unless-stopped
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: ["postgres", "-c", "max_connections=50"]
     environment:
       POSTGRES_USER: ${DB_USER:-precision}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-precision}
@@ -50,6 +65,11 @@ services:
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:5672:5672"
       - "127.0.0.1:15672:15672"
@@ -69,6 +89,11 @@ services:
   redis:
     image: redis:7.4-alpine
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:6379:6379"
     volumes:
@@ -85,6 +110,11 @@ services:
     # Docker Hub minio/minio is no longer publicly pullable (source-only). Last official image on Quay.
     image: quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-precision}
@@ -94,6 +124,13 @@ services:
       - "127.0.0.1:9001:9001"
     volumes:
       - minio_data:/data
+    # Static curl is at /usr/bin/curl; ubi-micro has no shell, and `mc ready local` needs an alias.
+    healthcheck:
+      test: ["CMD", "/usr/bin/curl", "-fsS", "http://127.0.0.1:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - precision-farming
 
@@ -101,6 +138,12 @@ services:
     image: apache/kafka:3.9.1
     hostname: kafka
     restart: unless-stopped
+    mem_limit: 768m
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
       - "127.0.0.1:9092:9092"
     environment:
@@ -141,3 +184,4 @@ volumes:
   redis_data:
   minio_data:
   kafka_data:
+  file_data:

@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,10 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -25,7 +27,6 @@ import com.precisionfarming.mobile.data.completeWorkOrder
 import com.precisionfarming.mobile.data.createWorkOrder
 import com.precisionfarming.mobile.data.machines
 import com.precisionfarming.mobile.data.maintenanceWorkOrders
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.EntityFormSheet
 import com.precisionfarming.mobile.ui.components.FormField
@@ -49,10 +50,10 @@ fun MaintenanceScreen(onBack: () -> Unit) {
     fun reload() {
         scope.launch {
             state = LoadState.Loading
-            state = runCatching { maintenanceWorkOrders(FarmFilter.farmId) }.toLoadState()
+            state = runCatching { maintenanceWorkOrders(FarmFilter.farmId.value) }.toLoadState()
         }
     }
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
     Column(
         Modifier
             .padding(16.dp)
@@ -66,7 +67,7 @@ fun MaintenanceScreen(onBack: () -> Unit) {
                     error = null
                     values = mapOf("machineId" to "", "title" to "", "priority" to "MEDIUM")
                     scope.launch {
-                        val rows = runCatching { machines(FarmFilter.farmId) }.getOrDefault(emptyList())
+                        val rows = runCatching { machines(FarmFilter.farmId.value) }.getOrDefault(emptyList())
                         machineChoices = rows.map { FormOption(it.id, it.name) }
                         val first = machineChoices.firstOrNull()?.value
                         if (first != null) values = values + ("machineId" to first)
@@ -113,7 +114,7 @@ fun MaintenanceScreen(onBack: () -> Unit) {
             error = error,
             onDismiss = { creating = false },
             onSave = {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 if (farmId.isNullOrBlank()) {
                     error = S.t("form.needFarm")
                     return@EntityFormSheet

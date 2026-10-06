@@ -30,10 +30,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,7 +140,8 @@ fun HomeShell(onLogout: () -> Unit) {
             farmLoadFailed = true
         }
     }
-    val farmLabel = farmList.firstOrNull { it.id == FarmFilter.farmId }?.name
+    val selectedFarmId = LocalFarmId.current
+    val farmLabel = farmList.firstOrNull { it.id == selectedFarmId }?.name
         ?: S.t("farm.filter.all")
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -179,7 +180,7 @@ fun HomeShell(onLogout: () -> Unit) {
                                 DropdownMenuItem(
                                     text = { Text(S.t("farm.filter.all")) },
                                     onClick = {
-                                        FarmFilter.farmId = null
+                                        FarmFilter.farmId.value = null
                                         farmMenu = false
                                     },
                                 )
@@ -187,7 +188,7 @@ fun HomeShell(onLogout: () -> Unit) {
                                     DropdownMenuItem(
                                         text = { Text(farm.name) },
                                         onClick = {
-                                            FarmFilter.farmId = farm.id
+                                            FarmFilter.farmId.value = farm.id
                                             farmMenu = false
                                         },
                                     )
@@ -299,14 +300,14 @@ fun HomeShell(onLogout: () -> Unit) {
             composable(InspectNav.pattern(InspectNav.FIELDS), arguments = listOf(selectedArg)) { entry ->
                 FieldsScreen(selectedOf(entry), { setSelected(InspectNav.FIELDS, it) }, { clearSelected(InspectNav.FIELDS) }, back)
             }
-            composable("mais/seasons") { SeasonsScreen(onBack = back) }
+            composable(InspectNav.SEASONS) { SeasonsScreen(onBack = back) }
             composable(InspectNav.pattern(InspectNav.MACHINES), arguments = listOf(selectedArg)) { entry ->
                 MachinesScreen(selectedOf(entry), { setSelected(InspectNav.MACHINES, it) }, { clearSelected(InspectNav.MACHINES) }, back)
             }
-            composable("mais/maintenance") { MaintenanceScreen(onBack = back) }
-            composable("mais/agronomy") { AgronomyScreen(onBack = back) }
-            composable("mais/weather") { WeatherScreen(onBack = back) }
-            composable("mais/irrigation") { IrrigationScreen(onBack = back) }
+            composable(InspectNav.MAINTENANCE) { MaintenanceScreen(onBack = back) }
+            composable(InspectNav.AGRONOMY) { AgronomyScreen(onBack = back) }
+            composable(InspectNav.WEATHER) { WeatherScreen(onBack = back) }
+            composable(InspectNav.IRRIGATION) { IrrigationScreen(onBack = back) }
             composable(InspectNav.TOWER) {
                 ControlTowerScreen(onBack = back, onOpen = { nav.openInspect(it) })
             }
@@ -351,29 +352,29 @@ fun HomeShell(onLogout: () -> Unit) {
             composable(InspectNav.pattern(InspectNav.INVENTORY), arguments = listOf(selectedArg)) { entry ->
                 InventoryScreen(selectedOf(entry), { setSelected(InspectNav.INVENTORY, it) }, { clearSelected(InspectNav.INVENTORY) }, back)
             }
-            composable("mais/finance") { FinanceScreen(onBack = back) }
-            composable("mais/market") { MarketScreen(onBack = back) }
-            composable("mais/compliance") {
+            composable(InspectNav.FINANCE) { FinanceScreen(onBack = back) }
+            composable(InspectNav.MARKET) { MarketScreen(onBack = back) }
+            composable(InspectNav.COMPLIANCE) {
                 ComplianceScreen(
                     onBack = back,
                     onOpenLot = { code ->
-                        nav.navigate("mais/compliance/lot/${Uri.encode(code)}")
+                        nav.navigate(InspectNav.complianceLot(code))
                     },
                 )
             }
             composable(
-                "mais/compliance/lot/{lotCode}",
-                arguments = listOf(navArgument("lotCode") { type = NavType.StringType }),
+                InspectNav.COMPLIANCE_LOT,
+                arguments = listOf(navArgument(InspectNav.ARG_LOT) { type = NavType.StringType }),
             ) { entry ->
-                val lotCode = Uri.decode(entry.arguments?.getString("lotCode").orEmpty())
+                val lotCode = Uri.decode(entry.arguments?.getString(InspectNav.ARG_LOT).orEmpty())
                 TraceabilityLotScreen(lotCode = lotCode, onBack = back)
             }
             composable(InspectNav.pattern(InspectNav.INSIGHTS), arguments = listOf(selectedArg)) { entry ->
                 InsightsScreen(selectedOf(entry), { setSelected(InspectNav.INSIGHTS, it) }, { clearSelected(InspectNav.INSIGHTS) }, back)
             }
-            composable("mais/reports") { ReportsScreen(onBack = back) }
-            composable("mais/integrations") { IntegrationsScreen(onBack = back) }
-            composable("mais/settings") { SettingsScreen(onBack = back, onLogout = onLogout) }
+            composable(InspectNav.REPORTS) { ReportsScreen(onBack = back) }
+            composable(InspectNav.INTEGRATIONS) { IntegrationsScreen(onBack = back) }
+            composable(InspectNav.SETTINGS) { SettingsScreen(onBack = back, onLogout = onLogout) }
             composable(InspectNav.SYNC) { SyncStatusScreen(onBack = back) }
         }
     }

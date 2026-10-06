@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
-import type { Field } from '@/shared/api/types'
+import type { Field } from '@/features/fields/types'
 
 export type FieldBody = {
   farmId: string

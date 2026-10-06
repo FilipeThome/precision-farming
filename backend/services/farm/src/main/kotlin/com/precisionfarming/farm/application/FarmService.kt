@@ -17,7 +17,6 @@ import com.precisionfarming.farm.infrastructure.SeasonJpaRepository
 import com.precisionfarming.farm.infrastructure.AuthMembershipClient
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.common.UnauthorizedException
-import com.precisionfarming.security.UserFarmGrants
 import org.locationtech.jts.geom.Coordinate
 import org.locationtech.jts.geom.Geometry
 import org.locationtech.jts.geom.GeometryFactory
@@ -30,7 +29,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.util.UUID
@@ -79,7 +80,9 @@ class FarmService(
     private val fields: FieldJpaRepository,
     private val seasons: SeasonJpaRepository,
     private val memberships: AuthMembershipClient,
+    txManager: PlatformTransactionManager,
 ) {
+    private val writes = TransactionTemplate(txManager)
     private val gf = GeometryFactory(PrecisionModel(), 4326)
     private val wktReader = WKTReader(gf)
     private val json = JsonMapper.builder().build()
@@ -91,13 +94,20 @@ class FarmService(
         return farms.findById(id).orElseThrow { NotFoundException("FARM_NOT_FOUND", "Farm not found") }.toDto()
     }
 
-    @Transactional
     fun createFarm(scope: AccessScope, cmd: UpsertFarm): FarmDto {
         val userId = scope.userId ?: throw UnauthorizedException("Missing bearer token")
         val entity = FarmEntity(UUID.randomUUID(), cmd.name, cmd.location, cmd.areaHa, cmd.timezone)
         val saved = farms.save(entity).toDto()
-        memberships.grant(userId, saved.id)
-        UserFarmGrants.grant(userId, saved.id)
+        try {
+            memberships.grant(userId, saved.id)
+        } catch (ex: Exception) {
+            try {
+                farms.deleteById(saved.id)
+            } catch (deleteEx: Exception) {
+                ex.addSuppressed(deleteEx)
+            }
+            throw ex
+        }
         return saved
     }
 
@@ -112,15 +122,29 @@ class FarmService(
         return farms.save(e).toDto()
     }
 
-    @Transactional
     fun deleteFarm(scope: AccessScope, id: UUID) {
         scope.requireFarm(id)
         if (!farms.existsById(id)) throw NotFoundException("FARM_NOT_FOUND", "Farm not found")
-        seasons.deleteByFarmId(id)
-        fields.deleteByFarmId(id)
-        farms.deleteById(id)
         memberships.revoke(id)
-        UserFarmGrants.revoke(id)
+        try {
+            writes.executeWithoutResult {
+                seasons.deleteByFarmId(id)
+                fields.deleteByFarmId(id)
+                farms.deleteById(id)
+            }
+        } catch (ex: Exception) {
+            val userId = scope.userId
+            if (userId == null) {
+                ex.addSuppressed(IllegalStateException("membership was revoked and cannot be restored without a user id"))
+                throw ex
+            }
+            try {
+                memberships.grant(userId, id)
+            } catch (grantEx: Exception) {
+                ex.addSuppressed(grantEx)
+            }
+            throw ex
+        }
     }
 
     fun listFields(scope: AccessScope, farmId: UUID?) =
@@ -401,8 +425,8 @@ class FarmService(
 @Service
 class FarmSeedRunner(
     private val farmService: FarmService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedFarms() = ApplicationRunner { if (seed) farmService.seed() }
+    fun seedFarms() = ApplicationRunner { if (gate.permits()) farmService.seed() }
 }

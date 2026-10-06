@@ -1,4 +1,4 @@
-import type { Operation } from '@/shared/api/types'
+import type { Operation } from '@/features/operations/types'
 import type { MessageKey } from '@/shared/i18n/useI18n'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'

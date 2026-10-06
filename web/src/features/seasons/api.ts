@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
-import type { Season } from '@/shared/api/types'
+import type { Season } from '@/features/seasons/types'
 
 export type SeasonBody = {
   farmId: string

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useSeasonCommands } from '@/features/seasons/queries'
-import type { Season } from '@/shared/api/types'
+import type { Season } from '@/features/seasons/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'

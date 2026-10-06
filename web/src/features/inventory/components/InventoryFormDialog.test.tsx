@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { InventoryItem } from '@/shared/api/types'
+import type { InventoryItem } from '@/features/inventory/types'
 import { INVENTORY_UNITS } from '@/features/inventory/units'
 
 vi.mock('@/features/inventory/queries', () => ({

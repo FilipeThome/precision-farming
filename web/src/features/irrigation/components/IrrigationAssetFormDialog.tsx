@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { useFieldsQuery } from '@/features/fields/queries'
 import { useIrrigationAssetCommands } from '@/features/irrigation/queries'
-import type { IrrigationAsset } from '@/shared/api/types'
+import type { IrrigationAsset } from '@/features/irrigation/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { findInFarmScope } from '@/shared/lib/inFarmScope'
 import { queryError } from '@/shared/lib/queryError'

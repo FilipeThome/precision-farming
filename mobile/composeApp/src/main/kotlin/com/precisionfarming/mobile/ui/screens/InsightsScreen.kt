@@ -21,7 +21,7 @@ fun InsightsScreen(
         selectedId = selectedId,
         onSelect = onSelect,
         onClearSelected = onClearSelected,
-        load = { insights(FarmFilter.farmId) },
+        load = { insights(FarmFilter.farmId.value) },
         idOf = { it.id },
         headline = { DomainLabels.label(it.type) },
         supporting = { "${it.model} · ${it.score}" },

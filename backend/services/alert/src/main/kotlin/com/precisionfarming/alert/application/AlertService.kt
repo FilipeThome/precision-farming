@@ -37,6 +37,6 @@ class AlertService(private val repo: AlertJpaRepository) {
 }
 
 @Service
-class AlertSeed(private val svc: AlertService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedAlerts() = ApplicationRunner { if (seed) svc.seed() }
+class AlertSeed(private val svc: AlertService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedAlerts() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

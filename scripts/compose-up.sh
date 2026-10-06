@@ -213,7 +213,7 @@ build_app_images() {
 }
 
 ensure_domain_databases() {
-  if [[ "$PROFILE" != "all" && "$PROFILE" != "domains" ]]; then
+  if [[ "$PROFILE" != "all" && "$PROFILE" != "domains" && "$PROFILE" != "core" ]]; then
     return 0
   fi
   echo "==> Ensuring domain databases (profile=${PROFILE})..."
@@ -284,6 +284,6 @@ echo "  MAPA_LIVE=false              live ZARC from MAPA CKAN (weather; seed fal
 echo "  WEATHER_PROVIDER=demo        set open-meteo for live forecast"
 if [[ "$PROFILE" == "core" ]]; then
   echo
-  echo "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them and applies scripts/ensure-new-dbs.sql."
+  echo "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them. Profiles core, domains, and all apply scripts/ensure-new-dbs.sql."
 fi
 echo "Done."

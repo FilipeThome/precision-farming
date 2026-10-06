@@ -15,6 +15,7 @@ services:
         GRADLE_PROJECT: :backend:services:finance
         MODULE_DIR: backend/services/finance
     image: precision-farming-finance:local
+    pull_policy: never
     restart: unless-stopped
     env_file:
       - deploy/compose/demo.env
@@ -22,6 +23,12 @@ services:
       DB_HOST: postgres
       DB_PORT: "5432"
       SERVER_PORT: "8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 75s
     depends_on:
       postgres:
         condition: service_healthy

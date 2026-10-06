@@ -39,19 +39,32 @@ class OfflineQueue(
         if (recovered != raw) store.save(recovered)
     }
 
+    /**
+     * Single-flight per operation: a second command is refused while one is still PENDING or SYNCING.
+     * The existing open command is returned unchanged.
+     */
     fun enqueue(command: OpCommand, userId: String? = null): QueuedCommand {
-        val queued = QueuedCommand(
-            clientOperationId = idGenerator(),
-            operationId = command.operationId,
-            type = command.type,
-            reason = command.reason,
-            createdAt = clock().toString(),
-            userId = userId,
-            fromStatus = command.fromStatus,
-            actualLiters = command.actualLiters,
-        )
-        mutate { it.copy(items = it.items + queued) }
-        return queued
+        var returned: QueuedCommand? = null
+        mutate { state ->
+            val open = state.openFor(command.operationId)
+            if (open != null) {
+                returned = open
+                return@mutate state
+            }
+            val queued = QueuedCommand(
+                clientOperationId = idGenerator(),
+                operationId = command.operationId,
+                type = command.type,
+                reason = command.reason,
+                createdAt = clock().toString(),
+                userId = userId,
+                fromStatus = command.fromStatus,
+                actualLiters = command.actualLiters,
+            )
+            returned = queued
+            state.copy(items = state.items + queued)
+        }
+        return returned ?: error("enqueue did not produce a command")
     }
 
     /** Drop a FAILED item (user acknowledged the rejection). */

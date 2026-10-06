@@ -33,6 +33,7 @@ class HarvestYieldEntity(
     @Column(name = "yield_t_ha") val yieldTHa: BigDecimal,
     @Column(name = "moisture_pct") val moisturePct: BigDecimal?,
     @Column(name = "area_ha") val areaHa: BigDecimal?,
+    @Column(name = "field_name") var fieldName: String? = null,
 )
 
 @Entity

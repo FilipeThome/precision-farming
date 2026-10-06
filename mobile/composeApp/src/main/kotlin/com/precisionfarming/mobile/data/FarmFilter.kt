@@ -1,14 +1,12 @@
 package com.precisionfarming.mobile.data
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /** Selected farm for list GETs. Null means all farms. */
 object FarmFilter {
-    var farmId by mutableStateOf<String?>(null)
+    val farmId = MutableStateFlow<String?>(null)
 
     fun apply(id: String?) {
-        if (!id.isNullOrBlank()) farmId = id
+        if (!id.isNullOrBlank()) farmId.value = id
     }
 }

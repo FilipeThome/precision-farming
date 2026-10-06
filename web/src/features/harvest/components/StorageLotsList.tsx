@@ -1,4 +1,4 @@
-import type { StorageLot } from '@/shared/api/types'
+import type { StorageLot } from '@/features/harvest/types'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'

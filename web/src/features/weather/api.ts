@@ -1,10 +1,5 @@
 import { apiGet } from '@/shared/api/client'
-import type {
-  ParametricIndex,
-  PlantingGate,
-  WeatherForecast,
-  WeatherWindow,
-} from '@/shared/api/types'
+import type { ParametricIndex, PlantingGate, WeatherForecast, WeatherWindow } from '@/features/weather/types'
 
 export async function fetchForecast(farmId?: string | null): Promise<WeatherForecast[]> {
   return apiGet<WeatherForecast[]>('/api/v1/weather/forecast', { farmId: farmId ?? undefined })

@@ -1,6 +1,7 @@
 package com.precisionfarming.security
 
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.springframework.dao.OptimisticLockingFailureException
 import org.junit.jupiter.api.Test
 import org.springframework.core.MethodParameter
 import org.springframework.http.HttpMethod
@@ -60,6 +61,14 @@ class RestExceptionHandlerTest {
         val res = handler.typeMismatch(ex, req)
         assertEquals(400, res.statusCode.value())
         assertEquals("VALIDATION_ERROR", res.body!!.code)
+    }
+
+    @Test
+    fun optimisticLockIsConflict() {
+        val req = MockHttpServletRequest()
+        val res = handler.optimisticLock(OptimisticLockingFailureException("stale"), req)
+        assertEquals(409, res.statusCode.value())
+        assertEquals("OPTIMISTIC_LOCK", res.body!!.code)
     }
 
     @Test

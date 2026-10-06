@@ -5,12 +5,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -44,7 +43,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         Button(
             enabled = pending == null,
             onClick = {
-                share("operations", "operations.pdf") { reportOperationsPdf(FarmFilter.farmId) }
+                share("operations", "operations.pdf") { reportOperationsPdf(FarmFilter.farmId.value) }
             },
         ) {
             Text(if (pending == "operations") S.t("reports.pending") else S.t("reports.operations"))
@@ -52,7 +51,7 @@ fun ReportsScreen(onBack: () -> Unit) {
         Button(
             enabled = pending == null,
             onClick = {
-                share("inventory", "inventory.pdf") { reportInventoryPdf(FarmFilter.farmId) }
+                share("inventory", "inventory.pdf") { reportInventoryPdf(FarmFilter.farmId.value) }
             },
         ) {
             Text(if (pending == "inventory") S.t("reports.pending") else S.t("reports.inventory"))

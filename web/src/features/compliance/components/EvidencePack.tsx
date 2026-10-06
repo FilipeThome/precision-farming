@@ -1,4 +1,4 @@
-import type { EvidencePack as EvidencePackDto } from '@/shared/api/types'
+import type { EvidencePack as EvidencePackDto } from '@/features/compliance/types'
 import { useEvidencePackQuery } from '@/features/compliance/queries'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'

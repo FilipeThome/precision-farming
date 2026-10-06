@@ -35,6 +35,7 @@ class FinanceServicePnlTest {
 
     @Test
     fun `pnl returns one row per scoped farm when farmId is null`() {
+        every { costs.findFirstByFarmIdAndFarmNameIsNotNull(any()) } returns null
         every { costs.sumAmountByFarmIdInAndCategory(setOf(farm1), "REVENUE") } returns BigDecimal("100")
         every { costs.sumAmountByFarmIdInAndCategoryNot(setOf(farm1), "REVENUE") } returns BigDecimal("40")
         every { costs.sumAmountByFarmIdInAndCategory(setOf(farm2), "REVENUE") } returns BigDecimal("200")
@@ -53,6 +54,7 @@ class FinanceServicePnlTest {
 
     @Test
     fun `pnl filters to single farm when farmId requested`() {
+        every { costs.findFirstByFarmIdAndFarmNameIsNotNull(farm1) } returns null
         every { costs.sumAmountByFarmIdInAndCategory(setOf(farm1), "REVENUE") } returns BigDecimal("10")
         every { costs.sumAmountByFarmIdInAndCategoryNot(setOf(farm1), "REVENUE") } returns BigDecimal("3")
 

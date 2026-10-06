@@ -2,7 +2,7 @@ import { Warehouse } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { unitOccupancyPct } from '@/features/harvest/model/postHarvestKpis'
-import type { StorageUnit } from '@/shared/api/types'
+import type { StorageUnit } from '@/features/harvest/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { Card } from '@/shared/ui/Card'

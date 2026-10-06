@@ -1,5 +1,5 @@
 import { apiGet } from '@/shared/api/client'
-import type { AiInsight } from '@/shared/api/types'
+import type { AiInsight } from '@/features/ai/types'
 
 export async function fetchInsights(farmId?: string | null): Promise<AiInsight[]> {
   return apiGet<AiInsight[]>('/api/v1/ai/insights', { farmId: farmId ?? undefined })

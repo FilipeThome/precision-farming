@@ -9,9 +9,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -44,7 +44,7 @@ fun AlertInspector(
         if (alert.entityType.equals("MACHINE", ignoreCase = true) && !alert.entityId.isNullOrBlank()) {
             TextButton(
                 onClick = {
-                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId = alert.farmId
+                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId.value = alert.farmId
                     onOpen(InspectNav.href(InspectNav.MACHINES, selected = alert.entityId))
                 },
                 modifier = Modifier.heightIn(min = 48.dp),
@@ -55,7 +55,7 @@ fun AlertInspector(
         if (alert.entityType.equals("FIELD", ignoreCase = true) && !alert.entityId.isNullOrBlank()) {
             TextButton(
                 onClick = {
-                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId = alert.farmId
+                    if (!alert.farmId.isNullOrBlank()) FarmFilter.farmId.value = alert.farmId
                     onOpen(InspectNav.href(InspectNav.FIELDS, selected = alert.entityId))
                 },
                 modifier = Modifier.heightIn(min = 48.dp),

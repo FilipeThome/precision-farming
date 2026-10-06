@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -9,10 +11,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,7 +24,6 @@ import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.data.formatNumber
 import com.precisionfarming.mobile.data.operations
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
@@ -47,10 +48,10 @@ fun OpsScreen(
     fun reload() {
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
-            state = runCatching { operations(FarmFilter.farmId) }.toLoadState()
+            state = runCatching { operations(FarmFilter.farmId.value) }.toLoadState()
         }
     }
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
     val items = (state as? LoadState.Ok)?.items.orEmpty()
     val selected = items.byId(selectedId) { it.id }
     LazyColumn(

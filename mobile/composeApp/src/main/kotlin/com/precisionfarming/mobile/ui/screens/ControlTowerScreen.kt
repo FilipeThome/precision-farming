@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,10 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -48,7 +50,6 @@ import com.precisionfarming.mobile.data.traceabilityRatio
 import com.precisionfarming.mobile.data.weatherWindows
 import com.precisionfarming.mobile.data.withinWindowRatio
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.EntityCard
 import com.precisionfarming.mobile.ui.components.FieldStatusList
@@ -82,7 +83,7 @@ fun ControlTowerScreen(
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
             state = runCatching {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 coroutineScope {
                     val fieldJob = async { runCatching { fields(farmId) } }
                     val opJob = async { runCatching { operations(farmId) } }
@@ -132,7 +133,7 @@ fun ControlTowerScreen(
         }
     }
 
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
 
     Column(
         Modifier

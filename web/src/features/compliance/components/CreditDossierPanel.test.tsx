@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { CreditDossier } from '@/shared/api/types'
+import type { CreditDossier } from '@/features/compliance/types'
 
 import { CreditDossierPanel } from './CreditDossierPanel'
 

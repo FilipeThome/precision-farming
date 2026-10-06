@@ -450,6 +450,6 @@ class AgronomyService(
 }
 
 @Service
-class AgronomySeed(private val svc: AgronomyService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedAgronomy() = ApplicationRunner { if (seed) svc.seed() }
+class AgronomySeed(private val svc: AgronomyService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedAgronomy() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

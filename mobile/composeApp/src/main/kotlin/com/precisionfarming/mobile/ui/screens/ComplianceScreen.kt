@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,11 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,7 +24,6 @@ import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.TraceabilityLotDto
 import com.precisionfarming.mobile.data.esg
 import com.precisionfarming.mobile.data.traceability
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.LoadState
 import com.precisionfarming.mobile.ui.components.LoadedList
@@ -39,7 +40,7 @@ fun ComplianceScreen(onBack: () -> Unit, onOpenLot: (String) -> Unit) {
     val scope = rememberCoroutineScope()
     fun reload() {
         scope.launch {
-            val farmId = FarmFilter.farmId
+            val farmId = FarmFilter.farmId.value
             if (tab == 0) {
                 lots = LoadState.Loading
                 lots = runCatching { traceability(farmId) }.toLoadState()
@@ -49,7 +50,7 @@ fun ComplianceScreen(onBack: () -> Unit, onOpenLot: (String) -> Unit) {
             }
         }
     }
-    LaunchedEffect(tab, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(tab, LocalFarmId.current, LocalAppLocale.current) { reload() }
     Column(
         Modifier
             .padding(16.dp)

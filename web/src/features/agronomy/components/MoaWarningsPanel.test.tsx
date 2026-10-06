@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { MoaRotation, Prescription } from '@/shared/api/types'
+import type { MoaRotation, Prescription } from '@/features/agronomy/types'
 
 import { MoaWarningsPanel } from './MoaWarningsPanel'
 

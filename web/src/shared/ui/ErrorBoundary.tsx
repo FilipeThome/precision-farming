@@ -7,8 +7,16 @@ import { useI18n } from '@/shared/i18n/useI18n'
 import { Button } from './Button'
 import { Card } from './Card'
 
-type Props = { children: ReactNode }
+type Props = {
+  children: ReactNode
+  /**
+   * Outlet boundary remounts on pathname so a crashed page clears when the operator navigates.
+   * The router boundary passes false so a healthy tree is not remounted on every navigation.
+   */
+  remountOnPathname?: boolean
+}
 type State = { error: Error | null }
+type BoundaryProps = { children: ReactNode; resetKey?: string }
 
 function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => void }) {
   const { t } = useI18n()
@@ -27,11 +35,17 @@ function ErrorFallback({ message, onRetry }: { message?: string; onRetry: () => 
   )
 }
 
-class RouteErrorBoundary extends Component<Props, State> {
+class RouteErrorBoundary extends Component<BoundaryProps, State> {
   state: State = { error: null }
 
   static getDerivedStateFromError(error: Error): State {
     return { error }
+  }
+
+  componentDidUpdate(prev: BoundaryProps) {
+    if (this.props.resetKey !== undefined && prev.resetKey !== this.props.resetKey && this.state.error) {
+      this.setState({ error: null })
+    }
   }
 
   render() {
@@ -47,7 +61,10 @@ class RouteErrorBoundary extends Component<Props, State> {
   }
 }
 
-export function ErrorBoundary({ children }: Props) {
+export function ErrorBoundary({ children, remountOnPathname = true }: Props) {
   const location = useLocation()
-  return <RouteErrorBoundary key={location.pathname}>{children}</RouteErrorBoundary>
+  if (remountOnPathname) {
+    return <RouteErrorBoundary key={location.pathname}>{children}</RouteErrorBoundary>
+  }
+  return <RouteErrorBoundary resetKey={location.pathname}>{children}</RouteErrorBoundary>
 }

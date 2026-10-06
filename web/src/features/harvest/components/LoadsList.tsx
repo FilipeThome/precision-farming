@@ -2,7 +2,7 @@ import { Truck } from 'lucide-react'
 import { Link } from 'react-router'
 
 import { useDispatchLoad } from '@/features/harvest/queries'
-import type { LogisticsLoad } from '@/shared/api/types'
+import type { LogisticsLoad } from '@/features/harvest/types'
 import { useCanManageFarmOps } from '@/shared/auth/roles'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'

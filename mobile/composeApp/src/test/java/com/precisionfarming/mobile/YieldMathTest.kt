@@ -212,12 +212,12 @@ class OpGatesTest {
 class FarmFilterTest {
     @Test
     fun applyIgnoresBlankAndSetsFarm() {
-        FarmFilter.farmId = null
+        FarmFilter.farmId.value = null
         FarmFilter.apply(null)
         FarmFilter.apply("")
-        assertNull(FarmFilter.farmId)
+        assertNull(FarmFilter.farmId.value)
         FarmFilter.apply("farm-9")
-        assertEquals("farm-9", FarmFilter.farmId)
-        FarmFilter.farmId = null
+        assertEquals("farm-9", FarmFilter.farmId.value)
+        FarmFilter.farmId.value = null
     }
 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.AgCard
 import com.precisionfarming.mobile.ui.components.ScreenHeader
@@ -36,44 +37,44 @@ fun MoreMenu(onOpen: (String) -> Unit) {
     ) {
         ScreenHeader(S.t("more.title"))
         Group(S.t("more.group.land")) {
-            Item("mais/farms", "more.farms", onOpen)
-            Item("mais/fields", "more.fields", onOpen)
-            Item("mais/seasons", "more.seasons", onOpen)
+            Item(InspectNav.FARMS, "more.farms", onOpen)
+            Item(InspectNav.FIELDS, "more.fields", onOpen)
+            Item(InspectNav.SEASONS, "more.seasons", onOpen)
         }
         Group(S.t("more.group.fleet")) {
-            Item("mais/machines", "more.machines", onOpen)
-            Item("mais/maintenance", "more.maintenance", onOpen)
+            Item(InspectNav.MACHINES, "more.machines", onOpen)
+            Item(InspectNav.MAINTENANCE, "more.maintenance", onOpen)
         }
         Group(S.t("more.group.agronomy")) {
-            Item("mais/agronomy", "more.agronomy", onOpen)
+            Item(InspectNav.AGRONOMY, "more.agronomy", onOpen)
         }
         Group(S.t("more.group.water")) {
-            Item("mais/weather", "more.weather", onOpen)
-            Item("mais/irrigation", "more.irrigation", onOpen)
+            Item(InspectNav.WEATHER, "more.weather", onOpen)
+            Item(InspectNav.IRRIGATION, "more.irrigation", onOpen)
         }
         Group(S.t("more.group.harvest")) {
-            Item("mais/harvest", "more.harvest", onOpen)
+            Item(InspectNav.HARVEST, "more.harvest", onOpen)
         }
         Group(S.t("more.group.inventory")) {
-            Item("mais/inventory", "more.inventory", onOpen)
+            Item(InspectNav.INVENTORY, "more.inventory", onOpen)
         }
         Group(S.t("more.group.finance")) {
-            Item("mais/finance", "more.finance", onOpen)
-            Item("mais/market", "more.market", onOpen)
+            Item(InspectNav.FINANCE, "more.finance", onOpen)
+            Item(InspectNav.MARKET, "more.market", onOpen)
         }
         Group(S.t("more.group.compliance")) {
-            Item("mais/compliance", "more.compliance", onOpen)
+            Item(InspectNav.COMPLIANCE, "more.compliance", onOpen)
         }
         Group(S.t("more.group.insights")) {
-            Item("mais/tower", "more.tower", onOpen)
-            Item("mais/decisions", "more.decisions", onOpen)
-            Item("mais/insights", "more.insights", onOpen)
-            Item("mais/reports", "more.reports", onOpen)
-            Item("mais/integrations", "more.integrations", onOpen)
-            Item("mais/settings", "more.settings", onOpen)
+            Item(InspectNav.TOWER, "more.tower", onOpen)
+            Item(InspectNav.DECISIONS, "more.decisions", onOpen)
+            Item(InspectNav.INSIGHTS, "more.insights", onOpen)
+            Item(InspectNav.REPORTS, "more.reports", onOpen)
+            Item(InspectNav.INTEGRATIONS, "more.integrations", onOpen)
+            Item(InspectNav.SETTINGS, "more.settings", onOpen)
         }
         Group(S.t("more.group.sync")) {
-            Item("mais/sync", "more.sync", onOpen)
+            Item(InspectNav.SYNC, "more.sync", onOpen)
         }
     }
 }

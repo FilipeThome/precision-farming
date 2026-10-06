@@ -7,6 +7,9 @@ import com.precisionfarming.mobile.data.Session
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -24,6 +27,10 @@ object OfflineRuntime {
     lateinit var connectivity: ConnectivityMonitor
         private set
 
+    private val _queueDurable = MutableStateFlow(true)
+    /** False when encrypted prefs could not be opened and the queue is process memory only. */
+    val queueDurable: StateFlow<Boolean> = _queueDurable.asStateFlow()
+
     val isReady: Boolean get() = initialized
 
     fun init(context: Context) {
@@ -32,7 +39,9 @@ object OfflineRuntime {
             if (initialized) return
             val app = context.applicationContext
             PrefsQueueStore.wipeLegacy(app)
-            val store = PrefsQueueStore.encrypted(app)?.let { PrefsQueueStore(it) } ?: InMemoryQueueStore()
+            val prefs = PrefsQueueStore.encrypted(app)
+            _queueDurable.value = prefs != null
+            val store = prefs?.let { PrefsQueueStore(it) } ?: InMemoryQueueStore()
             queue = OfflineQueue(store = store, executor = ApiCommandExecutor())
             connectivity = AndroidConnectivityMonitor(app)
             initialized = true

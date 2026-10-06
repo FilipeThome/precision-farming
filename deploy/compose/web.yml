@@ -12,9 +12,17 @@ services:
       args:
         VITE_API_BASE_URL: http://localhost:8080
     image: precision-farming-web:local
+    pull_policy: never
+    mem_limit: 512m
     restart: unless-stopped
     ports:
       - "127.0.0.1:5173:80"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     networks:
       - precision-farming
 

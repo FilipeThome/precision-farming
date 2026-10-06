@@ -1,6 +1,12 @@
 import { DispatchLoadButton } from '@/features/harvest/components/DispatchLoadButton'
 import { StorageLotsList } from '@/features/harvest/components/StorageLotsList'
-import type { HarvestPlan, LogisticsLoad, StorageLot, StorageUnit, YieldRecord } from '@/shared/api/types'
+import type {
+  HarvestPlan,
+  LogisticsLoad,
+  StorageLot,
+  StorageUnit,
+  YieldRecord,
+} from '@/features/harvest/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'

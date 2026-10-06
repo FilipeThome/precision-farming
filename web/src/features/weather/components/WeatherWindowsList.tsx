@@ -1,4 +1,4 @@
-import type { WeatherWindow } from '@/shared/api/types'
+import type { WeatherWindow } from '@/features/weather/types'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'
