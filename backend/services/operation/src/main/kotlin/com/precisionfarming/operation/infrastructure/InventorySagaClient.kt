@@ -13,6 +13,8 @@ import java.time.Instant
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
+enum class InventoryStepResult { Applied, AlreadyApplied, Skipped }
+
 @Component
 class InventorySagaClient(
     @Value("\${app.clients.inventory}") private val inventoryUrl: String,
@@ -36,8 +38,8 @@ class InventorySagaClient(
         reference: String,
         farmId: UUID,
         stepKey: String,
-    ) {
-        postMovement(
+    ): InventoryStepResult {
+        return postMovement(
             farmId,
             mapOf(
                 "itemId" to itemId,
@@ -49,7 +51,7 @@ class InventorySagaClient(
         )
     }
 
-    private fun postMovement(farmId: UUID, body: Map<String, Any?>) {
+    private fun postMovement(farmId: UUID, body: Map<String, Any?>): InventoryStepResult {
         try {
             http.post().uri("$inventoryUrl/api/v1/inventory/movements")
                 .header("Authorization", "Bearer ${serviceToken(farmId)}")
@@ -57,8 +59,11 @@ class InventorySagaClient(
                 .body(body)
                 .retrieve()
                 .toBodilessEntity()
+            return InventoryStepResult.Applied
         } catch (ex: RestClientResponseException) {
-            if (ex.statusCode.value() == 409 && ex.responseBodyAsString.contains("STEP_ALREADY_APPLIED")) return
+            if (ex.statusCode.value() == 409 && ex.responseBodyAsString.contains("\"STEP_ALREADY_APPLIED\"")) {
+                return InventoryStepResult.AlreadyApplied
+            }
             throw ex
         }
     }

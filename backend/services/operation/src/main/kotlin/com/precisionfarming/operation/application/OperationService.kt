@@ -7,6 +7,7 @@ import com.precisionfarming.common.NotFoundException
 import com.precisionfarming.common.QueryLimits
 import com.precisionfarming.operation.infrastructure.AgronomyPrescriptionClient
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
+import com.precisionfarming.operation.infrastructure.InventoryStepResult
 import com.precisionfarming.security.AccessScope
 import com.precisionfarming.security.FieldFarmGuard
 import com.precisionfarming.security.ItemFarmGuard
@@ -167,10 +168,10 @@ class OperationService(
         previous: String,
         needsReserve: Boolean,
     ): OperationDto {
-        var reserved = false
+        var reserveResult: InventoryStepResult? = null
         try {
             if (needsReserve) {
-                reserved = inventoryMove(inTx { load(scope, id) }, "RESERVE", stepKey = "${saga.id}:RESERVE")
+                reserveResult = inventoryMove(inTx { load(scope, id) }, "RESERVE", stepKey = "${saga.id}:RESERVE")
             }
             val started = inTx { persistStart(scope, id, saga) }
             try {
@@ -180,7 +181,13 @@ class OperationService(
             }
             return started
         } catch (ex: Exception) {
-            if (needsReserve && (reserved || ex !is DomainException)) {
+            // A duplicate step belongs to the attempt that inserted it. Undoing it releases their stock.
+            if (reserveResult == InventoryStepResult.AlreadyApplied) {
+                throw ConflictException("SAGA_FAILED", ex.message ?: "Start still in progress")
+            }
+            val owned = reserveResult == InventoryStepResult.Applied
+            val unknown = needsReserve && reserveResult == null && ex !is DomainException
+            if (owned || unknown) {
                 try {
                     inventoryMove(inTx { load(scope, id) }, "RELEASE", stepKey = "${saga.id}:UNDO-RESERVE")
                 } catch (compensateEx: Exception) {
@@ -280,17 +287,22 @@ class OperationService(
         previous: String,
         liters: BigDecimal?,
     ): OperationDto {
-        var consumed = false
+        var consumeResult: InventoryStepResult? = null
         val planned = inTx { load(scope, id).itemQuantity }
         val unused = unusedReservation(planned, liters)
         try {
-            consumed = inventoryMove(inTx { load(scope, id) }, "CONSUME", liters, "${saga.id}:CONSUME")
-            if (consumed && unused != null) {
+            consumeResult = inventoryMove(inTx { load(scope, id) }, "CONSUME", liters, "${saga.id}:CONSUME")
+            if (consumeResult != InventoryStepResult.Skipped && unused != null) {
                 inventoryMove(inTx { load(scope, id) }, "RELEASE", unused, "${saga.id}:RELEASE-UNUSED")
             }
             return inTx { persistComplete(scope, id, liters, saga) }
         } catch (ex: Exception) {
-            if (consumed || ex !is DomainException) {
+            if (consumeResult == InventoryStepResult.AlreadyApplied) {
+                throw ConflictException("SAGA_FAILED", ex.message ?: "Complete still in progress")
+            }
+            val owned = consumeResult == InventoryStepResult.Applied
+            val unknown = consumeResult == null && ex !is DomainException
+            if (owned || unknown) {
                 try {
                     restoreComplete(scope, id, saga, liters)
                 } catch (compensateEx: Exception) {
@@ -376,6 +388,7 @@ class OperationService(
 
     private fun forceStatus(scope: AccessScope, id: UUID, previous: String) {
         val op = load(scope, id)
+        if (op.status != "STARTING" && op.status != "COMPLETING") return
         op.status = previous
         repo.save(op)
     }
@@ -385,11 +398,10 @@ class OperationService(
         type: String,
         consumeLiters: BigDecimal? = null,
         stepKey: String,
-    ): Boolean {
-        val itemId = op.itemId ?: return false
-        val qty = consumeQuantity(op, type, consumeLiters) ?: return false
-        inventory.move(itemId, type, qty, op.id.toString(), op.farmId, stepKey)
-        return true
+    ): InventoryStepResult {
+        val itemId = op.itemId ?: return InventoryStepResult.Skipped
+        val qty = consumeQuantity(op, type, consumeLiters) ?: return InventoryStepResult.Skipped
+        return inventory.move(itemId, type, qty, op.id.toString(), op.farmId, stepKey)
     }
 
     /**

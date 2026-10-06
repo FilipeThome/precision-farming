@@ -134,12 +134,14 @@ class FarmService(
             }
         } catch (ex: Exception) {
             val userId = scope.userId
-            if (userId != null) {
-                try {
-                    memberships.grant(userId, id)
-                } catch (grantEx: Exception) {
-                    ex.addSuppressed(grantEx)
-                }
+            if (userId == null) {
+                ex.addSuppressed(IllegalStateException("membership was revoked and cannot be restored without a user id"))
+                throw ex
+            }
+            try {
+                memberships.grant(userId, id)
+            } catch (grantEx: Exception) {
+                ex.addSuppressed(grantEx)
             }
             throw ex
         }

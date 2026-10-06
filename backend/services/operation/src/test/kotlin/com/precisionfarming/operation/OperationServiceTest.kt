@@ -10,6 +10,7 @@ import com.precisionfarming.operation.application.CreateOperation
 import com.precisionfarming.operation.application.OperationService
 import com.precisionfarming.operation.infrastructure.AgronomyPrescriptionClient
 import com.precisionfarming.operation.infrastructure.InventorySagaClient
+import com.precisionfarming.operation.infrastructure.InventoryStepResult
 import com.precisionfarming.operation.infrastructure.OperationEntity
 import com.precisionfarming.operation.infrastructure.OperationJpaRepository
 import com.precisionfarming.operation.infrastructure.PrescriptionRef
@@ -51,6 +52,10 @@ class OperationServiceTest {
     private val machineFarms = mockk<com.precisionfarming.security.MachineFarmGuard>(relaxUnitFun = true)
     private val itemFarms = mockk<com.precisionfarming.security.ItemFarmGuard>(relaxUnitFun = true)
     private val svc = OperationService(repo, sagas, inventory, agronomy, tx, fieldFarms, machineFarms, itemFarms)
+
+    init {
+        every { inventory.move(any(), any(), any(), any(), any(), any()) } returns InventoryStepResult.Applied
+    }
 
     private fun scopeFor(op: OperationEntity) = AccessScope(DemoTenant.ID, setOf(op.farmId), "OPERATOR")
 
@@ -162,6 +167,7 @@ class OperationServiceTest {
         every { inventory.move(any(), "RELEASE", any(), any(), any(), any()) } answers {
             releases += 1
             if (releases == 1) throw RuntimeException("lost release")
+            InventoryStepResult.Applied
         }
 
         val ex = assertThrows(ConflictException::class.java) {
@@ -253,6 +259,24 @@ class OperationServiceTest {
         assertEquals("SAGA_FAILED", ex.code)
         verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
         verify(exactly = 1) { inventory.move(op.itemId!!, "RELEASE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
+    }
+
+    @Test
+    fun startDoesNotUndoAReserveAnotherAttemptAlreadyApplied() {
+        val op = operation("PLANNED")
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers {
+            val entity = firstArg<OperationEntity>()
+            if (entity.status == "IN_PROGRESS") throw RuntimeException("persist failed")
+            entity
+        }
+        every { inventory.move(any(), "RESERVE", any(), any(), any(), any()) } returns InventoryStepResult.AlreadyApplied
+
+        val ex = assertThrows(ConflictException::class.java) { svc.start(scopeFor(op), op.id) }
+
+        assertEquals("SAGA_FAILED", ex.code)
+        verify(exactly = 0) { inventory.move(any(), "RELEASE", any(), any(), any(), any()) }
     }
 
     @Test
