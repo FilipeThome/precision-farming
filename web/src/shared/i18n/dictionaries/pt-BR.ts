@@ -228,6 +228,7 @@ export const ptBR = {
   'map.layers.empty': 'Nenhuma camada disponível',
   'map.layers.legend': 'Camadas ativas (estilo dos polígonos — sem mosaico GeoTIFF)',
   'map.loadError': 'Falha ao carregar o mapa',
+  'map.fieldList': 'Lista de talhões',
   'machines.title': 'Máquinas',
   'machines.description': 'Frota e status. Clique em uma máquina para ver horas, área e insumos.',
   'machines.emptyTitle': 'Nenhuma máquina encontrada',

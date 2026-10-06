@@ -10,4 +10,4 @@ export const FIELD_STATE_COLORS: Record<FieldState, { fill: string; stroke: stri
 }
 
 /** Legend order shown on the Tower map. */
-export const FIELD_STATE_LEGEND: FieldState[] = ['done', 'progress', 'planned', 'blocked', 'none']
+export const FIELD_STATE_LEGEND: FieldState[] = ['done', 'progress', 'planned', 'blocked', 'stale', 'none']

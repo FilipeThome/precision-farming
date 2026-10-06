@@ -213,6 +213,6 @@ class ComplianceService(
 }
 
 @Service
-class ComplianceSeed(private val svc: ComplianceService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedCompliance() = ApplicationRunner { if (seed) svc.seed() }
+class ComplianceSeed(private val svc: ComplianceService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedCompliance() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

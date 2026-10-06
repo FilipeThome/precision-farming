@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost, ApiError, refreshSessionNow } from '@/shared/api/client'
-import type { Farm } from '@/shared/api/types'
+import type { Farm } from '@/features/farms/types'
 import { useAuthStore } from '@/shared/auth/store'
 
 export type FarmBody = {

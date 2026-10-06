@@ -27,6 +27,12 @@ name: precision-farming
 x-jvm: &jvm
   restart: unless-stopped
   pull_policy: never
+  mem_limit: 512m
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
   env_file:
     - deploy/compose/demo.env
   environment: &jvm-env
@@ -166,6 +172,9 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+        required: false
 
   inventory:
     <<: *jvm
@@ -256,6 +265,9 @@ services:
     environment:
       <<: *jvm-env
       DB_HOST: postgres
+      FILE_STORAGE_DIR: /data/files
+    volumes:
+      - file_data:/data/files
     depends_on:
       postgres:
         condition: service_healthy
@@ -417,6 +429,7 @@ services:
   gateway:
     profiles: [gateway, core, all]
     pull_policy: never
+    mem_limit: 512m
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.gateway
@@ -447,6 +460,7 @@ services:
   web:
     profiles: [web, core, all]
     pull_policy: never
+    mem_limit: 512m
     build:
       context: .
       dockerfile: deploy/docker/Dockerfile.web

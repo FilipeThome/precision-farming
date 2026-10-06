@@ -64,12 +64,8 @@ class OperationService(
     fun machineSummary(scope: AccessScope, machineId: UUID, from: Instant, to: Instant): MachineWorkSummaryDto {
         machineFarms.requireRead(scope, machineId)
         requireRange(from, to)
-        val ops = repo.findByMachineIdAndFarmIdIn(machineId, scope.resolveFarms(null))
-            .mapNotNull { op ->
-                val whenAt = op.actualStart ?: op.plannedStart ?: return@mapNotNull null
-                if (whenAt.isBefore(from) || whenAt.isAfter(to)) return@mapNotNull null
-                WorkSample(op.status, op.areaHa, op.itemId, op.itemQuantity, op.actualStart, op.plannedStart)
-            }
+        val ops = repo.findWorkInWindow(machineId, scope.resolveFarms(null), from, to)
+            .map { op -> WorkSample(op.status, op.areaHa, op.itemId, op.itemQuantity, op.actualStart, op.plannedStart) }
         return OperationProgress.summarize(ops)
     }
 
@@ -119,13 +115,14 @@ class OperationService(
     fun start(scope: AccessScope, id: UUID): OperationDto {
         val preview = inTx {
             val op = load(scope, id)
-            if (op.status != "PLANNED" && op.status != "PAUSED") {
+            if (op.status != "PLANNED" && op.status != "PAUSED" && op.status != "STARTING") {
                 throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
             }
             StartCtx(op.status == "PLANNED", op.status, op.prescriptionId, op.farmId, op.fieldId)
         }
+        if (preview.previousStatus == "STARTING") return resumeStart(scope, id)
         preview.prescriptionId?.let { requireApprovedPrescription(it, preview.farmId, preview.fieldId) }
-        val previousStatus = inTx {
+        val saga = inTx {
             val op = load(scope, id)
             if (op.status != "PLANNED" && op.status != "PAUSED") {
                 throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
@@ -134,16 +131,48 @@ class OperationService(
             op.status = "STARTING"
             repo.save(op)
             sagas.save(
-                SagaEntity(UUID.randomUUID(), op.id, "StartOperationSaga", "STARTED", null, Instant.now(), Instant.now()),
+                SagaEntity(UUID.randomUUID(), op.id, "StartOperationSaga", "STARTED", previous, Instant.now(), Instant.now()),
             )
-            previous
         }
+        return finishStart(scope, id, saga, saga.payload ?: preview.previousStatus, preview.needsReserve)
+    }
+
+    private fun resumeStart(scope: AccessScope, id: UUID): OperationDto {
+        val saga = inTx { sagas.findFirstByOperationIdAndTypeOrderByCreatedAtDesc(id, "StartOperationSaga") }
+            ?: throw ConflictException("OPERATION_STATE_CONFLICT", "Operation start has no saga")
+        val previous = saga.payload?.takeIf { it == "PLANNED" || it == "PAUSED" } ?: "PLANNED"
+        if (saga.state == "COMPENSATION_FAILED") {
+            try {
+                if (previous == "PLANNED") {
+                    inventoryMove(inTx { load(scope, id) }, "RELEASE", stepKey = "${saga.id}:UNDO-RESERVE")
+                }
+            } catch (ex: Exception) {
+                throw ConflictException("SAGA_COMPENSATION_FAILED", ex.message ?: "Compensation failed")
+            }
+            inTx {
+                forceStatus(scope, id, previous)
+                saga.state = "COMPENSATED"
+                saga.updatedAt = Instant.now()
+                sagas.save(saga)
+            }
+            return start(scope, id)
+        }
+        return finishStart(scope, id, saga, previous, previous == "PLANNED")
+    }
+
+    private fun finishStart(
+        scope: AccessScope,
+        id: UUID,
+        saga: SagaEntity,
+        previous: String,
+        needsReserve: Boolean,
+    ): OperationDto {
         var reserved = false
         try {
-            if (preview.needsReserve) {
-                reserved = inventoryMove(load(scope, id), "RESERVE")
+            if (needsReserve) {
+                reserved = inventoryMove(inTx { load(scope, id) }, "RESERVE", stepKey = "${saga.id}:RESERVE")
             }
-            val started = inTx { persistStart(scope, id, reserved) }
+            val started = inTx { persistStart(scope, id, saga) }
             try {
                 events.operationStarted(started.id, started.farmId, started.fieldId, started.prescriptionId)
             } catch (_: Exception) {
@@ -151,14 +180,27 @@ class OperationService(
             }
             return started
         } catch (ex: Exception) {
-            if (reserved) {
+            if (needsReserve && (reserved || ex !is DomainException)) {
                 try {
-                    inventoryMove(load(scope, id), "RELEASE")
+                    inventoryMove(inTx { load(scope, id) }, "RELEASE", stepKey = "${saga.id}:UNDO-RESERVE")
                 } catch (compensateEx: Exception) {
-                    inTx { markCompensated(id, "StartOperationSaga", "${ex.message}; RELEASE failed: ${compensateEx.message}") }
+                    inTx {
+                        saga.state = "COMPENSATION_FAILED"
+                        saga.updatedAt = Instant.now()
+                        sagas.save(saga)
+                    }
+                    throw ConflictException(
+                        "SAGA_COMPENSATION_FAILED",
+                        "${ex.message}; RELEASE failed: ${compensateEx.message}",
+                    )
                 }
             }
-            inTx { revertStatus(scope, id, "STARTING", previousStatus) }
+            inTx { forceStatus(scope, id, previous) }
+            inTx {
+                saga.state = "COMPENSATED"
+                saga.updatedAt = Instant.now()
+                sagas.save(saga)
+            }
             if (ex is DomainException) throw ex
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to start operation")
         }
@@ -186,15 +228,16 @@ class OperationService(
     }
 
     fun complete(scope: AccessScope, id: UUID, cmd: CompleteOperation = CompleteOperation()): OperationDto {
-        val planned = inTx {
+        val preview = inTx {
             val op = load(scope, id)
-            if (op.status != "IN_PROGRESS" && op.status != "PAUSED") {
+            if (op.status != "IN_PROGRESS" && op.status != "PAUSED" && op.status != "COMPLETING") {
                 throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
             }
-            op.itemQuantity
+            op.status to op.itemQuantity
         }
-        val liters = requireActualLiters(cmd.actualLiters, planned)
-        val previousStatus = inTx {
+        val liters = requireActualLiters(cmd.actualLiters, preview.second)
+        if (preview.first == "COMPLETING") return resumeComplete(scope, id, liters)
+        val saga = inTx {
             val op = load(scope, id)
             if (op.status != "IN_PROGRESS" && op.status != "PAUSED") {
                 throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
@@ -203,34 +246,84 @@ class OperationService(
             op.status = "COMPLETING"
             repo.save(op)
             sagas.save(
-                SagaEntity(UUID.randomUUID(), op.id, "CompleteOperationSaga", "STARTED", null, Instant.now(), Instant.now()),
+                SagaEntity(UUID.randomUUID(), op.id, "CompleteOperationSaga", "STARTED", previous, Instant.now(), Instant.now()),
             )
-            previous
         }
+        return finishComplete(scope, id, saga, saga.payload ?: preview.first, liters)
+    }
+
+    private fun resumeComplete(scope: AccessScope, id: UUID, liters: BigDecimal?): OperationDto {
+        val saga = inTx { sagas.findFirstByOperationIdAndTypeOrderByCreatedAtDesc(id, "CompleteOperationSaga") }
+            ?: throw ConflictException("OPERATION_STATE_CONFLICT", "Operation complete has no saga")
+        val previous = saga.payload?.substringBefore("|")?.takeIf { it == "IN_PROGRESS" || it == "PAUSED" } ?: "IN_PROGRESS"
+        if (saga.state == "COMPENSATION_FAILED") {
+            try {
+                restoreComplete(scope, id, saga, liters)
+            } catch (ex: Exception) {
+                throw ConflictException("SAGA_COMPENSATION_FAILED", ex.message ?: "Compensation failed")
+            }
+            inTx {
+                forceStatus(scope, id, previous)
+                saga.state = "COMPENSATED"
+                saga.updatedAt = Instant.now()
+                sagas.save(saga)
+            }
+            return complete(scope, id, CompleteOperation(liters))
+        }
+        return finishComplete(scope, id, saga, previous, liters)
+    }
+
+    private fun finishComplete(
+        scope: AccessScope,
+        id: UUID,
+        saga: SagaEntity,
+        previous: String,
+        liters: BigDecimal?,
+    ): OperationDto {
         var consumed = false
-        var released = false
+        val planned = inTx { load(scope, id).itemQuantity }
         val unused = unusedReservation(planned, liters)
         try {
-            consumed = inventoryMove(load(scope, id), "CONSUME", liters)
+            consumed = inventoryMove(inTx { load(scope, id) }, "CONSUME", liters, "${saga.id}:CONSUME")
             if (consumed && unused != null) {
-                inventoryMove(load(scope, id), "RELEASE", unused)
-                released = true
+                inventoryMove(inTx { load(scope, id) }, "RELEASE", unused, "${saga.id}:RELEASE-UNUSED")
             }
-            return inTx { persistComplete(scope, id, consumed, liters) }
+            return inTx { persistComplete(scope, id, liters, saga) }
         } catch (ex: Exception) {
-            if (consumed) {
+            if (consumed || ex !is DomainException) {
                 try {
-                    inventoryMove(load(scope, id), "IN", liters)
-                    if (released) inventoryMove(load(scope, id), "RESERVE")
-                    else inventoryMove(load(scope, id), "RESERVE", liters)
+                    restoreComplete(scope, id, saga, liters)
                 } catch (compensateEx: Exception) {
-                    inTx { markCompensated(id, "CompleteOperationSaga", "${ex.message}; restore failed: ${compensateEx.message}") }
+                    inTx {
+                        saga.state = "COMPENSATION_FAILED"
+                        saga.updatedAt = Instant.now()
+                        sagas.save(saga)
+                    }
+                    throw ConflictException(
+                        "SAGA_COMPENSATION_FAILED",
+                        "${ex.message}; restore failed: ${compensateEx.message}",
+                    )
                 }
             }
-            inTx { revertStatus(scope, id, "COMPLETING", previousStatus) }
+            inTx { forceStatus(scope, id, previous) }
+            inTx {
+                saga.state = "COMPENSATED"
+                saga.updatedAt = Instant.now()
+                sagas.save(saga)
+            }
             if (ex is DomainException) throw ex
             throw ConflictException("SAGA_FAILED", ex.message ?: "Failed to complete operation")
         }
+    }
+
+    private fun restoreComplete(scope: AccessScope, id: UUID, saga: SagaEntity, liters: BigDecimal?) {
+        val op = inTx { load(scope, id) }
+        val unused = unusedReservation(op.itemQuantity, liters)
+        inventoryMove(op, "IN", liters, "${saga.id}:UNDO-CONSUME")
+        if (unused != null) {
+            inventoryMove(op, "RELEASE", unused, "${saga.id}:RELEASE-UNUSED")
+        }
+        inventoryMove(op, "RESERVE", stepKey = "${saga.id}:RESTORE-RESERVE")
     }
 
     private fun requireActualLiters(value: BigDecimal?, planned: BigDecimal?): BigDecimal? {
@@ -253,56 +346,49 @@ class OperationService(
         return planned.subtract(actual)
     }
 
-    private fun persistStart(scope: AccessScope, id: UUID, reserved: Boolean): OperationDto {
+    private fun persistStart(scope: AccessScope, id: UUID, saga: SagaEntity): OperationDto {
         val op = load(scope, id)
         if (op.status != "STARTING") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Operation cannot be started from ${op.status}")
         }
-        val saga = sagas.save(
-            SagaEntity(UUID.randomUUID(), op.id, "StartOperationSaga", if (reserved) "INVENTORY_RESERVED" else "STARTED", null, Instant.now(), Instant.now()),
-        )
         op.status = "IN_PROGRESS"
         op.actualStart = op.actualStart ?: Instant.now()
         op.pauseReason = null
         saga.state = "COMPLETED"
+        saga.updatedAt = Instant.now()
         sagas.save(saga)
         return repo.save(op).toDto()
     }
 
-    private fun persistComplete(scope: AccessScope, id: UUID, consumed: Boolean, liters: BigDecimal?): OperationDto {
+    private fun persistComplete(scope: AccessScope, id: UUID, liters: BigDecimal?, saga: SagaEntity): OperationDto {
         val op = load(scope, id)
         if (op.status != "COMPLETING") {
             throw ConflictException("OPERATION_STATE_CONFLICT", "Cannot complete from ${op.status}")
         }
-        val saga = sagas.save(
-            SagaEntity(UUID.randomUUID(), op.id, "CompleteOperationSaga", if (consumed) "INVENTORY_CONSUMED" else "STARTED", null, Instant.now(), Instant.now()),
-        )
         op.status = "COMPLETED"
         if (liters != null) op.actualLiters = liters
         op.actualEnd = Instant.now()
         saga.state = "COMPLETED"
+        saga.updatedAt = Instant.now()
         sagas.save(saga)
         return repo.save(op).toDto()
     }
 
-    private fun revertStatus(scope: AccessScope, id: UUID, expected: String, previous: String) {
+    private fun forceStatus(scope: AccessScope, id: UUID, previous: String) {
         val op = load(scope, id)
-        if (op.status == expected) {
-            op.status = previous
-            repo.save(op)
-        }
+        op.status = previous
+        repo.save(op)
     }
 
-    private fun markCompensated(operationId: UUID, name: String, payload: String) {
-        sagas.save(
-            SagaEntity(UUID.randomUUID(), operationId, name, "COMPENSATED", payload, Instant.now(), Instant.now()),
-        )
-    }
-
-    private fun inventoryMove(op: OperationEntity, type: String, consumeLiters: BigDecimal? = null): Boolean {
+    private fun inventoryMove(
+        op: OperationEntity,
+        type: String,
+        consumeLiters: BigDecimal? = null,
+        stepKey: String,
+    ): Boolean {
         val itemId = op.itemId ?: return false
         val qty = consumeQuantity(op, type, consumeLiters) ?: return false
-        inventory.move(itemId, type, qty, op.id.toString(), op.farmId)
+        inventory.move(itemId, type, qty, op.id.toString(), op.farmId, stepKey)
         return true
     }
 
@@ -462,8 +548,8 @@ class OperationService(
 @Service
 class OperationSeed(
     private val svc: OperationService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedOps() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedOps() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

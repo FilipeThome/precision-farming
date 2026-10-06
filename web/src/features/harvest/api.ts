@@ -5,7 +5,7 @@ import type {
   StorageLot,
   StorageUnit,
   YieldRecord,
-} from '@/shared/api/types'
+} from '@/features/harvest/types'
 
 export type HarvestPlanBody = {
   farmId: string

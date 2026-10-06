@@ -414,6 +414,11 @@ internal object Pt {
         "strip.pending" to "{n} na fila",
         "strip.lastSync" to "sync há {when}",
         "freshness.updated" to "Atualizado há {age}",
+        "error.PRESCRIPTION_NOT_APPROVED" to "A prescrição precisa estar aprovada",
+        "error.OPERATION_STATE_CONFLICT" to "A operação não está no estado esperado",
+        "error.SAGA_FAILED" to "Não foi possível concluir a operação",
+        "error.SAGA_COMPENSATION_FAILED" to "A compensação da operação falhou",
+        "sync.queueMemory" to "A fila offline está só na memória. Se o app fechar, comandos pendentes podem ser perdidos.",
     )
 }
 
@@ -831,5 +836,10 @@ internal object En {
         "strip.pending" to "{n} queued",
         "strip.lastSync" to "synced {when} ago",
         "freshness.updated" to "Updated {age} ago",
+        "error.PRESCRIPTION_NOT_APPROVED" to "The prescription must be approved",
+        "error.OPERATION_STATE_CONFLICT" to "The operation is not in the expected state",
+        "error.SAGA_FAILED" to "The operation could not be completed",
+        "error.SAGA_COMPENSATION_FAILED" to "Operation compensation failed",
+        "sync.queueMemory" to "The offline queue is only in memory. Pending commands can be lost if the app closes.",
     )
 }

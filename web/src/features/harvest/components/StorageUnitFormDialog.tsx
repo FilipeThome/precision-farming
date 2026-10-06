@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useStorageUnitCommands } from '@/features/harvest/queries'
-import type { StorageUnit } from '@/shared/api/types'
+import type { StorageUnit } from '@/features/harvest/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'

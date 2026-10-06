@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 
 import { useAckAlertMutation } from '@/features/alerts/queries'
-import type { Alert } from '@/shared/api/types'
+import type { Alert } from '@/features/alerts/types'
 import { inspectHref } from '@/shared/lib/useFarmFromSearch'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'

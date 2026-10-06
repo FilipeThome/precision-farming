@@ -1,4 +1,4 @@
-import type { AiInsight } from '@/shared/api/types'
+import type { AiInsight } from '@/features/ai/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { CHART_COLORS, ChartCard } from '@/shared/ui/ChartCard'

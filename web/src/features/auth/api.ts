@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/shared/api/client'
-import type { MeResponse, TokenResponse } from '@/shared/api/types'
+import type { MeResponse, TokenResponse } from '@/features/auth/types'
 
 export async function loginRequest(email: string, password: string): Promise<TokenResponse> {
   return apiPost<TokenResponse>('/api/v1/auth/login', { email, password }, false)

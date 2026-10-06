@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,17 +25,16 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -64,8 +65,8 @@ import com.precisionfarming.mobile.data.prescription
 import com.precisionfarming.mobile.data.prescriptions
 import com.precisionfarming.mobile.data.selectPrescription
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.i18n.commandErrorLabel
 import com.precisionfarming.mobile.ui.components.ActualLitersSheet
 import com.precisionfarming.mobile.ui.components.AgCard
 import com.precisionfarming.mobile.ui.components.KpiCard
@@ -109,7 +110,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
             state = runCatching {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 coroutineScope {
                     val opJob = async { operations(farmId) }
                     val farmJob = async { runCatching { farms() }.getOrDefault(emptyList()) }
@@ -141,7 +142,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
             )
         }
     }
-    LaunchedEffect(operationId, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(operationId, LocalFarmId.current, LocalAppLocale.current) { reload() }
     val queue by OfflineRuntime.queue.state.collectAsState()
     val syncedForOp = queue.items.count { it.operationId == operationId && it.state == SyncState.SYNCED }
     LaunchedEffect(syncedForOp) { if (syncedForOp > 0) reload() }
@@ -170,7 +171,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                     Text(S.t("inspector.notFound"), style = MaterialTheme.typography.titleMedium)
                     Text(S.t("inspector.notFoundHint"), color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else {
-                    val zone = TodayOps.resolveZone(b.farms, FarmFilter.farmId)
+                    val zone = TodayOps.resolveZone(b.farms, FarmFilter.farmId.value)
                     val field = b.fields.firstOrNull { it.id == op.fieldId }
                     val machine = b.machines.firstOrNull { it.id == op.machineId }
                     val item = b.items.firstOrNull { it.id == op.itemId }
@@ -194,7 +195,7 @@ fun OperationExecutionScreen(operationId: String, onBack: () -> Unit) {
                     }
                     failed.forEach { f ->
                         Text(
-                            S.t("run.syncFailed", "error" to (f.lastError ?: S.t("common.error"))),
+                            S.t("run.syncFailed", "error" to commandErrorLabel(f.lastError)),
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall,
                             modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },

@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.dao.DataIntegrityViolationException
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
@@ -28,7 +29,7 @@ import java.util.UUID
 
 class InventoryServiceTest {
     private val items = mockk<ItemJpaRepository>()
-    private val movements = mockk<MovementJpaRepository>()
+    private val movements = mockk<MovementJpaRepository>(relaxUnitFun = true)
     private val svc = InventoryService(items, movements)
 
     private fun scopeFor(item: ItemEntity) = AccessScope(DemoTenant.ID, setOf(item.farmId), "OPERATOR")
@@ -132,6 +133,50 @@ class InventoryServiceTest {
         assertThrows(com.precisionfarming.common.ForbiddenException::class.java) {
             svc.move(other, MovementCmd(item.id, "IN", BigDecimal("1"), null))
         }
+    }
+
+    @Test
+    fun duplicateStepKeyDoesNotMoveStockAgain() {
+        val item = item(quantity = "50", reserved = "10")
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.existsByItemIdAndTypeAndStepKey(item.id, "RESERVE", "saga:RESERVE") } returns true
+
+        val dto = svc.move(
+            scopeFor(item),
+            MovementCmd(item.id, "RESERVE", BigDecimal("5"), "op-1", "saga:RESERVE"),
+        )
+
+        assertEquals(BigDecimal("10"), dto.reserved)
+        assertEquals(BigDecimal("50"), dto.quantity)
+    }
+
+    @Test
+    fun undoReserveWithoutForwardStepDoesNotChangeStock() {
+        val item = item(quantity = "50", reserved = "10")
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.existsByItemIdAndTypeAndStepKey(any(), any(), any()) } returns false
+
+        val dto = svc.move(
+            scopeFor(item),
+            MovementCmd(item.id, "RELEASE", BigDecimal("5"), "op-1", "saga:UNDO-RESERVE"),
+        )
+
+        assertEquals(BigDecimal("10"), dto.reserved)
+    }
+
+    @Test
+    fun duplicateStepKeyOnFlushIsAConflict() {
+        val item = item(quantity = "50", reserved = "10")
+        every { items.findById(item.id) } returns Optional.of(item)
+        every { movements.existsByItemIdAndTypeAndStepKey(any(), any(), any()) } returns false
+        every { movements.save(any()) } answers { firstArg<MovementEntity>() }
+        every { items.save(any()) } answers { firstArg<ItemEntity>() }
+        every { movements.flush() } throws DataIntegrityViolationException("duplicate step")
+
+        val ex = assertThrows(ConflictException::class.java) {
+            svc.move(scopeFor(item), MovementCmd(item.id, "RESERVE", BigDecimal("5"), "op-1", "saga:RESERVE"))
+        }
+        assertEquals("STEP_ALREADY_APPLIED", ex.code)
     }
 
     @Test

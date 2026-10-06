@@ -204,10 +204,10 @@ class AuthService(
 @Service
 class AuthSeed(
     private val authService: AuthService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
     fun seedUsers() = ApplicationRunner {
-        if (seed) authService.reconcile()
+        if (gate.permits()) authService.reconcile()
     }
 }

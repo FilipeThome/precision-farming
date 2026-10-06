@@ -1,5 +1,5 @@
 import { usePlantingGateQuery } from '@/features/weather/queries'
-import type { Season } from '@/shared/api/types'
+import type { Season } from '@/features/seasons/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import type { MessageKey } from '@/shared/i18n/useI18n'
 import { Card } from '@/shared/ui/Card'

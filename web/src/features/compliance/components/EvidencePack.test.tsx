@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { EvidencePack as EvidencePackDto } from '@/shared/api/types'
+import type { EvidencePack as EvidencePackDto } from '@/features/compliance/types'
 
 import { EvidencePack, evidenceDownloadName } from './EvidencePack'
 

@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/shared/api/client'
-import type { WorkOrder } from '@/shared/api/types'
+import type { WorkOrder } from '@/features/maintenance/types'
 
 export type WorkOrderBody = {
   farmId: string

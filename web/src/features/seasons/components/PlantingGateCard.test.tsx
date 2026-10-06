@@ -2,7 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { PlantingGate, Season } from '@/shared/api/types'
+import type { Season } from '@/features/seasons/types'
+import type { PlantingGate } from '@/shared/api/types'
 
 import { PlantingGateCard } from './PlantingGateCard'
 

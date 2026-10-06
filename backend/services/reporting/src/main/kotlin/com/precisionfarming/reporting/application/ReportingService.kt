@@ -149,8 +149,8 @@ class ReportingService(
 @Service
 class ReportingSeed(
     private val svc: ReportingService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedReporting() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedReporting() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

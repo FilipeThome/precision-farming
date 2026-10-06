@@ -1,5 +1,5 @@
 import { useApprovePrescription } from '@/features/agronomy/queries'
-import type { Prescription } from '@/shared/api/types'
+import type { Prescription } from '@/features/agronomy/types'
 import { useCanManageFarmOps } from '@/shared/auth/roles'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'

@@ -48,7 +48,7 @@ docker compose --project-directory . -f docker-compose.yml -f deploy/compose/sta
 - Login: `manager@precisionfarming.demo` / `Precision@123`
 - Seeds: `APP_SEED=true` in `demo.env` (copied from `demo.env.example` on first compose-up)
 - Weather stays on the deterministic demo series unless the weather service gets `WEATHER_PROVIDER=open-meteo` (Open-Meteo, no API key). The default is `demo`, so Compose does not need outbound weather access.
-- `SPRINGDOC_ENABLED=true` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
+- `SPRINGDOC_ENABLED=false` in demo containers (OpenAPI not published on host; use local `bootRun` for Swagger UI)
 - `AUTH_RATE_LIMIT` applies to auth login/refresh
 
 ## Profiles (`stack.yml`)

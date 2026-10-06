@@ -5,7 +5,7 @@ import { MachineInspector } from '@/features/machines/components/MachineInspecto
 import { useMachinesQuery } from '@/features/machines/queries'
 import { useMachinePhoto } from '@/features/machines/useMachinePhoto'
 import { useCanWriteFleet } from '@/shared/auth/roles'
-import type { Machine } from '@/shared/api/types'
+import type { Machine } from '@/features/machines/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { queryError } from '@/shared/lib/queryError'

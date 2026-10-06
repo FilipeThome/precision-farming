@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -10,15 +12,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -27,7 +28,6 @@ import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.alerts
 import com.precisionfarming.mobile.data.byId
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
@@ -54,10 +54,10 @@ fun AlertsScreen(
     fun reload() {
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
-            state = runCatching { alerts(FarmFilter.farmId) }.toLoadState()
+            state = runCatching { alerts(FarmFilter.farmId.value) }.toLoadState()
         }
     }
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
     val all = (state as? LoadState.Ok)?.items.orEmpty()
     val filtered = if (severity.isNullOrBlank()) all else all.filter { it.severity.equals(severity, ignoreCase = true) }
     val selected = all.byId(selectedId) { it.id }

@@ -1,5 +1,5 @@
 import { apiGet } from '@/shared/api/client'
-import type { MarketContract, MarketExposure, MarketQuote } from '@/shared/api/types'
+import type { MarketContract, MarketExposure, MarketQuote } from '@/features/market/types'
 
 export async function fetchMarketQuotes(farmId?: string | null): Promise<MarketQuote[]> {
   return apiGet<MarketQuote[]>('/api/v1/market/quotes', { farmId: farmId ?? undefined })

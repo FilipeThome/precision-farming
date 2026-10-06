@@ -26,6 +26,20 @@ object InspectNav {
     const val INSIGHTS = "mais/insights"
     const val FINANCE = "mais/finance"
     const val SYNC = "mais/sync"
+    const val SEASONS = "mais/seasons"
+    const val MAINTENANCE = "mais/maintenance"
+    const val AGRONOMY = "mais/agronomy"
+    const val WEATHER = "mais/weather"
+    const val IRRIGATION = "mais/irrigation"
+    const val MARKET = "mais/market"
+    const val COMPLIANCE = "mais/compliance"
+    const val REPORTS = "mais/reports"
+    const val INTEGRATIONS = "mais/integrations"
+    const val SETTINGS = "mais/settings"
+    const val ARG_LOT = "lotCode"
+    const val COMPLIANCE_LOT = "mais/compliance/lot/{lotCode}"
+
+    fun complianceLot(code: String): String = "mais/compliance/lot/${android.net.Uri.encode(code)}"
 
     /** Work-order execution screen; path id because it is a detail page, not a tab. */
     const val ARG_ID = "id"

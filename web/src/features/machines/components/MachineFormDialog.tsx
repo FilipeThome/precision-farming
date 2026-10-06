@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useMachineCommands } from '@/features/machines/queries'
-import type { Machine } from '@/shared/api/types'
+import type { Machine } from '@/features/machines/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'

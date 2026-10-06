@@ -201,7 +201,7 @@ function Build-AppImages([string[]]$ComposeArgs, [string[]]$Services, [int]$Batc
 }
 
 function Ensure-DomainDatabases {
-  if ($Profile -ne "all" -and $Profile -ne "domains") { return }
+  if ($Profile -ne "all" -and $Profile -ne "domains" -and $Profile -ne "core") { return }
   Write-Host "==> Ensuring domain databases (profile=$Profile)..."
   $deadline = (Get-Date).AddMinutes(2)
   while ($true) {
@@ -271,6 +271,6 @@ Write-Host "  MAPA_LIVE=false              live ZARC from MAPA CKAN (weather; se
 Write-Host "  WEATHER_PROVIDER=demo        set open-meteo for live forecast"
 if ($Profile -eq "core") {
   Write-Host ""
-  Write-Host "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them and applies scripts/ensure-new-dbs.sql."
+  Write-Host "Tip: core leaves weather, agronomy, irrigation, harvest, compliance, AI, notification, file, sync, and integration down. Profile 'all' starts them. Profiles core, domains, and all apply scripts/ensure-new-dbs.sql."
 }
 Write-Host "Done."

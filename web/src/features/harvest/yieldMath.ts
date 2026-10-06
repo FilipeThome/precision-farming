@@ -1,4 +1,4 @@
-import type { HarvestPlan, YieldRecord } from '@/shared/api/types'
+import type { HarvestPlan, YieldRecord } from '@/features/harvest/types'
 
 export function weightedYieldTHa(
   rows: Array<{ yieldTHa?: number | null; areaHa?: number | null }>,

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useFarmCommands } from '@/features/farms/queries'
-import type { Farm } from '@/shared/api/types'
+import type { Farm } from '@/features/farms/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 import { useFieldCommands } from '@/features/fields/queries'
-import type { Field } from '@/shared/api/types'
+import type { Field } from '@/features/fields/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { centroidOfGeometry, geometryForFieldSave } from '@/shared/maps/geometry'

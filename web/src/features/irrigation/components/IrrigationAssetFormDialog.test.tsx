@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Field, IrrigationAsset } from '@/shared/api/types'
+import type { IrrigationAsset } from '@/features/irrigation/types'
+import type { Field } from '@/shared/api/types'
 
 const useFieldsQuery = vi.fn()
 const createMutate = vi.fn()

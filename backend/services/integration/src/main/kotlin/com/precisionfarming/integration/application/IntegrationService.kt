@@ -51,8 +51,8 @@ class IntegrationService(private val repo: ConnectorJpaRepository) {
 @Service
 class IntegrationSeed(
     private val svc: IntegrationService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedIntegration() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedIntegration() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

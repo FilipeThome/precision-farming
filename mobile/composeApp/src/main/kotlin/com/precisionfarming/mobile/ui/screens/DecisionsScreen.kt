@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,10 +20,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,6 +34,7 @@ import com.precisionfarming.mobile.data.DecisionSources
 import com.precisionfarming.mobile.data.DecisionStatus
 import com.precisionfarming.mobile.data.EntityNames
 import com.precisionfarming.mobile.data.FarmFilter
+import com.precisionfarming.mobile.data.InspectNav
 import com.precisionfarming.mobile.data.MeDto
 import com.precisionfarming.mobile.data.OperationDto
 import com.precisionfarming.mobile.data.approvePrescription
@@ -51,7 +54,6 @@ import com.precisionfarming.mobile.data.recommendations
 import com.precisionfarming.mobile.data.sortByPriority
 import com.precisionfarming.mobile.data.toDecisionItems
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
@@ -87,7 +89,7 @@ fun DecisionsScreen(
         scope.launch {
             if (state !is LoadState.Ok) state = LoadState.Loading
             state = runCatching {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 coroutineScope {
                     val rxJob = async { runCatching { prescriptions(farmId) } }
                     val irrJob = async { runCatching { irrigationRecommendations(farmId) } }
@@ -127,7 +129,7 @@ fun DecisionsScreen(
         }
     }
 
-    LaunchedEffect(FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(LocalFarmId.current, LocalAppLocale.current) { reload() }
 
     val bundle = (state as? LoadState.Ok)?.items?.firstOrNull()
     val filtered = bundle?.let { sortByPriority(filterDecisions(it.items, filter)) }.orEmpty()
@@ -225,7 +227,7 @@ fun DecisionsScreen(
                         }
                     },
                     onOpenIrrigation = {
-                        onOpen("mais/irrigation")
+                        onOpen(InspectNav.IRRIGATION)
                     },
                 )
             }

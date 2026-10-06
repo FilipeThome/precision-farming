@@ -6,7 +6,7 @@ import type {
   ScoutingRecord,
   SoilSample,
   SpraySavings,
-} from '@/shared/api/types'
+} from '@/features/agronomy/types'
 
 export async function fetchScouting(farmId?: string | null): Promise<ScoutingRecord[]> {
   return apiGet<ScoutingRecord[]>('/api/v1/scouting', { farmId: farmId ?? undefined })

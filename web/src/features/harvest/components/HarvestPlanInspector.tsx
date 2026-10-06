@@ -1,6 +1,6 @@
 import { weightedYieldTHa, yieldsForPlan } from '@/features/harvest/yieldMath'
 import { useYieldQuery } from '@/features/harvest/queries'
-import type { HarvestPlan } from '@/shared/api/types'
+import type { HarvestPlan } from '@/features/harvest/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityTile } from '@/shared/ui/EntityTile'

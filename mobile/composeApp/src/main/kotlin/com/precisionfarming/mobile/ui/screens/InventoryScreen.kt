@@ -3,11 +3,11 @@ package com.precisionfarming.mobile.ui.screens
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import com.precisionfarming.mobile.data.FarmFilter
 import com.precisionfarming.mobile.data.InventoryCreate
@@ -47,7 +47,7 @@ fun InventoryScreen(
         onSelect = onSelect,
         onClearSelected = onClearSelected,
         extraKeys = nonce,
-        load = { inventory(FarmFilter.farmId) },
+        load = { inventory(FarmFilter.farmId.value) },
         idOf = { it.id },
         headline = { it.name ?: it.id },
         supporting = {
@@ -96,7 +96,7 @@ fun InventoryScreen(
             error = error,
             onDismiss = { creating = false; editing = null },
             onSave = {
-                val farmId = editing?.farmId ?: FarmFilter.farmId
+                val farmId = editing?.farmId ?: FarmFilter.farmId.value
                 if (farmId.isNullOrBlank()) {
                     error = S.t("form.needFarm")
                     return@EntityFormSheet

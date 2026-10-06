@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -10,11 +12,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,7 +45,6 @@ import com.precisionfarming.mobile.data.patchStorageUnit
 import com.precisionfarming.mobile.data.storageLots
 import com.precisionfarming.mobile.data.storageUnits
 import com.precisionfarming.mobile.i18n.DomainLabels
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.DetailSheet
 import com.precisionfarming.mobile.ui.components.EntityCard
@@ -88,7 +89,7 @@ fun HarvestScreen(
     val canWrite = canWriteMasterData(Session.role)
     fun reload() {
         scope.launch {
-            val farmId = FarmFilter.farmId
+            val farmId = FarmFilter.farmId.value
             val meResult = runCatching { me() }
             meDto = meResult.getOrNull()
             meFailed = meResult.isFailure
@@ -118,7 +119,7 @@ fun HarvestScreen(
             }
         }
     }
-    LaunchedEffect(tab, storageSub, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(tab, storageSub, LocalFarmId.current, LocalAppLocale.current) { reload() }
     val canDispatch = canManageFarmOps(meDto?.role)
     val planItems = (plans as? LoadState.Ok)?.items.orEmpty()
     val lotItems = (lots as? LoadState.Ok)?.items.orEmpty()
@@ -141,7 +142,7 @@ fun HarvestScreen(
                         harvestForm = "plan"
                         formValues = mapOf("fieldId" to "", "crop" to "SOY", "expectedTHa" to "")
                         scope.launch {
-                            fieldChoices = runCatching { fields(FarmFilter.farmId) }.getOrDefault(emptyList())
+                            fieldChoices = runCatching { fields(FarmFilter.farmId.value) }.getOrDefault(emptyList())
                                 .map { FormOption(it.id, it.name ?: it.id) }
                             val first = fieldChoices.firstOrNull()?.value
                             if (first != null) formValues = formValues + ("fieldId" to first)
@@ -295,7 +296,7 @@ fun HarvestScreen(
             error = formError,
             onDismiss = { harvestForm = null; editingUnit = null },
             onSave = {
-                val farmId = FarmFilter.farmId
+                val farmId = FarmFilter.farmId.value
                 if (farmId.isNullOrBlank()) {
                     formError = S.t("form.needFarm")
                     return@EntityFormSheet

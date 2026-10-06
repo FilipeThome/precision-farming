@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.springframework.data.jpa.repository.Query
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.TransactionDefinition
 import org.springframework.transaction.TransactionStatus
@@ -32,6 +33,7 @@ import org.springframework.transaction.support.SimpleTransactionStatus
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import java.util.Collection
 import java.util.Optional
 import java.util.UUID
 
@@ -62,8 +64,8 @@ class OperationServiceTest {
         val dto = svc.start(scopeFor(op), op.id)
 
         assertEquals("IN_PROGRESS", dto.status)
-        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId) }
-        verify(exactly = 0) { inventory.move(any(), "RELEASE", any(), any(), any()) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
+        verify(exactly = 0) { inventory.move(any(), "RELEASE", any(), any(), any(), any()) }
         verify(exactly = 0) { agronomy.get(any(), any()) }
     }
 
@@ -80,7 +82,7 @@ class OperationServiceTest {
         assertEquals("PRESCRIPTION_NOT_APPROVED", ex.code)
         assertEquals("PLANNED", op.status)
         verify(exactly = 1) { agronomy.get(rxId, op.farmId) }
-        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any(), any()) }
         verify(exactly = 0) { repo.save(any()) }
     }
 
@@ -111,7 +113,7 @@ class OperationServiceTest {
         assertEquals("IN_PROGRESS", dto.status)
         verifyOrder {
             agronomy.get(rxId, op.farmId)
-            inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId)
+            inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any())
         }
     }
 
@@ -127,9 +129,9 @@ class OperationServiceTest {
 
         assertEquals("COMPLETED", dto.status)
         assertEquals(0, actual.compareTo(dto.actualLiters))
-        verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", actual, op.id.toString(), op.farmId) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", actual, op.id.toString(), op.farmId, any()) }
         verify(exactly = 1) {
-            inventory.move(op.itemId!!, "RELEASE", BigDecimal("7.5"), op.id.toString(), op.farmId)
+            inventory.move(op.itemId!!, "RELEASE", BigDecimal("7.5"), op.id.toString(), op.farmId, any())
         }
     }
 
@@ -139,7 +141,7 @@ class OperationServiceTest {
         every { repo.findById(op.id) } returns Optional.of(op)
         every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
         every { repo.save(any()) } answers { firstArg<OperationEntity>() }
-        every { inventory.move(any(), "CONSUME", any(), any(), any()) } throws RuntimeException("stock down")
+        every { inventory.move(any(), "CONSUME", any(), any(), any(), any()) } throws RuntimeException("stock down")
 
         val ex = assertThrows(ConflictException::class.java) {
             svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("12.5")))
@@ -147,7 +149,28 @@ class OperationServiceTest {
         assertEquals("SAGA_FAILED", ex.code)
         assertEquals("IN_PROGRESS", op.status)
         assertEquals(null, op.actualLiters)
-        verify(exactly = 0) { inventory.move(any(), "IN", any(), any(), any()) }
+        verify(exactly = 1) { inventory.move(any(), "IN", any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun completeRetriesUnusedReleaseBeforeRestoringTheFullReservation() {
+        val op = operation("IN_PROGRESS")
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        every { repo.save(any()) } answers { firstArg<OperationEntity>() }
+        var releases = 0
+        every { inventory.move(any(), "RELEASE", any(), any(), any(), any()) } answers {
+            releases += 1
+            if (releases == 1) throw RuntimeException("lost release")
+        }
+
+        val ex = assertThrows(ConflictException::class.java) {
+            svc.complete(scopeFor(op), op.id, CompleteOperation(actualLiters = BigDecimal("12.5")))
+        }
+
+        assertEquals("SAGA_FAILED", ex.code)
+        assertEquals("IN_PROGRESS", op.status)
+        verify(exactly = 1) { inventory.move(any(), "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
     }
 
     @Test
@@ -165,7 +188,7 @@ class OperationServiceTest {
         assertEquals("ACTUAL_LITERS_INVALID", huge.code)
         assertEquals("IN_PROGRESS", op.status)
         verify(exactly = 0) { repo.save(any()) }
-        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -178,7 +201,7 @@ class OperationServiceTest {
         }
         assertEquals("ACTUAL_LITERS_INVALID", ex.code)
         assertEquals("IN_PROGRESS", op.status)
-        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any(), any()) }
     }
 
     @Test
@@ -191,7 +214,28 @@ class OperationServiceTest {
         val dto = svc.start(scopeFor(op), op.id)
 
         assertEquals("IN_PROGRESS", dto.status)
-        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any()) }
+        verify(exactly = 0) { inventory.move(any(), any(), any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun startStaysStartingWhenReleaseFails() {
+        val op = operation("PLANNED")
+        every { repo.findById(op.id) } returns Optional.of(op)
+        every { sagas.save(any()) } answers { firstArg<SagaEntity>() }
+        val saved = mutableListOf<String>()
+        every { repo.save(any()) } answers {
+            val entity = firstArg<OperationEntity>()
+            saved += entity.status
+            if (entity.status == "IN_PROGRESS") throw RuntimeException("persist failed")
+            entity
+        }
+        every { inventory.move(any(), "RELEASE", any(), any(), any(), any()) } throws RuntimeException("release down")
+
+        val ex = assertThrows(ConflictException::class.java) { svc.start(scopeFor(op), op.id) }
+
+        assertEquals("SAGA_COMPENSATION_FAILED", ex.code)
+        assertTrue(saved.contains("STARTING"))
+        assertTrue(saved.none { it == "PLANNED" })
     }
 
     @Test
@@ -207,8 +251,8 @@ class OperationServiceTest {
 
         val ex = assertThrows(ConflictException::class.java) { svc.start(scopeFor(op), op.id) }
         assertEquals("SAGA_FAILED", ex.code)
-        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId) }
-        verify(exactly = 1) { inventory.move(op.itemId!!, "RELEASE", op.itemQuantity!!, op.id.toString(), op.farmId) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "RELEASE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
     }
 
     @Test
@@ -224,9 +268,9 @@ class OperationServiceTest {
 
         val ex = assertThrows(ConflictException::class.java) { svc.complete(scopeFor(op), op.id) }
         assertEquals("SAGA_FAILED", ex.code)
-        verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", op.itemQuantity!!, op.id.toString(), op.farmId) }
-        verify(exactly = 1) { inventory.move(op.itemId!!, "IN", op.itemQuantity!!, op.id.toString(), op.farmId) }
-        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "CONSUME", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "IN", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
+        verify(exactly = 1) { inventory.move(op.itemId!!, "RESERVE", op.itemQuantity!!, op.id.toString(), op.farmId, any()) }
     }
 
     @Test
@@ -239,13 +283,9 @@ class OperationServiceTest {
             it.actualStart = Instant.parse("2026-09-06T10:00:00Z")
             it.areaHa = BigDecimal("10.0")
         }
-        val old = operation("COMPLETED").also {
-            it.farmId = farmId
-            it.machineId = machineId
-            it.actualStart = Instant.parse("2026-08-01T10:00:00Z")
-            it.areaHa = BigDecimal("10.0")
-        }
-        every { repo.findByMachineIdAndFarmIdIn(machineId, setOf(farmId)) } returns listOf(inWindow, old)
+        val from = Instant.parse("2026-09-01T00:00:00Z")
+        val to = Instant.parse("2026-09-08T00:00:00Z")
+        every { repo.findWorkInWindow(machineId, setOf(farmId), from, to) } returns listOf(inWindow)
         val dto = svc.machineSummary(
             AccessScope(DemoTenant.ID, setOf(farmId), "OPERATOR"),
             machineId,
@@ -253,6 +293,24 @@ class OperationServiceTest {
             Instant.parse("2026-09-08T00:00:00Z"),
         )
         assertEquals(BigDecimal("10.0"), dto.areaHa)
+        verify { repo.findWorkInWindow(machineId, setOf(farmId), from, to) }
+    }
+
+    @Test
+    fun workWindowQueryExcludesRowsOutsideTheRequestedInstants() {
+        val query = OperationJpaRepository::class.java.getMethod(
+            "findWorkInWindow",
+            UUID::class.java,
+            Collection::class.java,
+            Instant::class.java,
+            Instant::class.java,
+        ).getAnnotation(Query::class.java)
+        val jpql = query.value.replace(Regex("\\s+"), " ")
+        assertTrue(jpql.contains("o.actualStart >= :from"))
+        assertTrue(jpql.contains("o.actualStart <= :to"))
+        assertTrue(jpql.contains("o.actualStart is null"))
+        assertTrue(jpql.contains("o.plannedStart >= :from"))
+        assertTrue(jpql.contains("o.plannedStart <= :to"))
     }
 
     @Test
@@ -312,7 +370,7 @@ class OperationServiceTest {
                 it.areaHa = BigDecimal("1.0")
             }
         }
-        every { repo.findByMachineIdAndFarmIdIn(machineId, setOf(farmId)) } returns ops
+        every { repo.findWorkInWindow(machineId, setOf(farmId), from, to) } returns ops
         val dto = svc.machineSummary(
             AccessScope(DemoTenant.ID, setOf(farmId), "OPERATOR"),
             machineId,

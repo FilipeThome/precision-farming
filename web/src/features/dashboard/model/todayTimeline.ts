@@ -12,10 +12,13 @@ export type TimelineRow = {
   executed?: Segment
 }
 
-/** Browser-local calendar day containing `now` (00:00 → next 00:00). */
+/** Browser-local calendar day containing `now` (00:00 → next local midnight). */
 export function todayRange(now: Date = new Date()): DayRange {
-  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
-  return { start, end: start + 24 * 60 * 60 * 1000 }
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const date = now.getDate()
+  const start = new Date(year, month, date).getTime()
+  return { start, end: new Date(year, month, date + 1).getTime() }
 }
 
 function parse(value: string | null | undefined): number | null {

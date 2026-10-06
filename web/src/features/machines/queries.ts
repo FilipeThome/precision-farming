@@ -6,6 +6,8 @@ export const machineKeys = {
   all: (farmId?: string | null) => ['machines', farmId ?? 'all'] as const,
   telemetry: (machineId: string) => ['machines', machineId, 'telemetry'] as const,
   metrics: (machineId: string) => ['machines', machineId, 'metrics'] as const,
+  photos: () => ['files', 'content'] as const,
+  photo: (photoFileId: string) => ['files', 'content', photoFileId] as const,
 }
 
 export function useMachinesQuery(farmId?: string | null) {
@@ -42,6 +44,7 @@ export function useMachineCommands() {
     mutationFn: saveMachine,
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['machines'] })
+      void client.invalidateQueries({ queryKey: machineKeys.photos() })
     },
   })
 }

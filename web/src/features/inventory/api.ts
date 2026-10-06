@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
-import type { InventoryItem, InventoryMovement } from '@/shared/api/types'
+import type { InventoryItem, InventoryMovement } from '@/features/inventory/types'
 
 export type InventoryCreateBody = {
   farmId: string

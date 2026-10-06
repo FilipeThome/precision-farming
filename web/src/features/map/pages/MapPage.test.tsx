@@ -8,7 +8,8 @@ import { MapPage } from '@/features/map/pages/MapPage'
 import { fetchFields } from '@/features/fields/api'
 import { fetchOperations } from '@/features/operations/api'
 import { ApiError } from '@/shared/api/client'
-import type { Field, MapLayer, Operation } from '@/shared/api/types'
+import type { MapLayer } from '@/features/map/types'
+import type { Field, Operation } from '@/shared/api/types'
 
 vi.mock('@/shared/maps/FieldMap', () => ({
   FieldMap: ({ fieldStates }: { fieldStates?: Record<string, string> }) => (
@@ -133,6 +134,22 @@ describe('MapPage', () => {
     expect(screen.getByText('ops down')).toBeInTheDocument()
     expect(screen.getByText('cid-ops')).toBeInTheDocument()
     expect(screen.queryByTestId('field-map')).not.toBeInTheDocument()
+  })
+
+  it('selects a field from the keyboard list the same way a polygon click would', async () => {
+    const user = userEvent.setup()
+    renderMap((client) => {
+      client.setQueryData(['fields', 'all'], [field])
+      client.setQueryData(['operations', 'all'], [inProgress])
+      client.setQueryData(['operations', 'farm-1'], [inProgress])
+      client.setQueryData(['agronomy', 'prescriptions', 'farm-1'], [])
+      client.setQueryData(['harvest', 'yield', 'farm-1'], [])
+    })
+    const listButton = await screen.findByRole('button', { name: 'field-1' })
+    expect(listButton).toHaveAttribute('aria-pressed', 'false')
+    await user.click(listButton)
+    expect(listButton).toHaveAttribute('aria-pressed', 'true')
+    expect(await screen.findByRole('dialog', { name: 'field-1' })).toBeInTheDocument()
   })
 
   it('retries fields and operations after a fields error', async () => {

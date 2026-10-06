@@ -22,6 +22,7 @@ class CostEntity(
     var amount: BigDecimal,
     var currency: String,
     @Column(name = "occurred_at") var occurredAt: Instant,
+    @Column(name = "farm_name") var farmName: String? = null,
 )
 
 @Entity
@@ -82,6 +83,7 @@ class MarketExposureEntity(
 )
 
 interface CostJpaRepository : JpaRepository<CostEntity, UUID> {
+    fun findFirstByFarmIdAndFarmNameIsNotNull(farmId: UUID): CostEntity?
     fun findByFarmId(farmId: UUID): List<CostEntity>
     fun findByFarmIdIn(farmIds: Collection<UUID>): List<CostEntity>
 

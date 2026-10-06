@@ -1,10 +1,5 @@
 import { apiGet } from '@/shared/api/client'
-import type {
-  FinanceBudget,
-  FinanceCashflow,
-  FinanceCost,
-  FinancePnl,
-} from '@/shared/api/types'
+import type { FinanceBudget, FinanceCashflow, FinanceCost, FinancePnl } from '@/features/finance/types'
 
 export async function fetchFinanceCosts(farmId?: string | null): Promise<FinanceCost[]> {
   return apiGet<FinanceCost[]>('/api/v1/finance/costs', { farmId: farmId ?? undefined })

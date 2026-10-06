@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost, apiUpload } from '@/shared/api/client'
-import type { Machine, MachineMetrics, TelemetryPoint } from '@/shared/api/types'
+import type { Machine, MachineMetrics, TelemetryPoint } from '@/features/machines/types'
 
 export type MachineBody = {
   farmId: string

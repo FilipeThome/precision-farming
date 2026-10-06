@@ -1,5 +1,5 @@
 import { PlantingGateCard } from '@/features/seasons/components/PlantingGateCard'
-import type { Season } from '@/shared/api/types'
+import type { Season } from '@/features/seasons/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityTile } from '@/shared/ui/EntityTile'

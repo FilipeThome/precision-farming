@@ -40,6 +40,6 @@ class NotificationService(private val repo: NotificationJpaRepository) {
 }
 
 @Service
-class NotificationSeed(private val svc: NotificationService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedN() = ApplicationRunner { if (seed) svc.seed() }
+class NotificationSeed(private val svc: NotificationService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedN() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

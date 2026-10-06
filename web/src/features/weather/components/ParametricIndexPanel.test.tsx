@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import type { ParametricIndex } from '@/shared/api/types'
+import type { ParametricIndex } from '@/features/weather/types'
 
 import { ParametricIndexPanel } from './ParametricIndexPanel'
 

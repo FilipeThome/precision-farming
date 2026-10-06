@@ -6,6 +6,7 @@ import com.precisionfarming.common.DomainException
 import jakarta.servlet.http.HttpServletRequest
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
+import org.springframework.dao.OptimisticLockingFailureException
 import org.springframework.http.ResponseEntity
 import org.springframework.http.HttpStatus
 import org.springframework.security.access.AccessDeniedException
@@ -82,6 +83,19 @@ class RestExceptionHandler {
                 status = 400,
                 code = "VALIDATION_ERROR",
                 message = "Invalid ${ex.name}",
+                correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
+            ),
+        )
+    }
+
+    @ExceptionHandler(OptimisticLockingFailureException::class)
+    fun optimisticLock(ex: OptimisticLockingFailureException, request: HttpServletRequest): ResponseEntity<ApiError> {
+        log.warn("optimistic_lock path={} msg={}", request.requestURI, ex.message)
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(
+            ApiError(
+                status = 409,
+                code = "OPTIMISTIC_LOCK",
+                message = "The record was updated by someone else",
                 correlationId = request.getHeader(Correlation.HEADER) ?: MDC.get("correlationId"),
             ),
         )

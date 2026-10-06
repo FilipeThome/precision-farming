@@ -1,10 +1,5 @@
 import { apiGet } from '@/shared/api/client'
-import type {
-  CreditDossier,
-  EsgMetric,
-  EvidencePack,
-  TraceabilityLot,
-} from '@/shared/api/types'
+import type { CreditDossier, EsgMetric, EvidencePack, TraceabilityLot } from '@/features/compliance/types'
 
 export async function fetchTraceability(farmId?: string | null): Promise<TraceabilityLot[]> {
   return apiGet<TraceabilityLot[]>('/api/v1/traceability', { farmId: farmId ?? undefined })

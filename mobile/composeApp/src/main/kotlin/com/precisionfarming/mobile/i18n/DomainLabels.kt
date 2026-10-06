@@ -9,7 +9,7 @@ object DomainLabels {
         entityName(value)?.let { return it }
         val folded = fold(value)
         val aliased = ALIASES[folded] ?: ALIASES[value.lowercase()] ?: value
-        val table = if (LocaleStore.locale == AppLocale.EN_US) EN else PT
+        val table = if (LocaleStore.locale.value == AppLocale.EN_US) EN else PT
         table[aliased]?.let { return it }
         table[aliased.uppercase()]?.let { return it }
         if (UUID_RE.matches(value)) return value.take(8)

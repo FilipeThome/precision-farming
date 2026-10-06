@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 
 import { useAuthStore } from '@/shared/auth/store'
@@ -9,6 +10,7 @@ const ACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scr
 export function useIdleSessionTimeout(idleMs: number = IDLE_MS) {
   const token = useAuthStore((s) => s.accessToken)
   const clearSession = useAuthStore((s) => s.clearSession)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     if (!token) return
@@ -19,6 +21,7 @@ export function useIdleSessionTimeout(idleMs: number = IDLE_MS) {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         clearSession()
+        queryClient.clear()
       }, idleMs)
     }
 
@@ -32,5 +35,5 @@ export function useIdleSessionTimeout(idleMs: number = IDLE_MS) {
         window.removeEventListener(ev, reset)
       }
     }
-  }, [token, clearSession, idleMs])
+  }, [token, clearSession, idleMs, queryClient])
 }

@@ -10,6 +10,7 @@ dependencies {
     api(project(":backend:libs:common"))
     implementation(platform(libs.spring.boot.bom))
     api(libs.spring.boot.web)
+    implementation("org.springframework:spring-tx")
     api(libs.spring.boot.security)
     api(libs.spring.boot.oauth2.rs)
     api(libs.jjwt.api)

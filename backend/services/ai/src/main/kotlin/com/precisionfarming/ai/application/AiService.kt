@@ -116,6 +116,6 @@ class AiService(
 }
 
 @Service
-class AiSeed(private val svc: AiService, @Value("\${app.seed:true}") private val seed: Boolean) {
-    @Bean fun seedAi() = ApplicationRunner { if (seed) svc.seed() }
+class AiSeed(private val svc: AiService, private val gate: com.precisionfarming.security.DemoSeedGate) {
+    @Bean fun seedAi() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

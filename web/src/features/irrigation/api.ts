@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost } from '@/shared/api/client'
-import type { IrrigationAsset, IrrigationRecommendation } from '@/shared/api/types'
+import type { IrrigationAsset, IrrigationRecommendation } from '@/features/irrigation/types'
 
 export type IrrigationAssetBody = {
   farmId: string

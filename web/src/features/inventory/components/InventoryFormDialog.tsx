@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { useInventoryCommands } from '@/features/inventory/queries'
 import { inventoryUnitOptions } from '@/features/inventory/units'
-import type { InventoryItem } from '@/shared/api/types'
+import type { InventoryItem } from '@/features/inventory/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { queryError } from '@/shared/lib/queryError'
 import { EntityFormDialog } from '@/shared/ui/EntityFormDialog'

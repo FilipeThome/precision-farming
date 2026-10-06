@@ -1,4 +1,4 @@
-import type { IntegrationConnector } from '@/shared/api/types'
+import type { IntegrationConnector } from '@/features/integrations/types'
 import { useI18n } from '@/shared/i18n/useI18n'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'

@@ -22,10 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -43,6 +43,7 @@ import com.precisionfarming.mobile.data.offline.SyncState
 import com.precisionfarming.mobile.data.syncDeviceId
 import com.precisionfarming.mobile.data.syncPull
 import com.precisionfarming.mobile.i18n.S
+import com.precisionfarming.mobile.i18n.commandErrorLabel
 import com.precisionfarming.mobile.ui.components.AgCard
 import com.precisionfarming.mobile.ui.components.EntityTile
 import com.precisionfarming.mobile.ui.components.KpiCard
@@ -59,6 +60,7 @@ import java.time.ZoneId
 fun SyncStatusScreen(onBack: () -> Unit) {
     val queue by OfflineRuntime.queue.state.collectAsState()
     val online by OfflineRuntime.connectivity.online.collectAsState()
+    val queueDurable by OfflineRuntime.queueDurable.collectAsState()
     var syncing by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val scope = rememberCoroutineScope()
@@ -120,6 +122,14 @@ fun SyncStatusScreen(onBack: () -> Unit) {
                 KpiCard(S.t("sync.lastSync"), last, modifier = Modifier.weight(1f))
             }
         }
+        if (!queueDurable) {
+            Text(
+                S.t("sync.queueMemory"),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         message?.let {
             Text(
                 it,
@@ -179,11 +189,11 @@ private fun QueueRow(cmd: QueuedCommand, zone: ZoneId, onDismiss: () -> Unit) {
     val stateLabel = S.t("sync.state.${cmd.state.name}")
     val sub = when (cmd.state) {
         SyncState.SYNCED -> listOfNotNull(stateLabel, TimeFormat.clockWithSeconds(cmd.syncedAt, zone)).joinToString(" ")
-        SyncState.FAILED -> listOfNotNull(stateLabel, cmd.lastError).joinToString(" · ")
+        SyncState.FAILED -> listOfNotNull(stateLabel, cmd.lastError?.let { commandErrorLabel(it) }).joinToString(" · ")
         SyncState.PENDING -> listOfNotNull(
             stateLabel,
             if (cmd.attempts > 0) S.t("sync.attempts", "n" to cmd.attempts.toString()) else null,
-            cmd.lastError,
+            cmd.lastError?.let { commandErrorLabel(it) },
         ).joinToString(" · ")
         SyncState.SYNCING -> stateLabel
     }

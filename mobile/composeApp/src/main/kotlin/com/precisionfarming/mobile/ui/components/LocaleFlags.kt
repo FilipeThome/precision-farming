@@ -20,13 +20,14 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.precisionfarming.mobile.i18n.AppLocale
+import com.precisionfarming.mobile.i18n.LocalAppLocale
 import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.theme.AgOsColors
 
 @Composable
 fun LocaleFlagButtons() {
-    val current = LocaleStore.locale
+    val current = LocalAppLocale.current
     Row {
         TextButton(
             onClick = { LocaleStore.setLocale(AppLocale.PT_BR) },
@@ -52,7 +53,7 @@ fun LocaleFlagButtons() {
 /** Segmented PT / EN pill (login mockup). [onDark] flips the palette for the green header. */
 @Composable
 fun LocalePill(modifier: Modifier = Modifier, onDark: Boolean = false) {
-    val current = LocaleStore.locale
+    val current = LocalAppLocale.current
     val shape = RoundedCornerShape(999.dp)
     val border = if (onDark) AgOsColors.heroOutline else AgOsColors.n200
     Row(

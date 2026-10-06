@@ -1,4 +1,4 @@
-import type { TraceabilityLot } from '@/shared/api/types'
+import type { TraceabilityLot } from '@/features/compliance/types'
 import { useFormat } from '@/shared/lib/useFormat'
 import { EntityCard } from '@/shared/ui/EntityCard'
 import { StatusBadge } from '@/shared/ui/StatusBadge'

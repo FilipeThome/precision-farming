@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { Field } from '@/shared/api/types'
+import type { Field } from '@/features/fields/types'
 
 const createMutate = vi.fn()
 const patchMutate = vi.fn()

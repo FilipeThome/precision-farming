@@ -1,5 +1,5 @@
 import { apiGet, apiPost } from '@/shared/api/client'
-import type { Alert } from '@/shared/api/types'
+import type { Alert } from '@/features/alerts/types'
 
 export async function fetchAlerts(farmId?: string | null): Promise<Alert[]> {
   return apiGet<Alert[]>('/api/v1/alerts', { farmId: farmId ?? undefined })

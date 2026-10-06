@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { HarvestPlan, YieldRecord } from '@/shared/api/types'
+import type { HarvestPlan, YieldRecord } from '@/features/harvest/types'
 
 import { weightedYieldTHa, yieldsForPlan } from './yieldMath'
 

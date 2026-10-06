@@ -209,8 +209,8 @@ class AssetService(
 @Service
 class AssetSeed(
     private val svc: AssetService,
-    @Value("\${app.seed:true}") private val seed: Boolean,
+    private val gate: com.precisionfarming.security.DemoSeedGate,
 ) {
     @Bean
-    fun seedMachines() = ApplicationRunner { if (seed) svc.seed() }
+    fun seedMachines() = ApplicationRunner { if (gate.permits()) svc.seed() }
 }

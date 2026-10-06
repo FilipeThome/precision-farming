@@ -230,6 +230,7 @@ export const enUS: Record<MessageKey, string> = {
   'map.layers.empty': 'No layers available',
   'map.layers.legend': 'Active layers (polygon style — no GeoTIFF tiles)',
   'map.loadError': 'Failed to load the map',
+  'map.fieldList': 'Field list',
   'machines.title': 'Machines',
   'machines.description': 'Fleet and status. Click a machine to see hours, area and inputs.',
   'machines.emptyTitle': 'No machines found',

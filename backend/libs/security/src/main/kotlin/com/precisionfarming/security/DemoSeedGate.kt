@@ -23,8 +23,11 @@ class DemoSeedGate(
     private val localProfile = env.activeProfiles.contains("local")
     private val allowDemoSecrets = props.allowDemoSecrets
 
+    /** Boot seed and HTTP reset share one gate: app.seed plus local profile or demo secrets. */
+    fun permits(): Boolean = seedEnabled && (localProfile || allowDemoSecrets)
+
     fun requireEnabled() {
-        if (!seedEnabled || !(localProfile || allowDemoSecrets)) {
+        if (!permits()) {
             throw ForbiddenException("Demo seed reset is disabled", "SEED_DISABLED")
         }
     }

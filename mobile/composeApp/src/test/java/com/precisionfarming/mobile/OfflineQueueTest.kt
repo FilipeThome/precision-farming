@@ -3,6 +3,7 @@ package com.precisionfarming.mobile
 import com.precisionfarming.mobile.data.offline.CommandExecutor
 import com.precisionfarming.mobile.data.offline.ExecResult
 import com.precisionfarming.mobile.data.offline.conflictAlreadyApplied
+import com.precisionfarming.mobile.data.offline.inFlightSagaStatus
 import com.precisionfarming.mobile.data.offline.InMemoryQueueStore
 import com.precisionfarming.mobile.data.offline.OfflineQueue
 import com.precisionfarming.mobile.data.offline.OpCommand
@@ -46,7 +47,7 @@ class OfflineQueueTest {
         val store = InMemoryQueueStore()
         val q = queue(store, FakeExecutor(ArrayDeque()))
         val a = q.enqueue(OpCommand.Start("op-1", fromStatus = "PLANNED"))
-        val b = q.enqueue(OpCommand.Pause("op-1", "chuva"))
+        val b = q.enqueue(OpCommand.Pause("op-2", "chuva"))
         assertNotEquals(a.clientOperationId, b.clientOperationId)
         assertEquals(SyncState.PENDING, a.state)
         assertEquals("PLANNED", a.fromStatus)
@@ -96,7 +97,7 @@ class OfflineQueueTest {
         val exec = FakeExecutor(ArrayDeque(listOf(ExecResult.Retry("timeout"), ExecResult.Ok, ExecResult.Ok)))
         val q = queue(InMemoryQueueStore(), exec)
         val first = q.enqueue(OpCommand.Start("op-1"))
-        q.enqueue(OpCommand.Complete("op-1"))
+        q.enqueue(OpCommand.Start("op-2"))
         val r1 = q.flush()
         assertEquals(1, r1.retried)
         assertEquals(1, exec.seen.size) // stopped after the transient failure
@@ -252,8 +253,8 @@ class OfflineQueueTest {
         val exec = FakeExecutor(ArrayDeque(listOf(ExecResult.Retry("io"), ExecResult.Ok, ExecResult.Ok, ExecResult.Ok)))
         val q = queue(InMemoryQueueStore(), exec)
         q.enqueue(OpCommand.Start("op-1"))
-        q.enqueue(OpCommand.Complete("op-1"))
-        q.enqueue(OpCommand.Start("op-2"))
+        q.enqueue(OpCommand.Complete("op-2"))
+        q.enqueue(OpCommand.Start("op-3"))
         val first = q.flush()
         assertEquals(1, first.retried)
         assertEquals(listOf(OpCommandType.START), exec.seen.map { it.type })
@@ -270,28 +271,45 @@ class OfflineQueueTest {
             listOf(OpCommandType.START, OpCommandType.START, OpCommandType.COMPLETE, OpCommandType.START),
             exec.seen.map { it.type },
         )
-        assertEquals(listOf("op-1", "op-1", "op-1", "op-2"), exec.seen.map { it.operationId })
+        assertEquals(listOf("op-1", "op-1", "op-2", "op-3"), exec.seen.map { it.operationId })
         assertTrue(q.state.value.items.all { it.state == SyncState.SYNCED })
     }
 
     @Test
-    fun replayKeepsPerOpCreationOrderAndRejectedDoesNotBlockLaterOps() = runTest {
-        val exec = FakeExecutor(
-            ArrayDeque(listOf(ExecResult.Rejected("409"), ExecResult.Ok, ExecResult.Ok)),
-        )
+    fun secondOpenCommandForSameOperationIsRefused() {
+        val q = queue(InMemoryQueueStore(), FakeExecutor(ArrayDeque()))
+        val start = q.enqueue(OpCommand.Start("op-1", fromStatus = "PLANNED"))
+        val refused = q.enqueue(OpCommand.Pause("op-1", "chuva"))
+        assertEquals(start.clientOperationId, refused.clientOperationId)
+        assertEquals(OpCommandType.START, q.state.value.items.single().type)
+        assertEquals(1, q.state.value.pendingCount)
+    }
+
+    @Test
+    fun enqueueAllowsNextCommandAfterPreviousCloses() = runTest {
+        val exec = FakeExecutor(ArrayDeque(listOf(ExecResult.Ok, ExecResult.Ok)))
         val q = queue(InMemoryQueueStore(), exec)
         q.enqueue(OpCommand.Start("op-1"))
-        q.enqueue(OpCommand.Complete("op-1"))
+        assertEquals(1, q.flush().synced)
+        val next = q.enqueue(OpCommand.Complete("op-1", actualLiters = 3.0))
+        assertEquals(OpCommandType.COMPLETE, next.type)
+        assertEquals(2, q.state.value.items.size)
+        assertEquals(1, q.flush().synced)
+    }
+
+    @Test
+    fun rejectedDoesNotBlockLaterOperations() = runTest {
+        val exec = FakeExecutor(ArrayDeque(listOf(ExecResult.Rejected("409"), ExecResult.Ok)))
+        val q = queue(InMemoryQueueStore(), exec)
+        val start = q.enqueue(OpCommand.Start("op-1"))
+        assertEquals(start.clientOperationId, q.enqueue(OpCommand.Complete("op-1")).clientOperationId)
         q.enqueue(OpCommand.Start("op-2"))
         val result = q.flush()
         assertEquals(1, result.failed)
-        assertEquals(2, result.synced)
-        assertEquals(listOf("op-1", "op-1", "op-2"), exec.seen.map { it.operationId })
-        assertEquals(listOf(OpCommandType.START, OpCommandType.COMPLETE, OpCommandType.START), exec.seen.map { it.type })
-        val items = q.state.value.items
-        assertEquals(SyncState.FAILED, items[0].state)
-        assertEquals(SyncState.SYNCED, items[1].state)
-        assertEquals(SyncState.SYNCED, items[2].state)
+        assertEquals(1, result.synced)
+        assertEquals(listOf("op-1", "op-2"), exec.seen.map { it.operationId })
+        assertEquals(SyncState.FAILED, q.state.value.items[0].state)
+        assertEquals(SyncState.SYNCED, q.state.value.items[1].state)
     }
 
     @Test
@@ -378,13 +396,23 @@ class OfflineQueueTest {
     @Test
     fun conflictAlreadyAppliedWhenServerAlreadyMoved() {
         assertTrue(conflictAlreadyApplied(OpCommandType.START, "IN_PROGRESS"))
-        assertTrue(conflictAlreadyApplied(OpCommandType.START, "STARTING"))
-        assertTrue(conflictAlreadyApplied(OpCommandType.PAUSE, "PAUSED"))
-        assertTrue(conflictAlreadyApplied(OpCommandType.COMPLETE, "COMPLETING"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.START, "COMPLETED"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.START, "STARTING"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.START, "COMPLETING"))
         assertFalse(conflictAlreadyApplied(OpCommandType.START, "PAUSED"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.PAUSE, "PAUSED"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.PAUSE, "COMPLETED"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.PAUSE, "COMPLETING"))
+        assertTrue(conflictAlreadyApplied(OpCommandType.COMPLETE, "COMPLETED"))
+        assertFalse(conflictAlreadyApplied(OpCommandType.COMPLETE, "COMPLETING"))
         assertFalse(conflictAlreadyApplied(OpCommandType.START, "PLANNED"))
         assertFalse(conflictAlreadyApplied(OpCommandType.PAUSE, "IN_PROGRESS"))
         assertFalse(conflictAlreadyApplied(OpCommandType.COMPLETE, "PAUSED"))
+        assertTrue(inFlightSagaStatus("STARTING"))
+        assertTrue(inFlightSagaStatus("completing"))
+        assertFalse(inFlightSagaStatus("IN_PROGRESS"))
+        assertFalse(inFlightSagaStatus("PAUSED"))
+        assertFalse(inFlightSagaStatus("COMPLETED"))
     }
 
     @Test

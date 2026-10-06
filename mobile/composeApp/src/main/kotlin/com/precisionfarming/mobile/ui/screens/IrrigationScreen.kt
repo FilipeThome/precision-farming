@@ -1,5 +1,7 @@
 package com.precisionfarming.mobile.ui.screens
 
+import com.precisionfarming.mobile.i18n.LocalAppLocale
+import com.precisionfarming.mobile.ui.LocalFarmId
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -9,11 +11,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -28,7 +30,6 @@ import com.precisionfarming.mobile.data.fields
 import com.precisionfarming.mobile.data.irrigationAssets
 import com.precisionfarming.mobile.data.irrigationRecommendations
 import com.precisionfarming.mobile.data.patchIrrigationAsset
-import com.precisionfarming.mobile.i18n.LocaleStore
 import com.precisionfarming.mobile.i18n.S
 import com.precisionfarming.mobile.ui.components.EntityFormSheet
 import com.precisionfarming.mobile.ui.components.FormField
@@ -55,7 +56,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
     val canWrite = canWriteMasterData(Session.role)
     fun reload() {
         scope.launch {
-            val farmId = FarmFilter.farmId
+            val farmId = FarmFilter.farmId.value
             if (tab == 0) {
                 assets = LoadState.Loading
                 assets = runCatching { irrigationAssets(farmId) }.toLoadState()
@@ -65,7 +66,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
             }
         }
     }
-    LaunchedEffect(tab, FarmFilter.farmId, LocaleStore.locale) { reload() }
+    LaunchedEffect(tab, LocalFarmId.current, LocalAppLocale.current) { reload() }
     Column(
         Modifier
             .padding(16.dp)
@@ -80,7 +81,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
                     values = mapOf("name" to "", "type" to "PIVOT", "status" to "IDLE", "capacityMmH" to "", "fieldId" to "")
                     error = null
                     scope.launch {
-                        fieldChoices = runCatching { fields(FarmFilter.farmId) }.getOrDefault(emptyList())
+                        fieldChoices = runCatching { fields(FarmFilter.farmId.value) }.getOrDefault(emptyList())
                             .map { FormOption(it.id, it.name ?: it.id) }
                     }
                 }) { Text(S.t("form.new")) }
@@ -108,7 +109,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
                             )
                             error = null
                             scope.launch {
-                                fieldChoices = runCatching { fields(a.farmId ?: FarmFilter.farmId) }.getOrDefault(emptyList())
+                                fieldChoices = runCatching { fields(a.farmId ?: FarmFilter.farmId.value) }.getOrDefault(emptyList())
                                     .map { FormOption(it.id, it.name ?: it.id) }
                             }
                         }) { Text(S.t("form.edit")) }
@@ -153,7 +154,7 @@ fun IrrigationScreen(onBack: () -> Unit) {
             error = error,
             onDismiss = { creating = false; editing = null },
             onSave = {
-                val farmId = editing?.farmId ?: FarmFilter.farmId
+                val farmId = editing?.farmId ?: FarmFilter.farmId.value
                 if (farmId.isNullOrBlank()) {
                     error = S.t("form.needFarm")
                     return@EntityFormSheet

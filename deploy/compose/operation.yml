@@ -15,6 +15,7 @@ services:
         GRADLE_PROJECT: :backend:services:operation
         MODULE_DIR: backend/services/operation
     image: precision-farming-operation:local
+    pull_policy: never
     restart: unless-stopped
     env_file:
       - deploy/compose/demo.env
@@ -24,11 +25,20 @@ services:
       DB_PORT: "5432"
       SERVER_PORT: "8080"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9094
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 75s
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+        required: false
     networks:
       - precision-farming
 
